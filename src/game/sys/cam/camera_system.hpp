@@ -28,6 +28,15 @@ namespace mo {
 namespace sys {
 namespace cam {
 
+	struct Camera_mapping {
+		renderer::Camera camera;
+		std::vector<ecs::Entity_ptr> targets;
+
+		Camera_mapping(const Engine &engine, float world_scale)
+		    : camera(engine, world_scale) {
+		}
+	};
+
 	class Camera_system {
 		public:
 			Camera_system(ecs::Entity_manager& entity_manager, Game_engine& engine);
@@ -37,13 +46,13 @@ namespace cam {
 			auto cameras()const noexcept {return util::range(_cameras);}
 
 			auto main_camera()const noexcept -> const auto& {
-				return _cameras.front();
+				return _cameras.front().camera;
 			}
 
 		private:
 			Game_engine& _engine;
 			Camera_target_comp::Pool& _targets;
-			std::vector<renderer::Camera> _cameras;
+			std::vector<Camera_mapping> _cameras;
 	};
 
 }
