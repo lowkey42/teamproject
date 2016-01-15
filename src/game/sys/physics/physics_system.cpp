@@ -112,11 +112,8 @@ namespace physics {
 			tc.position(pos);
 
 			if(last_step) {
-				int world_x = static_cast<int>(pos.x.value());
-				int world_y = static_cast<int>(pos.y.value());
-
 				// apply friction
-				auto fric_speed = self._friction*_world.friction(world_x, world_y) *G;
+				auto fric_speed = self._friction *G;
 
 				auto vel = glm::length(remove_units(self._velocity));
 
@@ -137,13 +134,14 @@ namespace physics {
 	}
 
 	void Physics_system::_check_env_collisions(Physics_comp& a, std::vector<Manifold>& buffer) {
+/*
 		auto pos = a.owner().get<Transform_comp>().get_or_throw().position();
 		auto radius = a.radius().value();
 
-		auto min_world_x = std::max(static_cast<int>(std::floor(pos.x.value()- radius)), 0);
-		auto min_world_y = std::max(static_cast<int>(std::floor(pos.y.value()- radius)), 0);
-		auto max_world_x = std::min(static_cast<int>(std::ceil(pos.x.value()+ radius)), _world.width()-1);
-		auto max_world_y = std::min(static_cast<int>(std::ceil(pos.y.value()+ radius)), _world.height()-1);
+		auto min_world_x = static_cast<int>(std::floor(pos.x.value()- radius));
+		auto min_world_y = static_cast<int>(std::floor(pos.y.value()- radius));
+		auto max_world_x = static_cast<int>(std::ceil(pos.x.value()+ radius));
+		auto max_world_y = static_cast<int>(std::ceil(pos.y.value()+ radius));
 
 
 		for(auto x : util::range(min_world_x, max_world_x)) {
@@ -194,7 +192,7 @@ namespace physics {
 				}
 			}
 		}
-
+*/
 	}
 
 	auto Physics_system::_check_collision(Physics_comp& a, Physics_comp& b) -> util::maybe<Manifold> {

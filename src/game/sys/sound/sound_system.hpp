@@ -19,8 +19,6 @@
 #include <core/audio/audio_ctx.hpp>
 #include <core/renderer/camera.hpp>
 
-#include "../../effects.hpp"
-
 #include "sound_comp.hpp"
 
 namespace mo{
@@ -36,11 +34,7 @@ namespace sound{
 
 			void play_sounds(const renderer::Camera& camera) noexcept;
 
-			void add_effect(ecs::Entity& e, Effect_type);
-
 			void update(Time dt) noexcept;
-
-			Effect_slot effects;
 
 		private:
 			struct Sound_effect_info {

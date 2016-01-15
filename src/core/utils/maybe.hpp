@@ -158,7 +158,15 @@ namespace util {
 	}
 
 	template<typename T, typename Func>
-	auto operator>>(const maybe<T>& t, Func f) ->  maybe<decltype(f(t.get_or_throw()))> {
+	auto operator>>(const maybe<T>& t, Func f) -> std::enable_if_t<std::is_same<void,decltype(f(t.get_or_throw()))>::value,
+	                                                               void> {
+		if(t.is_some())
+			f(t.get_or_throw());
+	}
+
+	template<typename T, typename Func>
+	auto operator>>(const maybe<T>& t, Func f) -> std::enable_if_t<!std::is_same<void,decltype(f(t.get_or_throw()))>::value,
+	                                                               maybe<decltype(f(t.get_or_throw()))>> {
 		return t.is_some() ? just(f(t.get_or_throw())) : nothing();
 	}
 

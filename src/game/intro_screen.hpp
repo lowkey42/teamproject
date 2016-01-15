@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include "game_engine.hpp"
 #include "../core/engine.hpp"
 #include <core/renderer/camera.hpp>
 #include "../core/renderer/texture.hpp"
@@ -27,7 +26,7 @@ namespace mo {
 
 	class Intro_screen : public Screen {
 		public:
-			Intro_screen(Game_engine& game_engine);
+			Intro_screen(Engine& game_engine);
 			~Intro_screen()noexcept = default;
 
 		protected:
@@ -42,8 +41,6 @@ namespace mo {
 			}
 
 		private:
-
-			Game_engine& _game_engine;
 			renderer::Camera _camera;
 
 			renderer::Textured_box _box;

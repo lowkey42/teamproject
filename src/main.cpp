@@ -18,9 +18,11 @@
 #endif
 
 #include "core/utils/log.hpp"
+#include "core/utils/stacktrace.hpp"
 
-#include "game/game_engine.hpp"
+#include "core/engine.hpp"
 
+#include "game/intro_screen.hpp"
 
 #include <iostream>
 #include <exception>
@@ -28,7 +30,7 @@
 
 using namespace mo; // import game namespace
 
-std::unique_ptr<mo::Game_engine> engine;
+std::unique_ptr<mo::Engine> engine;
 
 void init(int argc, char** argv, char** env);
 void onFrame();
@@ -66,7 +68,8 @@ void init(int argc, char** argv, char** env) {
 	INFO("Nothing to see here!");
 	try {
 		util::init_stacktrace(argv[0]);
-		engine.reset(new mo::Game_engine("MagnumOpus", argc, argv, env));
+		engine.reset(new mo::Engine("MagnumOpus", argc, argv, env));
+		engine->enter_screen<Intro_screen>();
 
 	} catch (const util::Error& ex) {
 		CRASH_REPORT("Exception in init: "<<ex.what());

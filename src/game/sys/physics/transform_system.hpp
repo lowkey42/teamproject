@@ -20,10 +20,11 @@
 #include <array>
 #include <glm/gtx/norm.hpp>
 
+#include <core/utils/maybe.hpp>
+
 #include "../../../core/utils/template_utils.hpp"
 #include "transform_comp.hpp"
 #include "physics_comp.hpp"
-#include "../../level/level.hpp"
 
 
 namespace mo {
@@ -35,36 +36,34 @@ namespace physics {
 	class Transform_system : private util::slot<ecs::Component_event> {
 		public:
 			Transform_system(
-					ecs::Entity_manager& entity_manager, Distance max_entity_size,
-					int world_width, int world_height,
-			        const level::Level& world);
+					ecs::Entity_manager& entity_manager, Distance max_entity_size);
 
 			void update(Time dt);
 
 			template<typename F>
-			void foreach_in_rect(Position top_left, Position bottom_right, F func);
+			void foreach_in_rect(Position top_left, Position bottom_right, F&& func);
 
 			template<typename F>
 			void foreach_in_range(Position pos, Angle dir, Distance near,
-								  Distance max, Angle max_angle, Angle near_angle, F func);
+								  Distance max, Angle max_angle, Angle near_angle, F&& func);
 
 			template<typename F>
-			void foreach_in_cell(Position pos, F func);
+			void foreach_in_cell(Position pos, F&& func);
 
 			template<typename Pred>
 			auto raycast_nearest_entity(Position pos, Angle dir,
 										Distance max_distance,
-										Pred pred)
+										Pred&& pred)
 					-> std::tuple<util::maybe<ecs::Entity&>, Distance>;
 
 			template<typename FE, typename FW>
-			void raycast(Position pos, Angle dir, Distance max_distance, FE on_entity, FW on_wall);
+			void raycast(Position pos, Angle dir, Distance max_distance, FE&& on_entity);
 
 			/**
 			 * Calls func exactly once for each unique pair of close entities (same or adjacent cell)
 			 */
 			template<typename F>
-			void foreach_pair(F func);
+			void foreach_pair(F&& func);
 
 			void pre_reload();
 			void post_reload();
@@ -79,77 +78,84 @@ namespace physics {
 			};
 
 			void _on_comp_event(ecs::Component_event e);
-			void _clamp_position(Position& p) {
-				using namespace unit_literals;
-				p = clamp(p, {0_m, 0_m}, {(_cells_x*_cell_size-1)*1_m, (_cells_y*_cell_size-1)*1_m});
-			}
-			inline uint16_t _get_cell_idx_for(Position pos) {
-				const auto x = static_cast<uint16_t>(pos.x.value() / _cell_size);
-				const auto y = static_cast<uint16_t>(pos.y.value() / _cell_size);
+			inline Cell_key _get_cell_idx_for(Position pos)const noexcept {
+				const auto x = static_cast<int>(pos.x.value() / _cell_size);
+				const auto y = static_cast<int>(pos.y.value() / _cell_size);
 
-				return y*_cells_x + x;
+				return {x,y};
 			}
-			inline Cell_data& _get_cell_for(Position pos) {
-				return _cells.at(_get_cell_idx_for(pos));
+			inline Cell_data& _cell_for(Position pos) {
+				return _cell_for(_get_cell_idx_for(pos));
+			}
+			inline Cell_data& _cell_for(Cell_key key) {
+				_min_cell_key.x = std::min(_min_cell_key.x, key.x);
+				_min_cell_key.y = std::min(_min_cell_key.y, key.y);
+				_max_cell_key.x = std::max(_max_cell_key.x, key.x);
+				_max_cell_key.y = std::max(_max_cell_key.y, key.y);
+
+				return _cells[key];
+			}
+			inline auto _ro_cell_for(Position pos) -> util::maybe<Cell_data&> {
+				return _ro_cell_for(_get_cell_idx_for(pos));
+			}
+			inline auto _ro_cell_for(Cell_key key) -> util::maybe<Cell_data&> {
+				auto iter = _cells.find(key);
+				return util::justPtr(iter==_cells.end() ? nullptr : &iter->second);
+			}
+
+			template<typename F>
+			void foreach_in_cell(Cell_key key, F&& func) {
+				_ro_cell_for(key) >> [&func](auto& cell) {
+					for( auto ep : cell.entities)
+						func(*ep);
+				};
 			}
 
 			const Distance _max_entity_size;
 			const int _cell_size;
-			const int _cells_x;
-			const int _cells_y;
 			ecs::Entity_manager& _em;
 			Transform_comp::Pool& _pool;
 
-			std::vector<Cell_data> _cells;
-			const level::Level& _world;
+			std::unordered_map<Cell_key, Cell_data> _cells;
+
+			Cell_key _min_cell_key;
+			Cell_key _max_cell_key;
 	};
 
 	template<typename F>
-	void Transform_system::foreach_in_cell(Position pos, F func) {
-		for( auto ep : _get_cell_for(pos).entities)
-			func(*ep);
+	void Transform_system::foreach_in_cell(Position pos, F&& func) {
+		foreach_in_cell(_get_cell_idx_for(pos), std::forward<F>(func));
 	}
 
 	template<typename F>
-	void Transform_system::foreach_in_rect(Position top_left, Position bottom_right, F func) {
+	void Transform_system::foreach_in_rect(Position top_left, Position bottom_right, F&& func) {
 		using util::range;
 
 		top_left-=_max_entity_size;      //< take overlap into account
 		bottom_right+=_max_entity_size;
 
-		auto xb = static_cast<int32_t>(clamp(top_left.x.value()/_cell_size, 0, _cells_x));
-		auto yb = static_cast<int32_t>(clamp(top_left.y.value()/_cell_size, 0, _cells_y));
-		auto xe = static_cast<int32_t>(clamp(bottom_right.x.value()/_cell_size+1, 0, _cells_x));
-		auto ye = static_cast<int32_t>(clamp(bottom_right.y.value()/_cell_size+1, 0, _cells_y));
+		auto xb = static_cast<int32_t>(top_left.x.value()/_cell_size);
+		auto yb = static_cast<int32_t>(top_left.y.value()/_cell_size);
+		auto xe = static_cast<int32_t>(bottom_right.x.value()/_cell_size+1);
+		auto ye = static_cast<int32_t>(bottom_right.y.value()/_cell_size+1);
 
-		for(auto y : range(yb,ye-1)) {
-			for(auto x : range(xb,xe-1)) {
-				for(auto ep :  _cells.at(y*_cells_x +x).entities) {
-					func(*ep);
-				}
+		for(auto x : range(xb,xe-1)) {
+			for(auto y : range(yb,ye-1)) {
+				foreach_in_cell(Cell_key{x,y}, func);
 			}
 		}
 	}
 
 	template<typename FE, typename FW>
 	void Transform_system::raycast(Position start, Angle dir,
-								   Distance max_distance, FE on_entity, FW on_wall) {
+								   Distance max_distance, FE&& on_entity) {
 		using namespace unit_literals;
 		using namespace util;
 		using namespace glm;
 
 		auto step = rotate(Position{0.1_m, 0_m}, dir);
 
-		auto p=start;
-		auto dist=0_m;
-		for(; dist<=max_distance; dist+=0.1_m, p+=step) {
-			auto x = static_cast<int32_t>(p.x.value()+0.5f);
-			auto y = static_cast<int32_t>(p.y.value()+0.5f);
-			if(_world.solid_real(p.x.value(), p.y.value())) {
-				on_wall(x,y,dist.value());
-				break;
-			}
-		}
+		auto dist=max_distance;
 
 		auto dist_2 = dist.value() * dist.value();
 		auto end = step * dist.value();
@@ -194,7 +200,7 @@ namespace physics {
 	template<typename Pred>
 	auto Transform_system::raycast_nearest_entity(Position pos, Angle dir,
 												  Distance max_distance,
-												  Pred pred)
+												  Pred&& pred)
 					-> std::tuple<util::maybe<ecs::Entity&>, Distance> {
 		auto ret = util::maybe<ecs::Entity&>{};
 		auto dist = max_distance.value();
@@ -203,11 +209,6 @@ namespace physics {
 			if(d<=dist && pred(e)) {
 				dist = d;
 				ret = e;
-			}
-		}, [&](int32_t x, int32_t y, float d) {
-			if(d<=dist) {
-				dist = d;
-				ret = util::nothing();
 			}
 		});
 
@@ -218,7 +219,7 @@ namespace physics {
 	template<typename F>
 	void Transform_system::foreach_in_range(Position pos, Angle dir, Distance near,
 											Distance max, Angle max_angle,
-											Angle near_angle, F func) {
+											Angle near_angle, F&& func) {
 		using namespace unit_literals;
 
 		const auto max_p = Position{max, max};
@@ -242,18 +243,6 @@ namespace physics {
 					Angle a = distance_2<near_2 ? near_angle : max_angle;
 
 					if(dir_diff<=a/2.f) {
-						auto distance = glm::sqrt(distance_2);
-
-						if(distance>0) {
-							auto step = diff / distance;
-							auto mp = pos;
-							for(float d=0; d<=distance; d++) {
-								mp+=step;
-								if(this->_world.solid(mp.x.value()+0.5f, mp.y.value()+0.5f))
-									return;
-							}
-						}
-
 						func(e);
 					}
 				}
@@ -262,12 +251,16 @@ namespace physics {
 	}
 
 	template<typename F>
-	void Transform_system::foreach_pair(F func) {
+	void Transform_system::foreach_pair(F&& func) {
 		using util::range;
 
-		for(auto y : range(_cells_y)) {
-			for(auto x : range(_cells_x)) {
-				auto& ce = _cells.at(y*_cells_x + x).entities;
+		for(auto y : range(_min_cell_key.y, _max_cell_key.y+1)) {
+			for(auto x : range(_min_cell_key.x, _max_cell_key.x+1)) {
+				auto cell_a = _ro_cell_for(Cell_key{x,y});
+				if(cell_a.is_nothing())
+					continue;
+
+				auto& ce = cell_a.get_or_throw().entities;
 				for( auto a=ce.begin(); a!=ce.end(); ++a) {
 					// compare with current cell
 					for( auto b=a+1; b!=ce.end(); ++b) {
@@ -280,10 +273,9 @@ namespace physics {
 							if(ny==y && nx==x)
 								continue;
 
-							auto& nce = _cells.at(ny*_cells_x + nx).entities;
-							for( auto& b : nce) {
-								func(**a, *b);
-							}
+							foreach_in_cell(Cell_key{nx,ny}, [&](auto& b) {
+								func(**a, b);
+							});
 						}
 					}
 				}

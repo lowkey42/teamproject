@@ -2,7 +2,6 @@
 
 #include "utils/log.hpp"
 
-#include "configuration.hpp"
 #include "input_manager.hpp"
 #include "renderer/graphics_ctx.hpp"
 #include "audio/audio_ctx.hpp"

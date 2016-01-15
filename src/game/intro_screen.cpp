@@ -4,11 +4,10 @@
 #include "../core/renderer/graphics_ctx.hpp"
 
 #include <core/audio/music.hpp>
+#include <core/audio/audio_ctx.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include "main_menu_screen.hpp"
 
 
 namespace mo {
@@ -16,31 +15,11 @@ namespace mo {
 	using namespace renderer;
 
 	namespace {
-		struct ui_controller : sys::controller::Controllable_interface{
-
-			ui_controller(Game_engine& engine) : _engine(engine){}
-
-			void move(glm::vec2 direction) override {}
-			void look_at(glm::vec2 position) override {}
-			void look_in_dir(glm::vec2 direction) override {}
-			void attack() override { enter_game(); }
-			void use() override { enter_game(); }
-			void take() override { enter_game(); }
-			void switch_weapon(uint32_t weapon_id) override { enter_game(); }
-
-			void enter_game(){
-				_engine.enter_screen<Main_menu_screen>();
-			}
-
-			Game_engine& _engine;
-		};
-
 		constexpr Time fade = 2_s;
 	}
 
-	Intro_screen::Intro_screen(Game_engine& game_engine) :
+	Intro_screen::Intro_screen(Engine& game_engine) :
 		Screen(game_engine),
-		_game_engine(game_engine),
 	    _camera(calculate_vscreen(game_engine, 512)),
 		_box(game_engine.assets(),  game_engine.assets().load<Texture>("tex:ui_intro"_aid),  _camera.viewport().w*2.f, _camera.viewport().w),
 	    _box2(game_engine.assets(), game_engine.assets().load<Texture>("tex:ui_intro2"_aid), _camera.viewport().w*2.f, _camera.viewport().w),
@@ -61,10 +40,6 @@ namespace mo {
 	void Intro_screen::_update(float delta_time) {
 		_fade_left-=delta_time * second;
 		_fadein_left-=delta_time * second;
-
-		ui_controller uic(_game_engine);
-		_game_engine.controllers().main_controller()(uic);
-
 	}
 
 

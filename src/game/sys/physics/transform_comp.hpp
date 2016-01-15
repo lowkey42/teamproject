@@ -24,6 +24,20 @@ namespace physics {
 
 	class Transform_system;
 
+	struct Cell_key {
+		int32_t x,y;
+
+		bool operator<(const Cell_key& rhs)const noexcept {
+			return std::tie(x,y) < std::tie(rhs.x,rhs.y);
+		}
+		bool operator==(const Cell_key& rhs)const noexcept {
+			return std::tie(x,y) == std::tie(rhs.x,rhs.y);
+		}
+		bool operator!=(const Cell_key& rhs)const noexcept {
+			return !(*this==rhs);
+		}
+	};
+
 	class Transform_comp : public ecs::Component<Transform_comp> {
 		public:
 			static constexpr const char* name() {return "Transform";}
@@ -67,10 +81,19 @@ namespace physics {
 			bool _rotation_fixed = false;
 			Angle_per_time _max_rotation_speed;
 			float _max_rotation_speed_factor = 1.f;
-			int32_t _cell_idx = -1;
+			Cell_key _cell_idx;
 			bool _dirty = true;
 	};
 
 }
 }
+}
+
+namespace std {
+	template <> struct hash<mo::sys::physics::Cell_key> {
+		auto operator()(mo::sys::physics::Cell_key key)const noexcept -> size_t {
+			static_assert(sizeof(size_t)==sizeof(int32_t)+4, "Bytesize doesn't match");
+			return key.x + (static_cast<size_t>(key.y)<<32);
+		}
+	};
 }

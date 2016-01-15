@@ -22,26 +22,17 @@ namespace physics {
 
 			return n;
 		}
-		int divide_ceil(int a, int b) {
-			return static_cast<int>(std::ceil(
-				  static_cast<float>(a)/b
-			));
-		}
 		int calc_cell_size(Distance max_entity_size) {
 			return next_pot(static_cast<uint32_t>(std::ceil(max_entity_size.value()*2)));
 		}
 	}
 
 	Transform_system::Transform_system(
-			ecs::Entity_manager& entity_manager, Distance max_entity_size,
-			int world_width, int world_height, const level::Level& world)
+			ecs::Entity_manager& entity_manager, Distance max_entity_size)
 		: util::slot<ecs::Component_event>(&Transform_system::_on_comp_event, this),
 	      _max_entity_size(max_entity_size),
 		  _cell_size(calc_cell_size(max_entity_size)),
-		  _cells_x(divide_ceil(world_width, _cell_size)), _cells_y(divide_ceil(world_height, _cell_size)),
-		  _em(entity_manager), _pool(_em.list<Transform_comp>()),
-		  _cells(_cells_y*_cells_x),
-		  _world(world) {
+		  _em(entity_manager), _pool(_em.list<Transform_comp>()) {
 
 		_em.register_component_type<physics::Transform_comp>();
 
@@ -52,7 +43,6 @@ namespace physics {
 		for(auto& c : _pool) {
 			c._max_rotation_speed_factor = 1.f;
 			if(c._dirty) {
-				_clamp_position(c._position);
 				c._dirty = false;
 
 				auto old_cell_idx = c._cell_idx;
@@ -61,13 +51,12 @@ namespace physics {
 				if(old_cell_idx!=new_cell_idx) {
 					c._cell_idx = new_cell_idx;
 
-					auto& new_cell = _cells.at(new_cell_idx);
+					auto& new_cell = _cell_for(new_cell_idx);
 					new_cell.add(c.owner());
 
-					if(old_cell_idx>=0) {
-						auto& old_cell = _cells.at(old_cell_idx);
-						old_cell.remove(c.owner());
-					}
+					_ro_cell_for(old_cell_idx) >> [&](auto& cell) {
+						cell.remove(c.owner());
+					};
 				}
 			}
 		}
@@ -75,8 +64,10 @@ namespace physics {
 
 	void Transform_system::_on_comp_event(ecs::Component_event e) {
 		e.handle.get<Transform_comp>().process([&](Transform_comp& trans){
-			if(e.type!=ecs::Component_event_type::created && trans._cell_idx>=0) {
-				_cells[trans._cell_idx].remove(trans.owner());
+			if(e.type!=ecs::Component_event_type::created) {
+				_ro_cell_for(trans._cell_idx) >> [&](auto& cell) {
+					cell.remove(trans.owner());
+				};
 			}
 		});
 	}
@@ -97,8 +88,9 @@ namespace physics {
 	}
 
 	void Transform_system::pre_reload() {
-		for(auto& c : _cells)
-			c.entities.clear();
+		_cells.clear();
+		_min_cell_key = {0,0};
+		_max_cell_key = {0,0};
 	}
 
 	void Transform_system::post_reload() {

@@ -38,10 +38,6 @@ namespace graphic{
 			void draw(const renderer::Camera& camera) noexcept;
 			void update(Time dt) noexcept;
 
-			void add_effect(ecs::Entity& e, Effect_type);
-
-			Effect_slot effects;
-
 		private:
 			void _on_state_change(ecs::Entity& e, state::State_data& data);
 			void _create_emiter(Particle_emiter_comp::Emiter&);

@@ -16,38 +16,10 @@ namespace sound {
 
 	using namespace unit_literals;
 
+	/*
 	namespace {
 		auto effect_time(Effect_type e) -> Time {
 			switch(e) {
-				case Effect_type::none:              return 1_s;
-				case Effect_type::element_fire:      return 0.1_s;
-				case Effect_type::element_frost:     return 0.1_s;
-				case Effect_type::element_water:     return 0.1_s;
-				case Effect_type::element_stone:     return 0.1_s;
-				case Effect_type::element_gas:       return 0.1_s;
-				case Effect_type::element_lightning: return 0.1_s;
-				case Effect_type::health:            return 0.1_s;
-				case Effect_type::blood:             return 0.1_s;
-
-				case Effect_type::flame_thrower:     return 0.6_s;
-				case Effect_type::flame_thrower_big: return 0.6_s;
-				case Effect_type::poison_thrower:    return 0.6_s;
-				case Effect_type::frost_thrower:     return 0.6_s;
-				case Effect_type::water_thrower:     return 0.6_s;
-				case Effect_type::wind_thrower:      return 0.6_s;
-
-				case Effect_type::steam:             return 1.0_s;
-				case Effect_type::poison_cloud:      return 1.0_s;
-
-				case Effect_type::burning:           return 0.6_s;
-				case Effect_type::poisoned:          return 0.6_s;
-				case Effect_type::frozen:            return 0.6_s;
-				case Effect_type::confused:          return 0.6_s;
-
-				case Effect_type::explosion_fire:    return 0.6_s;
-				case Effect_type::explosion_poison:  return 0.6_s;
-				case Effect_type::explosion_ice:     return 0.6_s;
-				case Effect_type::explosion_stone:   return 0.6_s;
 				default: return 0.5_s;
 			}
 			FAIL("UNREACHABLE, maybe");
@@ -65,19 +37,19 @@ namespace sound {
 		sf2_structDef(Sound_effect_data_value, sound, is_static)
 		sf2_structDef(Sound_effect_data, effects)
 	}
+	*/
 
 	Sound_system::Sound_system(asset::Asset_manager& assets,
 	                           ecs::Entity_manager& entity_manager,
 	                           physics::Transform_system& ts,
 							   audio::Audio_ctx& audio_ctx) noexcept
-		: effects(&Sound_system::add_effect, this),
-	      _transform(ts),
+		: _transform(ts),
 		  _audio_ctx(audio_ctx),
 		  _sounds(entity_manager.list<Sound_comp>()),
-	      _sound_effects(effect_type_count)
+	      _sound_effects()
 	{
 		entity_manager.register_component_type<Sound_comp>();
-
+/*
 		auto se_data = assets.load<Sound_effect_data>("cfg:sound_effects"_aid);
 
 		for(std::size_t i=0; i<effect_type_count; ++i) {
@@ -87,6 +59,7 @@ namespace sound {
 				_sound_effects[i].static_sound = iter->second.is_static;
 			}
 		}
+		*/
 	}
 
 	namespace {
@@ -153,7 +126,7 @@ namespace sound {
 		}
 	}
 
-
+/*
 	void Sound_system::add_effect(ecs::Entity& e, Effect_type effect) {
 		auto idx = static_cast<std::size_t>(effect);
 
@@ -172,7 +145,7 @@ namespace sound {
 			}
 		}
 	}
-
+*/
 }
 }
 }

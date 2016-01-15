@@ -19,11 +19,12 @@
 #include <core/renderer/particles.hpp>
 #include <array>
 
-#include "../../effects.hpp"
 
 namespace mo {
 namespace sys {
 namespace graphic {
+
+	using Effect_type = int;
 
 	class Particle_emiter_comp : public ecs::Component<Particle_emiter_comp> {
 		public:
@@ -49,7 +50,7 @@ namespace graphic {
 
 			struct Emiter {
 				renderer::Particle_emiter_ptr _emiter;
-				Effect_type                   _type = Effect_type::none;
+				Effect_type                   _type = 0;
 				bool                          _enabled = false;
 				bool                          _to_be_disabled = false;
 				bool                          _temporary = false;

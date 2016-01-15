@@ -14,32 +14,7 @@ namespace graphic {
 
 	namespace {
 		bool is_lazy_particle(Effect_type t) {
-			switch(t) {
-				case Effect_type::none:              return true;
-				case Effect_type::element_fire:      return true;
-				case Effect_type::element_frost:     return true;
-				case Effect_type::element_water:     return true;
-				case Effect_type::element_stone:     return true;
-				case Effect_type::element_gas:       return true;
-				case Effect_type::element_lightning: return true;
-				case Effect_type::health:            return true;
 
-
-				case Effect_type::flame_thrower:     return false;
-				case Effect_type::flame_thrower_big: return false;
-				case Effect_type::burning:           return false;
-				case Effect_type::poisoned:          return false;
-				case Effect_type::frozen:            return false;
-				case Effect_type::confused:          return false;
-
-				case Effect_type::explosion_fire:    return true;
-				case Effect_type::explosion_poison:  return true;
-				case Effect_type::explosion_ice:     return true;
-				case Effect_type::explosion_stone:   return true;
-
-				default:
-					return false;
-			}
 			FAIL("UNREACHABLE, maybe");
 		}
 	}
@@ -50,8 +25,7 @@ namespace graphic {
 	        asset::Asset_manager& asset_manager,
 	        renderer::Particle_renderer& particle_renderer,
 	        state::State_system& state_system) noexcept
-		: effects(&Graphic_system::add_effect, this),
-	      _assets(asset_manager),
+		: _assets(asset_manager),
 	      _particle_renderer(particle_renderer),
 	      _transform(ts),
 	      _sprite_batch(asset_manager),
@@ -63,33 +37,6 @@ namespace graphic {
 
 		entity_manager.register_component_type<Sprite_comp>();
 		entity_manager.register_component_type<Particle_emiter_comp>();
-	}
-
-
-	void Graphic_system::add_effect(ecs::Entity& entity, Effect_type type) {
-		auto emiter_m = entity.get<Particle_emiter_comp>();
-		auto& emiter = emiter_m.is_some() ? emiter_m.get_or_throw()
-		                                  : entity.emplace<Particle_emiter_comp>();
-
-		for(auto i : util::range(Particle_emiter_comp::max_emiters)) {
-			auto& e = emiter._emiters[i];
-			if(e._type==type) {
-				emiter.particle_type(i, type, false);
-				emiter.enabled(i, true, true);
-				return;
-			}
-		}
-
-		for(auto i : util::range(Particle_emiter_comp::max_emiters)) {
-			auto& e = emiter._emiters[i];
-			if(!e._enabled) {
-				emiter.particle_type(i, type, false);
-				emiter.enabled(i, true, true);
-				return;
-			}
-		}
-
-		DEBUG("Not enough particle emmiter slots");
 	}
 
 	void Graphic_system::draw(const renderer::Camera& camera) noexcept{
@@ -158,6 +105,7 @@ namespace graphic {
 		}
 	}
 
+	/*
 	namespace {
 		Particle_emiter_ptr create_orb_emiter(Texture_ptr tex,
 		                                      Particle_renderer& particle_renderer) {
@@ -244,8 +192,11 @@ namespace graphic {
 					asset::Asset_type::tex, std::move(tex_name)));
 		}
 	}
+	*/
 
 	void Graphic_system::_create_emiter(Particle_emiter_comp::Emiter& e) {
+		// TODO: replace with better implementation
+		/*
 		if(!e._emiter && e._enabled) {
 			switch(e._type) {
 				case Effect_type::none:
@@ -505,10 +456,12 @@ namespace graphic {
 					// TODO
 			}
 		}
+		*/
 	}
 
 	void Graphic_system::_on_state_change(ecs::Entity& entity, state::State_data& data){
-
+		// TODO: replace with better implementation
+/*
 		entity.get<Sprite_comp>().process([&](Sprite_comp& sprite) {
 			bool toRepeat = false;
 			renderer::Animation_type type;
@@ -579,6 +532,7 @@ namespace graphic {
 			// calculating remaining time for current animation and inform state_comp about it
 			data.min_time(sprite.animation()->remaining_time(sprite.animation_type(), sprite.current_frame()));
 		});
+		*/
 	}
 
 }

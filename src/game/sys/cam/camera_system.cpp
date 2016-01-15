@@ -1,7 +1,5 @@
 #include "camera_system.hpp"
 
-#include <game/game_engine.hpp>
-
 #include "../physics/transform_comp.hpp"
 #include "../physics/physics_comp.hpp"
 
@@ -22,7 +20,7 @@ namespace cam {
 		: camera(vsize, world_scale), vscreen(real_size.x, real_size.y, true) {
 	}
 
-	Camera_system::Camera_system(ecs::Entity_manager& entity_manager, Game_engine& engine)
+	Camera_system::Camera_system(ecs::Entity_manager& entity_manager, Engine& engine)
 		: _gctx(engine.graphics_ctx()),
 	      _targets(entity_manager.list<Camera_target_comp>()),
 		  _vscreen_size(renderer::calculate_vscreen(engine, vscreen_height)),

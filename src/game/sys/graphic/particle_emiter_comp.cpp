@@ -24,7 +24,7 @@ namespace graphic {
 
 		Emiter_state(){}
 
-		Effect_type type=Effect_type::none;
+		Effect_type type=0;
 		bool enabled=true;
 		bool scale=false;
 		bool temporary=false;

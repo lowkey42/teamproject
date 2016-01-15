@@ -43,7 +43,7 @@ namespace cam {
 
 	class Camera_system {
 		public:
-			Camera_system(ecs::Entity_manager& entity_manager, Game_engine& engine);
+			Camera_system(ecs::Entity_manager& entity_manager, Engine& engine);
 
 			void update(Time dt);
 
