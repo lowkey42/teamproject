@@ -208,7 +208,7 @@ namespace renderer {
 	}
 
 	void Font::bind()const{
-		_texture->bind();
+		_texture->bind(0);
 	}
 
 
@@ -233,7 +233,7 @@ namespace renderer {
 	Text_dynamic::Text_dynamic(Font_ptr font)
 	    : _font(font),
 	      _data(),
-	      _obj(text_vertex_layout, create_dynamic_buffer<Font_vertex>(4*5)) {
+	      _obj(text_vertex_layout, create_dynamic_buffer<Font_vertex>(3*2*10)) { // initial size = 10 letters
 	}
 
 	void Text_dynamic::draw()const {
@@ -264,6 +264,8 @@ namespace renderer {
 		    .attach_shader(assets.load<renderer::Shader>("frag_shader:simple"_aid))
 		    .bind_all_attribute_locations(renderer::text_vertex_layout)
 		    .build()
+		    .bind()
+		    .set_uniform("texture", 0)
 		    .detach_all();
 	}
 

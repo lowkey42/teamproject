@@ -21,6 +21,7 @@
 #include "../core/renderer/shader.hpp"
 #include "../core/renderer/vertex_object.hpp"
 #include "../core/renderer/primitives.hpp"
+#include "../core/renderer/text.hpp"
 
 namespace mo {
 
@@ -30,8 +31,8 @@ namespace mo {
 			~Intro_screen()noexcept = default;
 
 		protected:
-			void _update(float delta_time)override;
-			void _draw(float delta_time)override;
+			void _update(Time delta_time)override;
+			void _draw()override;
 
 			void _on_enter(util::maybe<Screen&> prev) override;
 			void _on_leave(util::maybe<Screen&> next) override;
@@ -41,11 +42,16 @@ namespace mo {
 			}
 
 		private:
+			util::Mailbox_collection _mailbox;
+
 			renderer::Camera _camera;
 
 			renderer::Textured_box _box;
 			renderer::Textured_box _box2;
 			renderer::Textured_box _circle;
+
+			renderer::Text_renderer _text_renderer;
+			renderer::Text_dynamic _debug_Text;
 
 			Time _fade_left;
 			Time _fadein_left;

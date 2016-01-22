@@ -1,5 +1,8 @@
 #ifndef ANDROID
 	#include <GL/glew.h>
+	#include <GL/gl.h>
+#else
+	#include <GLES2/gl2.h>
 #endif
 
 #include "graphics_ctx.hpp"
@@ -7,7 +10,6 @@
 #include <iostream>
 #include <sstream>
 #include <cstdio>
-#include <GLES2/gl2.h>
 #include <sf2/sf2.hpp>
 
 #include "../utils/log.hpp"
@@ -15,6 +17,9 @@
 
 namespace mo {
 namespace renderer {
+
+	using namespace unit_literals;
+
 	namespace {
 		void sdl_error_check() {
 			const char *err = SDL_GetError();
@@ -114,7 +119,7 @@ namespace renderer {
 			sdl_error_check();
 
 		} catch (const std::runtime_error& ex) {
-			FAIL("Failure to create OpenGL context. This application requires a OpenGL 3.3 capable GPU. Error was: "<< ex.what());
+			FAIL("Failure to create OpenGL context. This application requires a OpenGL ES 2.0 capable GPU. Error was: "<< ex.what());
 		}
 
 		if(SDL_GL_SetSwapInterval(-1)) SDL_GL_SetSwapInterval(1);
@@ -124,8 +129,6 @@ namespace renderer {
 		glewInit();
 
 	#ifndef EMSCRIPTEN
-		INVARIANT(GLEW_VERSION_2_0, "Requested OpenGL 3.3 Context but 3.3 Features are not available.");
-
 		if(GLEW_KHR_debug){
 			glDebugMessageCallback((GLDEBUGPROC)gl_debug_callback, stderr);
 		}
@@ -155,14 +158,14 @@ namespace renderer {
 
 		_frame_start_time = SDL_GetTicks() / 1000.0f;
 	}
-	void Graphics_ctx::end_frame(float delta_time) {
+	void Graphics_ctx::end_frame(Time delta_time) {
 		float smooth_factor=0.1f;
-		_delta_time_smoothed=(1.0f-smooth_factor)*_delta_time_smoothed+smooth_factor*delta_time;
+		_delta_time_smoothed=(1.0f-smooth_factor)*_delta_time_smoothed+smooth_factor*delta_time/second;
 
 		float cpu_delta_time = SDL_GetTicks() / 1000.0f - _frame_start_time;
 		_cpu_delta_time_smoothed=(1.0f-smooth_factor)*_cpu_delta_time_smoothed+smooth_factor*cpu_delta_time;
 
-		_time_since_last_FPS_output+=delta_time;
+		_time_since_last_FPS_output+=delta_time/second;
 		if(_time_since_last_FPS_output>=1.0f){
 			_time_since_last_FPS_output=0.0f;
 			std::ostringstream osstr;
@@ -174,8 +177,8 @@ namespace renderer {
 		SDL_GL_SwapWindow(_window.get());
 
 		// unbind texture
-		glActiveTexture(0);
-		glBindTexture(GL_TEXTURE_2D, 0);
+//		glActiveTexture(0);
+//		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	void Graphics_ctx::set_clear_color(float r, float g, float b) {
 		_clear_color = glm::vec3(r,g,b);

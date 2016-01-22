@@ -1,7 +1,13 @@
+#ifndef ANDROID
+	#include <GL/glew.h>
+	#include <GL/gl.h>
+#else
+	#include <GLES2/gl2.h>
+#endif
+
 #include "texture.hpp"
 
 #include <SDL2/SDL.h>
-#include <GLES2/gl2.h>
 #include <soil/SOIL2.h>
 
 namespace mo {
@@ -80,14 +86,14 @@ namespace renderer {
 	void Texture::bind(int index)const {
 		auto tex = GL_TEXTURE0+index;
 		INVARIANT(tex<GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, "to many textures");
-		glActiveTexture(tex);
+	//	glActiveTexture(index);
 		glBindTexture(GL_TEXTURE_2D, _handle);
 	}
 	void Texture::unbind(int index)const {
-		auto tex = GL_TEXTURE0+index;
-		INVARIANT(tex<GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, "to many textures");
-		glActiveTexture(tex);
-		glBindTexture(GL_TEXTURE_2D, 0);
+	//	auto tex = GL_TEXTURE0+index;
+	//	INVARIANT(tex<GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, "to many textures");
+	//	glActiveTexture(index);
+	//	glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	Framebuffer::Framebuffer(int width, int height, bool depth_buffer)

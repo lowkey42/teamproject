@@ -5,7 +5,7 @@ add_subdirectory(core)
 
 project(MagnumOpus)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
 
 include_directories(${ROOT_DIR}/src)
 

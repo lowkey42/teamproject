@@ -22,6 +22,9 @@
 #include <SDL2/SDL.h>
 #include <glm/vec3.hpp>
 
+#include "../units.hpp"
+
+
 namespace mo {
 	namespace asset{
 		class Asset_manager;
@@ -34,7 +37,7 @@ namespace renderer {
 			~Graphics_ctx();
 
 			void start_frame();
-			void end_frame(float delta_time);
+			void end_frame(Time delta_time);
 			void set_clear_color(float r, float g, float b);
 
 			void reset_viewport()const noexcept;

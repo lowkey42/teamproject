@@ -1,9 +1,15 @@
+#ifndef ANDROID
+	#include <GL/glew.h>
+	#include <GL/gl.h>
+#else
+	#include <GLES2/gl2.h>
+#endif
+
 #include "shader.hpp"
 
 #include "../utils/string_utils.hpp"
 #include "../utils/log.hpp"
 
-#include <GLES2/gl2.h>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "vertex_object.hpp"

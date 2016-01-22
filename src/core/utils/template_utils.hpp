@@ -63,6 +63,11 @@ namespace util {
 	}
 
 	template<typename T>
+	T identity(T t) {
+		return t;
+	}
+
+	template<typename T>
 	constexpr T max(T a, T b) {
 		return a<b ? b : a;
 	}
@@ -109,6 +114,10 @@ namespace util {
 			}
 			Iter end()const noexcept {
 				return e;
+			}
+
+			std::size_t size()const noexcept {
+				return std::distance(b,e);
 			}
 
 		private:

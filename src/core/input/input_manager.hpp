@@ -15,38 +15,71 @@
 
 #pragma once
 
-#include "utils/events.hpp"
+#include "types.hpp"
+#include "events.hpp"
+
+#include "../units.hpp"
+#include "../utils/messagebus.hpp"
+#include "../utils/str_id.hpp"
 
 #include <glm/vec2.hpp>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_gamecontroller.h>
+#include <memory>
+#include <unordered_map>
+
 
 namespace mo {
+	namespace asset {
+		class Asset_manager;
+	}
+
+namespace input {
+
+	class Input_mapper;
 
 	class Input_manager {
+		private:
+			static constexpr auto _max_pointers = 2;
 		public:
-			Input_manager();
+			Input_manager(util::Message_bus& bus, asset::Asset_manager&);
 			Input_manager(const Input_manager&) = delete;
 			Input_manager(Input_manager&&) = delete;
 			~Input_manager()noexcept;
 
-			void update(float dt);
+			void update(Time dt);
 			void handle_event(SDL_Event& event);
 
-		public: // event-sources
-			util::signal_source<SDL_KeyboardEvent> keyboard_events;
-			util::signal_source<SDL_MouseMotionEvent> mouse_events;
-			util::signal_source<SDL_MouseButtonEvent> button_events;
-			util::signal_source<SDL_GameController*> gamepad_added_events;
-			util::signal_source<SDL_GameController*> gamepad_removed_events;
+			void screen_to_world_coords(std::function<glm::vec2(glm::vec2)> func) {
+				_screen_to_world_coords = func;
+			}
+
+			auto pointer_world_position(int idx=0)const noexcept {
+				return _pointer_active[idx] ? util::justCopy(_pointer_world_pos[idx]) : util::nothing();
+			}
+			auto pointer_screen_position(int idx=0)const noexcept {
+				return _pointer_active[idx] ? util::justCopy(_pointer_screen_pos[idx]) : util::nothing();
+			}
+
+			void enable_context(Context_id id);
 
 		private:
 			void _add_gamepad(int joystick_id);
 			void _remove_gamepad(int instance_id);
 
 		private:
+			class Gamepad;
 
-			std::vector<SDL_GameController*> _gamepads;
+			util::Mailbox_collection _mailbox;
+
+			std::function<glm::vec2(glm::vec2)> _screen_to_world_coords;
+			std::vector<std::unique_ptr<Gamepad>> _gamepads;
+
+			std::array<glm::vec2, _max_pointers> _pointer_screen_pos;
+			std::array<glm::vec2, _max_pointers> _pointer_world_pos;
+			std::array<bool,      _max_pointers> _pointer_active;
+
+			std::unique_ptr<Input_mapper> _mapper;
 	};
 
+}
 }

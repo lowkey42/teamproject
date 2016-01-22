@@ -59,16 +59,17 @@ namespace util {
 				return *this;
 			}
 			maybe& operator=(maybe&& o)noexcept {
-				_valid = o._valid;
 				if(o._valid) {
 					if(_valid)
 						_data = std::move(o._data);
 					else
 						new(&_data) T(std::move(o._data));
+
+					o._data.~T();
 				}
 
+				_valid = o._valid;
 				o._valid = false;
-				o._data.~T();
 				return *this;
 			}
 
@@ -158,16 +159,18 @@ namespace util {
 	}
 
 	template<typename T, typename Func>
-	auto operator>>(const maybe<T>& t, Func f) -> std::enable_if_t<std::is_same<void,decltype(f(t.get_or_throw()))>::value,
-	                                                               void> {
-		if(t.is_some())
-			f(t.get_or_throw());
+	auto operator>>(const maybe<T>& t, Func f)
+			->  std::enable_if_t<!std::is_same<void,decltype(f(t.get_or_throw()))>::value,
+			                     maybe<decltype(f(t.get_or_throw()))>> {
+		return t.is_some() ? just(f(t.get_or_throw())) : nothing();
 	}
 
 	template<typename T, typename Func>
-	auto operator>>(const maybe<T>& t, Func f) -> std::enable_if_t<!std::is_same<void,decltype(f(t.get_or_throw()))>::value,
-	                                                               maybe<decltype(f(t.get_or_throw()))>> {
-		return t.is_some() ? just(f(t.get_or_throw())) : nothing();
+	auto operator>>(const maybe<T>& t, Func f)
+			->  std::enable_if_t<std::is_same<void,decltype(f(t.get_or_throw()))>::value,
+			                     void> {
+		if(t.is_some())
+			f(t.get_or_throw());
 	}
 
 	template<typename T>

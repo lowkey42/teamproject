@@ -92,8 +92,7 @@ namespace physics {
 namespace std {
 	template <> struct hash<mo::sys::physics::Cell_key> {
 		auto operator()(mo::sys::physics::Cell_key key)const noexcept -> size_t {
-			static_assert(sizeof(size_t)==sizeof(int32_t)+4, "Bytesize doesn't match");
-			return key.x + (static_cast<size_t>(key.y)<<32);
+			return static_cast<size_t>(key.x)*31 + key.y;
 		}
 	};
 }

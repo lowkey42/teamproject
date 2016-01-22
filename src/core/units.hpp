@@ -18,8 +18,10 @@
 #include <glm/vec2.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+
 #include <cmath>
 #include <type_traits>
+
 
 namespace mo {
 	constexpr float PI = 3.14159265358979323846264338327950288f;
@@ -27,6 +29,9 @@ namespace mo {
 	inline constexpr float clamp(float v, float min, float max)noexcept {
 		return v>min ? (v>max?max:v) : min;
 	}
+
+	using Rgba = glm::vec4;
+	using Rgb = glm::vec3;
 
 	template<class S>
 	struct Value_type {
@@ -102,9 +107,9 @@ namespace mo {
 		constexpr float in_degrees()const noexcept {return val * (180.f / PI);}
 	};
 
-	inline Angle sin(Angle a)noexcept {return Angle(std::sin(a.value()));}
-	inline Angle cos(Angle a)noexcept {return Angle(std::cos(a.value()));}
-	inline Angle tan(Angle a)noexcept {return Angle(std::tan(a.value()));}
+	inline float sin(Angle a)noexcept {return std::sin(a.value());}
+	inline float cos(Angle a)noexcept {return std::cos(a.value());}
+	inline float tan(Angle a)noexcept {return std::tan(a.value());}
 
 	inline constexpr Angle normalize(Angle a)noexcept {
 		return Angle{((a.value()/(2*PI)) - static_cast<int32_t>(a.value()/(2*PI))) * 2*PI};
@@ -218,6 +223,10 @@ namespace mo {
 	inline glm::vec2 remove_units(glm::detail::tvec2<T, glm::highp> v)noexcept {
 		return glm::vec2(remove_unit(v.x), remove_unit(v.y));
 	}
+	template<typename T>
+	inline glm::vec3 remove_units(glm::detail::tvec3<T, glm::highp> v)noexcept {
+		return glm::vec3(remove_unit(v.x), remove_unit(v.y), remove_unit(v.z));
+	}
 
 	template<typename T>
 	inline glm::detail::tvec2<T, glm::highp> clamp(glm::detail::tvec2<T, glm::highp> v, glm::detail::tvec2<T, glm::highp> min, glm::detail::tvec2<T, glm::highp> max)noexcept {
@@ -229,6 +238,13 @@ namespace mo {
 			-> glm::detail::tvec2<T, glm::highp> {
 		auto r = glm::rotate(remove_units(v), a.value());
 		return {T{r.x}, T{r.y}};
+	}
+	template<typename T>
+	inline auto rotate(glm::detail::tvec3<T, glm::highp> v,
+	                   Angle a, glm::vec3 axis)noexcept
+			-> glm::detail::tvec3<T, glm::highp> {
+		auto r = glm::rotate(remove_units(v), a.value(), axis);
+		return {T{r.x}, T{r.y}, T{r.z}};
 	}
 
 	template<typename T>

@@ -69,7 +69,7 @@ void init(int argc, char** argv, char** env) {
 	try {
 		util::init_stacktrace(argv[0]);
 		engine.reset(new mo::Engine("MagnumOpus", argc, argv, env));
-		engine->enter_screen<Intro_screen>();
+		engine->screens().enter<Intro_screen>();
 
 	} catch (const util::Error& ex) {
 		CRASH_REPORT("Exception in init: "<<ex.what());

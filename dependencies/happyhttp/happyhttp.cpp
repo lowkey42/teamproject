@@ -45,6 +45,7 @@
 #include <cstring>
 #include <cstdarg>
 #include <assert.h>
+#include <cstdlib>
 
 #include <string>
 #include <vector>
@@ -638,7 +639,7 @@ int Response::pump( const unsigned char* data, int datasize )
 void Response::ProcessChunkLenLine( std::string const& line )
 {
 	// chunklen in hex at beginning of line
-	m_ChunkLeft = strtol( line.c_str(), NULL, 16 );
+	m_ChunkLeft = std::strtol( line.c_str(), NULL, 16 );
 	
 	if( m_ChunkLeft == 0 )
 	{
@@ -741,7 +742,7 @@ void Response::ProcessStatusLine( std::string const& line )
 	while( *p )
 		m_Reason += *p++;
 
-	m_Status = atoi( status.c_str() );
+	m_Status = std::atoi( status.c_str() );
 	if( m_Status < 100 || m_Status > 999 )
 		throw Wobbly( "BadStatusLine (%s)", line.c_str() );
 
@@ -867,7 +868,7 @@ void Response::BeginBody()
 	const char* contentlen = getheader( "content-length" );
 	if( contentlen && !m_Chunked )
 	{
-		m_Length = atoi( contentlen );
+		m_Length = std::atoi( contentlen );
 	}
 
 	// check for various cases where we expect zero-length body

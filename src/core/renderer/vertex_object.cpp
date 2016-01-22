@@ -1,12 +1,13 @@
+#ifndef ANDROID
+	#include <GL/glew.h>
+	#include <GL/gl.h>
+#else
+	#include <GLES2/gl2.h>
+#endif
+
 #include "vertex_object.hpp"
 
 #include "../utils/log.hpp"
-
-#ifdef ANDROID
-	#include <GLES2/gl2.h>
-#else
-	#include <GL/glew.h>
-#endif
 
 #include "shader.hpp"
 
@@ -52,7 +53,7 @@ namespace renderer {
 		glGenBuffers(1, &_id);
 		glBindBuffer(GL_ARRAY_BUFFER, _id);
 		glBufferData(GL_ARRAY_BUFFER, _elements*_element_size, data,
-		             _dynamic ? GL_STREAM_DRAW : GL_STATIC_DRAW);
+		             _dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 	}
 	Buffer::Buffer(Buffer&& b)noexcept
 	    : _id(b._id), _element_size(b._element_size),
@@ -85,10 +86,19 @@ namespace renderer {
 		INVARIANT(_dynamic, "set(...) is only allowed for dynamic buffers!");
 		INVARIANT(_id!=0, "Can't access invalid buffer!");
 
-		glBindBuffer(GL_ARRAY_BUFFER, _id);
-
 		_elements = elements;
 
+#ifdef EMSCRIPTEN
+		// webgl on android sucks balls and wierds out if a VBO is updated.
+		// So we create a new one for every update, because who realy cares about performance m(
+		glDeleteBuffers(1, &_id);
+		glGenBuffers(1, &_id);
+		glBindBuffer(GL_ARRAY_BUFFER, _id);
+		glBufferData(GL_ARRAY_BUFFER, elements*_element_size, data,
+		             GL_DYNAMIC_DRAW);
+		_max_elements = elements;
+
+#else
 		if(_max_elements>=elements) {
 			glBufferData(GL_ARRAY_BUFFER, _max_elements*_element_size, nullptr,
 						 GL_STREAM_DRAW);
@@ -99,8 +109,9 @@ namespace renderer {
 		} else {
 			_max_elements = elements;
 			glBufferData(GL_ARRAY_BUFFER, elements*_element_size, data,
-			             GL_STREAM_DRAW);
+			             GL_DYNAMIC_DRAW);
 		}
+#endif
 	}
 
 	void Buffer::_bind()const {
@@ -150,7 +161,7 @@ namespace renderer {
 	}
 
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(EMSCRIPTEN)
 	void Object::_init(const Vertex_layout& layout) {
 		_layout = &layout;
 	}

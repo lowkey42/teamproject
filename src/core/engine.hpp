@@ -15,76 +15,30 @@
 
 #pragma once
 
+#include "screen.hpp"
+
+#include "utils/maybe.hpp"
+#include "utils/messagebus.hpp"
+
 #include <vector>
 #include <memory>
-#include "utils/maybe.hpp"
+
 
 namespace mo {
 	namespace asset {class Asset_manager;}
+	namespace input {class Input_manager;}
 	namespace renderer {class Graphics_ctx;}
 	namespace audio {class Audio_ctx;}
-	class Configuration;
-	class Input_manager;
-
-
-	class Engine;
-
-	enum class Prev_screen_policy {
-		discard,
-		stack,
-		draw,
-		update
-	};
-
-	class Screen {
-		public:
-			Screen(Engine& engine) : _engine(engine) {}
-			Screen(const Screen&) = delete;
-			Screen& operator=(const Screen&) = delete;
-
-			virtual ~Screen()noexcept = default;
-
-		protected:
-			friend class Engine;
-
-			virtual void _on_enter(util::maybe<Screen&> prev){}
-			virtual void _on_leave(util::maybe<Screen&> next){}
-			virtual void _update(float delta_time) = 0;
-			virtual void _draw(float delta_time) = 0;
-			virtual auto _prev_screen_policy()const noexcept -> Prev_screen_policy = 0;
-
-			Engine& _engine;
-	};
-
-	struct Sdl_wrapper {
-		Sdl_wrapper();
-		~Sdl_wrapper();
-	};
 
 	extern std::string get_sdl_error();
 
 	class Engine {
-		friend class Screen;
 		public:
 			Engine(const std::string& title, int argc, char** argv, char** env);
 			~Engine() noexcept;
 
-			bool running() const noexcept {
-				return !_quit;
-			}
-
-			void exit() noexcept {
-				_quit = true;
-			}
-
-			template<class T, typename ...Args>
-			auto enter_screen(Args&&... args) -> T& {
-				return static_cast<T&>(enter_screen(std::make_unique<T>(*this, std::forward<Args>(args)...)));
-			}
-
-			auto enter_screen(std::unique_ptr<Screen> screen) -> Screen&;
-			void leave_screen(uint8_t depth=1);
-			auto current_screen() -> Screen&;
+			bool running() const noexcept {return !_quit;}
+			void exit() noexcept {_quit = true;}
 
 			void on_frame();
 
@@ -96,27 +50,30 @@ namespace mo {
 			auto& assets()const noexcept {return *_asset_manager;}
 			auto& input()noexcept {return *_input_manager;}
 			auto& input()const noexcept {return *_input_manager;}
+			auto& bus()noexcept {return _bus;}
+			auto& screens()noexcept {return _screens;}
 
 		protected:
-			virtual void _on_frame(float dt) {};
-			virtual auto _on_reload() -> std::tuple<bool, std::string> {return std::make_tuple(false, "");};
+			void _poll_events();
+			virtual void _on_frame(Time dt) {}
 
 		protected:
+			struct Sdl_wrapper {
+				Sdl_wrapper();
+				~Sdl_wrapper();
+			};
+
 			bool _quit = false;
+			Screen_manager _screens;
+			util::Message_bus _bus;
 			std::unique_ptr<asset::Asset_manager> _asset_manager;
 			Sdl_wrapper _sdl;
 			std::unique_ptr<renderer::Graphics_ctx> _graphics_ctx;
 			std::unique_ptr<audio::Audio_ctx> _audio_ctx;
-			std::unique_ptr<Input_manager> _input_manager;
-			std::vector<std::shared_ptr<Screen>> _screen_stack;
+			std::unique_ptr<input::Input_manager> _input_manager;
 
 			float _current_time = 0;
 			float _last_time = 0;
-
-			void _poll_events();
-
-			struct Reload_handler;
-			std::unique_ptr<Reload_handler> _rh;
 	};
 
-} /* namespace core */
+}

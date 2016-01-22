@@ -1,5 +1,12 @@
 #define GLM_SWIZZLE
 
+#ifndef ANDROID
+	#include <GL/glew.h>
+	#include <GL/gl.h>
+#else
+	#include <GLES2/gl2.h>
+#endif
+
 #include "camera.hpp"
 
 #include "graphics_ctx.hpp"
@@ -8,8 +15,6 @@
 #include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include <GLES2/gl2.h>
 
 
 namespace mo {

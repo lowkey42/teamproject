@@ -1,5 +1,5 @@
 /**************************************************************************\
- * provides compile & runtime type-information                            *
+ * event-types caused by user-input                                       *
  *                                               ___                      *
  *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
  *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
@@ -15,49 +15,43 @@
 
 #pragma once
 
-#include <string>
-#include <typeinfo>
-#include <type_traits>
+#include "types.hpp"
+
+#include <memory>
+#include <glm/vec2.hpp>
+
 
 namespace mo {
-namespace util {
+namespace input {
 
-	extern std::string demangle(const char* name);
+	struct Char_input {std::string character;};
 
-	template<class T>
-	std::string typeName() {
-		return demangle(typeid(T).name());
+	struct Source_added {
+		Input_source src;
+	};
+	struct Source_removed {
+		Input_source src;
+	};
+
+
+	// mapped inputs
+	struct Once_action {
+		Action_id id;
+		Input_source src;
+	};
+	inline bool operator==(const Once_action& lhs, const Once_action& rhs) {
+		return lhs.id==rhs.id && lhs.src==rhs.src;
 	}
 
-	using Typeuid = int32_t;
+	struct Range_action {
+		Action_id id;
+		Input_source src;
+		glm::vec2 value;
+	};
 
-	constexpr auto notypeuid = Typeuid(0);
-
-	namespace details {
-		struct Typeuid_gen_base {
-			protected:
-				static auto next_uid()noexcept {
-					static auto idc = Typeuid(1);
-					return idc++;
-				}
-		};
-		template<typename T>
-		struct Typeuid_gen : Typeuid_gen_base {
-			static auto uid()noexcept {
-				static auto i = next_uid();
-				return i;
-			}
-		};
-	}
-
-	template<class T>
-	auto typeuid_of() {
-		return details::Typeuid_gen<std::decay_t<std::remove_pointer_t<std::decay_t<T>>>>::uid();
-	}
-	template<>
-	inline constexpr auto typeuid_of<void>() {
-		return notypeuid;
-	}
-
+	struct Force_feedback {
+		Input_source src;
+		float force; //< 0-1
+	};
 }
 }

@@ -1,0 +1,14 @@
+{
+	"initial": "debug",
+	"contexts": {
+		"debug": {
+			"keys": {
+                "Escape": {"type":"once", "action":"back"},
+
+                "A": {"type":"once", "action":"test_ff_a"},
+                "S": {"type":"continuous", "action":"test_ff_b"}
+            },
+            "mouse_drag": {"type":"range", "action":"move"}
+		}
+	}
+}
