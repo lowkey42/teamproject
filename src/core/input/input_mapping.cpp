@@ -6,6 +6,7 @@
 #include "../utils/template_utils.hpp"
 
 #include <sf2/sf2.hpp>
+#include <glm/gtx/norm.hpp>
 
 namespace mo {
 namespace input {
@@ -17,6 +18,7 @@ namespace input {
 
 	namespace {
 		const auto mapping_aid = "cfg:input_mapping"_aid;
+		constexpr float min_mouse_drag_movement = 1.f;
 
 		struct Context_map {
 			Context_id initial;
@@ -161,8 +163,11 @@ namespace input {
 	void Input_mapper::on_mouse_pos_change(glm::vec2 rel) {
 		process_movement(_bus, _active_context->mouse_movement, Input_source(0), rel);
 
-		if(_primary_mouse_button_down)
+		if(_primary_mouse_button_down
+		        && (_is_mouse_drag || glm::length2(rel)>=min_mouse_drag_movement)) {
+			_is_mouse_drag = true;
 			process_movement(_bus, _active_context->mouse_drag, Input_source(0), rel);
+		}
 	}
 
 	void Input_mapper::on_mouse_wheel_change(glm::vec2 rel) {
@@ -217,12 +222,16 @@ namespace input {
 
 	void Input_mapper::on_mouse_button_released(Mouse_button b,
 	                                            uint8_t clicks) {
-		find_maybe(_active_context->mouse_buttons, {b,clicks}).process([&](auto& action) {
-			process_release(_continuous_actions,_bus, action);
-		});
+		if(b!=1 || !_is_mouse_drag) {
+			find_maybe(_active_context->mouse_buttons, {b,clicks}).process([&](auto& action) {
+				process_release(_continuous_actions,_bus, action);
+			});
+		}
 
-		if(b==1)
+		if(b==1) {
 			_primary_mouse_button_down = false;
+			_is_mouse_drag = false;
+		}
 	}
 
 	void Input_mapper::on_pad_stick_change(Input_source src, Pad_stick s,

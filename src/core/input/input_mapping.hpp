@@ -90,6 +90,7 @@ namespace input {
 			std::vector<Once_action> _continuous_actions;
 
 			bool _primary_mouse_button_down = false;
+			bool _is_mouse_drag = false;
 	};
 
 
