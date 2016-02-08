@@ -4,3 +4,6 @@ frag_shader:simple = shader/simple.frag
 vert_shader:particles = shader/particles.vert
 frag_shader:particles = shader/particles.frag
 
+vert_shader:sprite = shader/sprite.vert
+frag_shader:sprite = shader/sprite.frag
+

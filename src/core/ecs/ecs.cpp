@@ -88,21 +88,29 @@ namespace ecs {
 				cp->shrink_to_fit();
 	}
 
-	auto Entity_manager::comp_info(const std::string& name)const -> const details::Component_type_info& {
+	auto Entity_manager::find_comp_info(const std::string& name)const -> util::maybe<const details::Component_type_info&> {
 		auto ti = _types.find(name);
 		if(ti!=_types.end())
-			return ti->second;
+			return util::justPtr(&ti->second);
 		else
+			return util::nothing();
+	}
+	auto Entity_manager::comp_info(const std::string& name)const -> const details::Component_type_info& {
+		auto info = find_comp_info(name);
+		if(info.is_nothing())
 			FAIL("Unknown component: "<<name);
+
+		return info.get_or_throw();
 	}
 
-	void Entity_manager::write(std::ostream& stream) {
-		write(stream, _entities);
+	void Entity_manager::write(std::ostream& stream, Component_filter filter) {
+		write(stream, _entities, filter);
 	}
 
 	void Entity_manager::write(std::ostream& stream,
-	                           const std::vector<Entity_ptr>& entities) {
-		auto serializer = EcsSerializer{stream, *this, _asset_mgr};
+	                           const std::vector<Entity_ptr>& entities,
+	                           Component_filter filter) {
+		auto serializer = EcsSerializer{stream, *this, _asset_mgr, filter};
 		serializer.write_virtual(
 			sf2::vmember("entities", entities)
 		);
@@ -110,7 +118,7 @@ namespace ecs {
 		stream.flush();
 	}
 
-	void Entity_manager::read(std::istream& stream, bool clear) {
+	void Entity_manager::read(std::istream& stream, bool clear, Component_filter filter) {
 		if(clear) {
 			for(auto& cp : _pools)
 				if(cp)
@@ -122,7 +130,7 @@ namespace ecs {
 
 		auto entities = _entities;
 
-		auto deserializer = EcsDeserializer{"$EntityDump", stream, *this, _asset_mgr};
+		auto deserializer = EcsDeserializer{"$EntityDump", stream, *this, _asset_mgr, filter};
 		deserializer.read_virtual(
 			sf2::vmember("entities", entities)
 		);

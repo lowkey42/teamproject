@@ -99,6 +99,8 @@ namespace renderer {
 		_max_elements = elements;
 
 #else
+		glBindBuffer(GL_ARRAY_BUFFER, _id);
+
 		if(_max_elements>=elements) {
 			glBufferData(GL_ARRAY_BUFFER, _max_elements*_element_size, nullptr,
 						 GL_STREAM_DRAW);

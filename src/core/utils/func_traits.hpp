@@ -71,5 +71,15 @@ namespace util {
 		apply(std::forward<F>(func), std::forward<Arg>(arg)...);
 	}
 
+	template<typename F>
+	inline void apply2(F&&) {}
+
+	template<typename F, typename FirstArg,typename SecondArg, typename... Arg>
+	inline void apply2(F&& func, FirstArg&& first, SecondArg&& second,
+	                   Arg&&... arg) {
+		func(std::forward<FirstArg>(first), std::forward<SecondArg>(second));
+		apply2(std::forward<F>(func), std::forward<Arg>(arg)...);
+	}
+
 }
 }

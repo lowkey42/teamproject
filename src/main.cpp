@@ -1,17 +1,17 @@
-/**************************************************************************\
- * main.cpp - application's entry point                                   *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/*****************************************************************************\
+ * application's entry point                                                 *
+ *        ______   ______   __  __   ______                                  *
+ *       /_____/\ /_____/\ /_/\/_/\ /_____/\                                 *
+ *       \:::_ \ \\:::_ \ \\:\ \:\ \\::::_\/_                                *
+ *        \:\ \ \ \\:(_) \ \\:\ \:\ \\:\/___/\                               *
+ *         \:\ \ \ \\: ___\/ \:\ \:\ \\_::._\:\                              *
+ *          \:\_\ \ \\ \ \    \:\_\:\ \ /____\:\                             *
+ *           \_____\/ \_\/     \_____\/ \_____\/                             *
+ *                                                                           *
+ * Copyright (c) 2014 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
@@ -22,7 +22,7 @@
 
 #include "core/engine.hpp"
 
-#include "game/intro_screen.hpp"
+#include "game/editor_screen.hpp"
 
 #include <iostream>
 #include <exception>
@@ -69,7 +69,7 @@ void init(int argc, char** argv, char** env) {
 	try {
 		util::init_stacktrace(argv[0]);
 		engine.reset(new mo::Engine("MagnumOpus", argc, argv, env));
-		engine->screens().enter<Intro_screen>();
+		engine->screens().enter<Editor_screen>();
 
 	} catch (const util::Error& ex) {
 		CRASH_REPORT("Exception in init: "<<ex.what());

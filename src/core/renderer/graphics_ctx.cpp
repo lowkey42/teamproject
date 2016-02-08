@@ -7,13 +7,18 @@
 
 #include "graphics_ctx.hpp"
 
-#include <iostream>
-#include <sstream>
-#include <cstdio>
-#include <sf2/sf2.hpp>
+#include "text.hpp"
+#include "sprite_batch.hpp"
 
 #include "../utils/log.hpp"
 #include "../asset/asset_manager.hpp"
+
+#include <sf2/sf2.hpp>
+
+#include <iostream>
+#include <sstream>
+#include <cstdio>
+
 
 namespace mo {
 namespace renderer {
@@ -142,6 +147,9 @@ namespace renderer {
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEPTH_TEST);
 		set_clear_color(0.0f,0.0f,0.0f);
+
+		init_font_renderer(assets);
+		init_sprite_renderer(assets);
 	}
 
 	Graphics_ctx::~Graphics_ctx() {

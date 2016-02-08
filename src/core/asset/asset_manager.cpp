@@ -91,6 +91,12 @@ namespace {
 namespace mo {
 namespace asset {
 
+	static Asset_manager* current_instance = nullptr;
+	auto get_asset_manager() -> Asset_manager& {
+		INVARIANT(current_instance!=nullptr, "Asset_manager has not been initialized!");
+		return *current_instance;
+	}
+
 	Asset_manager::Asset_manager(const std::string& exe_name, const std::string& app_name) {
 		if(!PHYSFS_init(exe_name.empty() ? nullptr : exe_name.c_str()))
 			FAIL("PhysFS-Init failed for \""<<exe_name<<"\": "<< PHYSFS_getLastError());
@@ -184,7 +190,7 @@ namespace asset {
 			});
 		}
 
-		for(auto&& df : list_files("", "assets", ".map"))
+		for(auto&& df : list_files("", "assets", ".map")) {
 			_open(df).process([this](istream& in) {
 				for(auto&& l : in.lines()) {
 					auto kvp =	util::split(l, "=");
@@ -194,9 +200,13 @@ namespace asset {
 					}
 				}
 			});
+		}
+
+		current_instance = this;
 	}
 
 	Asset_manager::~Asset_manager() {
+		current_instance = nullptr;
 		_assets.clear();
 		PHYSFS_deinit();
 	}

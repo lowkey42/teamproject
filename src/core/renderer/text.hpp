@@ -15,25 +15,22 @@
 
 #pragma once
 
-#include "../asset/asset_manager.hpp"
 #include "texture.hpp"
 #include "vertex_object.hpp"
 #include "shader.hpp"
+#include "primitives.hpp"
+
+#include "../asset/asset_manager.hpp"
+
 
 namespace mo {
 namespace renderer {
 
+	class Command_queue;
 	class Text;
 	using Text_ptr = std::shared_ptr<const Text>;
 
 	using Text_char = uint32_t;
-
-	struct Font_vertex {
-		glm::vec2 xy;
-		glm::vec2 uv;
-		Font_vertex(glm::vec2 xy, glm::vec2 uv) : xy(xy), uv(uv) {}
-	};
-	extern Vertex_layout text_vertex_layout;
 
 	struct Glyph {
 		int x = 0;
@@ -58,19 +55,19 @@ namespace renderer {
 	 * id prev_char value
 	 * ...
 	 */
-	class Font {
+	class Font : public std::enable_shared_from_this<Font> {
 		public:
 			Font(asset::Asset_manager& assets, std::istream&);
 
 			auto text(const std::string& str)const -> Text_ptr;
 			auto calculate_size(const std::string& str)const -> glm::vec2;
-			void bind()const;
 
 		private:
 			friend class Text;
 			friend class Text_dynamic;
 
-			void calculate_vertices(const std::string& str, std::vector<Font_vertex>& out, bool monospace=false)const;
+			void calculate_vertices(const std::string& str, std::vector<Simple_vertex>& out,
+			                        bool monospace=false)const;
 
 			int _height = 0;
 			int _line_height = 0;
@@ -80,51 +77,42 @@ namespace renderer {
 			mutable std::unordered_map<std::string, Text_ptr> _cache;
 	};
 	using Font_ptr = asset::Ptr<Font>;
+	using Font_sptr = std::shared_ptr<const renderer::Font>;
 
 	class Text {
 		public:
-			Text(std::vector<Font_vertex> vertices);
+			Text(Font_sptr font, std::vector<Simple_vertex> vertices);
 
-			void draw()const;
+			void draw(Command_queue&, glm::vec2 center, glm::vec4 color={1,1,1,1},
+			          float scale=1)const;
 
 			auto size()const noexcept {return _size;}
 
 		protected:
+			Font_sptr _font;
 			Object _obj;
 			glm::vec2 _size;
 	};
 
 	class Text_dynamic {
 		public:
-			Text_dynamic(Font_ptr font);
+			Text_dynamic(Font_sptr font);
 
-			void draw()const;
+			void draw(Command_queue&, glm::vec2 center, glm::vec4 color={1,1,1,1},
+			          float scale=1)const;
+
 			void set(const std::string& str, bool monospace=false);
 
 			auto size()const noexcept {return _size;}
 
 		protected:
-			Font_ptr _font;
-			std::vector<Font_vertex> _data;
+			Font_sptr _font;
+			std::vector<Simple_vertex> _data;
 			Object _obj;
 			glm::vec2 _size;
 	};
 
-
-	class Text_renderer {
-		public:
-			Text_renderer(asset::Asset_manager& assets, Font_ptr font = Font_ptr{});
-
-			void set_vp(const glm::mat4& vp);
-
-			void draw(Text& tex, glm::vec2 center, glm::vec4 color=glm::vec4{1,1,1,1}, float scale=1);
-			void draw(Text_dynamic& tex, glm::vec2 center, glm::vec4 color=glm::vec4{1,1,1,1}, float scale=1);
-
-		private:
-			Shader_program _prog;
-			Font_ptr _font;
-	};
-
+	extern void init_font_renderer(asset::Asset_manager&);
 }
 
 namespace asset {

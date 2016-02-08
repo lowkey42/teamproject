@@ -1,0 +1,8 @@
+{
+    "Transform":{
+    },
+    "Sprite": {
+        "aid": "tex:ui_intro_circle",
+        "size": {"x":100, "y":100}
+    }
+}

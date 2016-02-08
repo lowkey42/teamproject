@@ -61,6 +61,26 @@ namespace sf2 {
 			public:
 				enum { value = sizeof(test<T>(0)) == sizeof(char) };
 		};
+		template<class T>
+		struct has_post_load {
+			private:
+				typedef char one;
+				typedef long two;
+
+				template <typename C> static one test(decltype(post_load(std::declval<C&>()))*);
+				template <typename C> static two test(...);
+
+
+			public:
+				enum { value = sizeof(test<T>(0)) == sizeof(char) };
+		};
+		template<class T>
+		void call_post_load(T& inst, typename std::enable_if_t<!has_post_load<T>::value>* = nullptr) {
+		}
+		template<class T>
+		void call_post_load(T& inst, typename std::enable_if_t<has_post_load<T>::value>* = nullptr) {
+			post_load(inst);
+		}
 
 		template<class T>
 		struct is_range {
@@ -319,6 +339,8 @@ namespace sf2 {
 					on_error("Unexpected key "+buffer);
 				}
 			}
+
+			details::call_post_load(inst);
 		}
 
 		template<typename... Members>
@@ -418,6 +440,8 @@ namespace sf2 {
 						on_error("Unexpected key "+buffer);
 					}
 				}
+
+				details::call_post_load(inst);
 			}
 
 			// annotated enum
@@ -426,6 +450,8 @@ namespace sf2 {
 			  read_value(T& inst) {
 				reader.read(buffer);
 				inst = get_enum_info<T>().value_of(buffer);
+
+				details::call_post_load(inst);
 			}
 
 			// map
@@ -484,6 +510,8 @@ namespace sf2 {
 			std::enable_if_t<details::has_load<Reader,T>::value>
 			  read_value(T& inst) {
 				load(*this, inst);
+
+				details::call_post_load(inst);
 			}
 
 			// other
@@ -497,6 +525,10 @@ namespace sf2 {
 
 			void read_value(std::string& inst) {
 				reader.read(inst);
+			}
+
+			void skip_obj() {
+				reader.skip_obj();
 			}
 	};
 

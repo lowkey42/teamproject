@@ -15,13 +15,15 @@
 
 #pragma once
 
-#include "../../sys/physics/transform_system.hpp"
+#include "../physics/transform_system.hpp"
+
+#include "../../entity_events.hpp"
+
 #include <core/renderer/sprite_batch.hpp>
 #include <core/renderer/camera.hpp>
 
 #include "sprite_comp.hpp"
-#include "particle_emiter_comp.hpp"
-#include "../state/state_system.hpp"
+
 
 namespace mo{
 namespace sys{
@@ -29,27 +31,23 @@ namespace graphic{
 
 	class Graphic_system {
 		public:
-			Graphic_system(ecs::Entity_manager& entity_manager,
-			               physics::Transform_system& ts,
-			               asset::Asset_manager& asset_manager,
-			               renderer::Particle_renderer& particle_renderer,
-			               state::State_system& state_system) noexcept;
+			Graphic_system(util::Message_bus& bus,
+			               ecs::Entity_manager& entity_manager,
+			               physics::Scene_graph& scene_graph,
+			               asset::Asset_manager& asset_manager);
 
-			void draw(const renderer::Camera& camera) noexcept;
-			void update(Time dt) noexcept;
+			void draw(renderer::Command_queue&, const renderer::Camera& camera)const;
+			void update(Time dt);
 
 		private:
-			void _on_state_change(ecs::Entity& e, state::State_data& data);
-			void _create_emiter(Particle_emiter_comp::Emiter&);
+			void _on_state_change(const State_change&);
 
-			asset::Asset_manager& _assets;
-			renderer::Particle_renderer& _particle_renderer;
 
-			physics::Transform_system& _transform;
-			renderer::Sprite_batch _sprite_batch;
+			util::Mailbox_collection _mailbox;
+			physics::Scene_graph& _scene_graph;
 			Sprite_comp::Pool& _sprites;
-			Particle_emiter_comp::Pool& _particles;
-			util::slot<ecs::Entity&, state::State_data&> _state_change_slot;
+
+			mutable renderer::Sprite_batch _sprite_batch;
 	};
 
 }

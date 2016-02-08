@@ -1,101 +1,136 @@
+#define GLM_SWIZZLE
+
 #include "sprite_batch.hpp"
+
+#include "command_queue.hpp"
 
 namespace mo {
 namespace renderer {
 
-	using namespace renderer;
+	using namespace glm;
 
-	// layout description for vertices
-	Vertex_layout layout {
-		Vertex_layout::Mode::triangles,
-		vertex("position",  &Sprite_batch::Sprite_vertex::pos),
-		vertex("uv",        &Sprite_batch::Sprite_vertex::uv)
-	};
+	namespace {
+		Vertex_layout sprite_layout {
+			Vertex_layout::Mode::triangles,
+			vertex("position",  &Sprite_vertex::position),
+			vertex("uv",        &Sprite_vertex::uv)
+		};
 
-	Sprite_batch::Sprite_batch(asset::Asset_manager& asset_manager) : _object(layout, create_dynamic_buffer<Sprite_vertex>(64)){
-		_shader.attach_shader(asset_manager.load<Shader>("vert_shader:sprite_batch"_aid))
-			   .attach_shader(asset_manager.load<Shader>("frag_shader:sprite_batch"_aid))
-		       .bind_all_attribute_locations(layout)
-		       .build();
+		std::unique_ptr<Shader_program> sprite_shader;
+		const Sprite_vertex single_sprite_vert[] {
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,0}, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,1}, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,1}, nullptr},
+
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,1}, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,0}, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,0}, nullptr}
+		};
 	}
 
-	void Sprite_batch::draw(const Camera& cam, const Sprite& sprite) noexcept {
+	Sprite::Sprite(Position position, float layer, Angle rotation, Position size,
+	               glm::vec4 uv, const renderer::Texture& texture)noexcept
+	    : position(position), layer(layer), rotation(rotation), size(size),
+	      uv(uv), texture(&texture) {
+	}
 
-		// [foe]: auto& for less ressource using?
-		auto& uv = sprite.uv;
-
-		auto x = sprite.position.x.value(), y = sprite.position.y.value();
-		auto width = (uv.z - uv.x) * sprite.texture->width() / cam.world_scale(),
-			  height = (uv.w - uv.y) * sprite.texture->height() / cam.world_scale();
-
-		// Rotation Matrix to be applied to coords of the Sprite
-		glm::mat4 rotMat = glm::translate(glm::vec3(x, y, sprite.layer)) * glm::rotate(sprite.rotation, glm::vec3(0.f, 0.f, 1.f));
-
-//		std::cout << "Entity with Sprite Component at: " << x << "/" << y << std::endl;
-//		std::cout << "Name of attached texture: " << sprite.texture.str() << std::endl;
-//		std::cout << "rotation is: " << sprite.rotation << std::endl;
-
-		_vertices.push_back(Sprite_vertex(rotMat * glm::vec4(-width / 2.f, -height / 2.f, 0.0f, 1.0f), {uv.x, uv.y}, &*sprite.texture));
-		_vertices.push_back(Sprite_vertex(rotMat * glm::vec4(-width / 2.f, height / 2.f, 0.0f, 1.0f), {uv.x, uv.w}, &*sprite.texture));
-		_vertices.push_back(Sprite_vertex(rotMat * glm::vec4(width / 2.f, height / 2.f, 0.0f, 1.0f), {uv.z, uv.w}, &*sprite.texture));
-
-		//_vertices.push_back({{x, y}, {uv.x, uv.w}, {sprite.texture}});
-		//_vertices.push_back({{x, y+1.f}, {uv.x, uv.y}, {sprite.texture}});
-		//_vertices.push_back({{x+1.f, y+1.f}, {uv.z, uv.y}, {sprite.texture}});
-
-		_vertices.push_back(Sprite_vertex(rotMat * glm::vec4(width / 2.f, height / 2.f, 0.0f, 1.0f), {uv.z, uv.w}, &*sprite.texture));
-		_vertices.push_back(Sprite_vertex(rotMat * glm::vec4(-width / 2.f, -height / 2.f, 0.0f, 1.0f), {uv.x, uv.y}, &*sprite.texture));
-		_vertices.push_back(Sprite_vertex(rotMat * glm::vec4(width / 2.f, -height / 2.f, 0.0f, 1.0f), {uv.z, uv.y}, &*sprite.texture));
-
-		//_vertices.push_back({{x+1.f, y+1.f}, {uv.z, uv.y}, {sprite.texture}});
-		//_vertices.push_back({{x, y}, {uv.x, uv.w}, {sprite.texture}});
-		//_vertices.push_back({{x+1.f, y}, {uv.z, uv.w}, {sprite.texture}});
-
+	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords,
+	                             const renderer::Texture* texture)
+	    : position(pos), uv(uv_coords), texture(texture) {
 	}
 
 
-	void Sprite_batch::draw_part(std::vector<Sprite_vertex>::const_iterator begin, std::vector<Sprite_vertex>::const_iterator end){
+	void init_sprite_renderer(asset::Asset_manager& asset_manager) {
+		sprite_shader = std::make_unique<Shader_program>();
+		sprite_shader->attach_shader(asset_manager.load<Shader>("vert_shader:sprite"_aid))
+		              .attach_shader(asset_manager.load<Shader>("frag_shader:sprite"_aid))
+		              .bind_all_attribute_locations(sprite_layout)
+		              .build()
+		              .uniforms(make_uniform_map(
+		                  "texture", 0
+		              ));
+	}
 
-		// check for nullptr and begin != end
-		// bind the appropriate texture and set the object buffer to
-		// the corresponding positions that has to be drawn
-		if(begin!=end && begin->tex){
-			begin->tex->bind();
-			_object.buffer().set<Sprite_vertex>(begin, end);
-			_object.draw();
+	Sprite_batch::Sprite_batch(std::size_t expected_size) {
+		_vertices.reserve(expected_size*4);
+		_objects.reserve(expected_size*0.25f);
+	}
+
+	void Sprite_batch::insert(const Sprite& sprite) {
+		auto offset = vec3 {
+			sprite.position.x.value(),
+			sprite.position.y.value(),
+			sprite.layer
+		};
+		auto scale = vec3 {
+			sprite.size.x.value(),
+			sprite.size.y.value(),
+			1.f
+		};
+
+		auto transform = [&](vec3 p) {
+			return offset + rotate(p, sprite.rotation, vec3{0,0,1})*scale;
+		};
+
+		auto tex_clip = sprite.texture->clip_rect();
+		auto sprite_clip = sprite.uv;
+
+		// rescale uv to texture clip_rect
+		sprite_clip.xz() *= (tex_clip.z - tex_clip.x);
+		sprite_clip.yw() *= (tex_clip.w - tex_clip.y);
+		// move uv by clip_rect offset
+		sprite_clip.xz() += tex_clip.x;
+		sprite_clip.yw() += tex_clip.y;
+
+		auto uv_size = sprite_clip.zw() - sprite_clip.xy();
+
+		for(auto& vert : single_sprite_vert) {
+			auto uv = sprite_clip.xy() + uv_size * vert.uv;
+			_vertices.emplace_back(transform(vert.position), uv, sprite.texture);
 		}
-
 	}
 
+	void Sprite_batch::flush(Command_queue& queue) {
+		_draw(queue);
+		_vertices.clear();
+	}
 
-	void Sprite_batch::drawAll(const Camera& cam) noexcept {
-
-		glm::mat4 MVP = cam.vp();
-		_shader.bind()
-			   .set_uniform("MVP", MVP)
-			   .set_uniform("myTextureSampler", 0);
-
-		// Sorting the vertices by used texture
-		// so that blocks of vertices are bound together
-		// where the textures match each other -> less switching in texture binding
+	void Sprite_batch::_draw(Command_queue& queue) {
+		// partition _vertices by texture
 		std::stable_sort(_vertices.begin(), _vertices.end());
 
+		// draw one batch for each partition
 		auto last = _vertices.begin();
-		for(auto curIter = _vertices.begin(); curIter != _vertices.end(); ++curIter){
-
-			// if texture reference at the current iterator position differs from the one before
-			// draw from the last marked iterator position to the current position
-			// and set the last marker to the current iterator position
-			if(curIter->tex != last->tex){
-				draw_part(last, curIter);
-				last = curIter;
+		for(auto current = _vertices.begin(); current!=_vertices.end(); ++current) {
+			if(current->texture != last->texture) {
+				queue.push_back(_draw_part(last, current));
+				last = current;
 			}
 		}
 
-		draw_part(last, _vertices.end());
+		if(last!=_vertices.end())
+			queue.push_back(_draw_part(last, _vertices.end()));
+	}
 
-		_vertices.clear();
+	auto Sprite_batch::_draw_part(Vertex_citer begin, Vertex_citer end) -> Command {
+		INVARIANT(begin!=end && begin->texture, "Invalid iterators");
 
+		auto obj_idx = _free_obj++;
+
+		if(obj_idx>=_objects.size()) {
+			_objects.emplace_back(sprite_layout, create_buffer<Sprite_vertex>(begin, end, true));
+		} else {
+			_objects.at(obj_idx).buffer().set<Sprite_vertex>(begin, end);
+		}
+
+		auto cmd = create_command()
+		        .texture(Texture_unit::color, *begin->texture)
+		        .shader(*sprite_shader)
+		        .object(_objects.at(obj_idx));
+
+		cmd.uniforms().emplace("model", glm::mat4());
+
+		return cmd;
 	}
 
 }

@@ -9,9 +9,13 @@
 
 #include <SDL2/SDL.h>
 #include <soil/SOIL2.h>
+#include <glm/glm.hpp>
+
 
 namespace mo {
 namespace renderer {
+
+	using namespace glm;
 
 #define CLAMP_TO_EDGE 0x812F
 
@@ -31,11 +35,10 @@ namespace renderer {
 			throw Texture_loading_failed(SOIL_last_result());
 
 		glBindTexture(GL_TEXTURE_2D, _handle);
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
-
 	Texture::Texture(int width, int height) : _width(width), _height(height) {
 		glGenTextures( 1, &_handle );
 		glBindTexture( GL_TEXTURE_2D, _handle );
@@ -45,32 +48,36 @@ namespace renderer {
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, CLAMP_TO_EDGE);
+	}
+	Texture::Texture(const Texture& base, glm::vec4 clip)noexcept
+	    : _handle(base._handle),
+	      _owner(false),
+	      _width(base._width * (clip.z-clip.x)),
+	      _height(base._height * (clip.w-clip.y)),
+	      _clip(clip) {
+	}
+	void Texture::_update(const Texture& base, glm::vec4 clip) {
+		INVARIANT(!_owner, "_update is only supported for non-owning textures!");
 
+		_handle = base._handle;
+		_width = base._width * (clip.z-clip.x);
+		_height = base._height * (clip.w-clip.y);
+		_clip = clip;
 	}
 
-	Texture::Texture(int width, int height, std::vector<uint8_t> rgbaData) : _width(width), _height(height) {
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glGenTextures( 1, &_handle );
-		glBindTexture( GL_TEXTURE_2D, _handle );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, CLAMP_TO_EDGE);
-
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
-					 0, GL_RGBA, GL_UNSIGNED_BYTE, rgbaData.data());
-	}
 	Texture::~Texture()noexcept {
-		if(_handle!=0)
+		if(_handle!=0 && _owner)
 			glDeleteTextures(1, &_handle);
 	}
 
-	Texture::Texture(Texture&& s)noexcept
-		: _handle(s._handle), _width(s._width), _height(s._width) {
-		s._handle = 0;
+	Texture::Texture(Texture&& rhs)noexcept
+	    : _handle(rhs._handle), _owner(rhs._owner), _width(rhs._width),
+	      _height(rhs._height), _clip(rhs._clip) {
+
+		rhs._handle = 0;
 	}
 	Texture& Texture::operator=(Texture&& s)noexcept {
-		if(_handle!=0)
+		if(_handle!=0 && _owner)
 			glDeleteTextures(1, &_handle);
 
 		_handle = s._handle;
@@ -82,19 +89,115 @@ namespace renderer {
 		return *this;
 	}
 
-
 	void Texture::bind(int index)const {
 		auto tex = GL_TEXTURE0+index;
 		INVARIANT(tex<GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, "to many textures");
-	//	glActiveTexture(index);
+		glActiveTexture(index);
 		glBindTexture(GL_TEXTURE_2D, _handle);
 	}
-	void Texture::unbind(int index)const {
-	//	auto tex = GL_TEXTURE0+index;
-	//	INVARIANT(tex<GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, "to many textures");
-	//	glActiveTexture(index);
-	//	glBindTexture(GL_TEXTURE_2D, 0);
+
+
+
+	class Atlas_texture : public Texture {
+		public:
+			Atlas_texture(const std::string& name,
+			              std::shared_ptr<const Texture_atlas>, glm::vec4 clip);
+			~Atlas_texture();
+
+			using Texture::_update;
+
+		private:
+			const std::string _name;
+			std::shared_ptr<const Texture_atlas> _atlas;
+	};
+
+	namespace {
+		struct Frame {
+			std::string name;
+			float x, y, width, height;
+		};
+		sf2_structDef(Frame, name,x,y,width,height)
+
+		struct Atlas_def {
+			std::string texture;
+			std::vector<Frame> frames;
+		};
+		sf2_structDef(Atlas_def, texture,frames)
 	}
+
+	Texture_atlas::Texture_atlas(asset::istream stream) {
+		Atlas_def def;
+		sf2::deserialize_json(stream, [&](auto& msg, uint32_t row, uint32_t column) {
+			ERROR("Error parsing TextureAtlas from "<<stream.aid().str()<<" at "<<row<<":"<<column<<": "<<msg);
+		}, def);
+
+		_texture = stream.manager().load<Texture>(asset::AID(def.texture));
+		_sub_positions.reserve(def.frames.size());
+		_subs.reserve(def.frames.size());
+
+		auto tex_size = vec2{_texture->width(), _texture->height()};
+
+		for(Frame& frame : def.frames) {
+			auto clip = vec4 {
+				frame.x/tex_size.x,
+				frame.y/tex_size.y,
+				(frame.x+frame.width)/tex_size.x,
+				(frame.y+frame.height)/tex_size.y
+			};
+			_sub_positions.emplace(frame.name, clip);
+		}
+	}
+	Texture_atlas& Texture_atlas::operator=(Texture_atlas&& rhs)noexcept {
+		_texture = std::move(rhs._texture);
+		_sub_positions = std::move(rhs._sub_positions);
+
+		for(auto& sub : _subs) {
+			auto sub_tex = sub.second.lock();
+			INVARIANT(sub_tex, "Texture has not been removed from its atlas");
+
+			auto iter = _sub_positions.find(sub.first);
+			if(iter==_sub_positions.end()) {
+				ERROR("Texture that has been removed from atlas is still in use!");
+				sub_tex->_update(*_texture, sub_tex->clip_rect());
+				continue;
+			}
+
+			sub_tex->_update(*_texture, iter->second);
+		}
+
+		return *this;
+	}
+	Texture_atlas::~Texture_atlas() {
+		INVARIANT(_subs.empty(), "A texture from this atlas has not been deleted");
+	}
+	auto Texture_atlas::get(const std::string& name)const -> std::shared_ptr<Texture> {
+		auto& weak_sub = _subs[name];
+		auto sub = weak_sub.lock();
+
+		if(sub) {
+			INVARIANT(sub, "Texture has not been removed from its atlas");
+			return sub;
+		}
+
+		auto iter = _sub_positions.find(name);
+		if(iter==_sub_positions.end())
+			throw Texture_loading_failed("Couldn't find texture \""+name+"\" in atlas \""+_texture.aid().str()+"\"");
+
+		sub = std::make_shared<Atlas_texture>(name, shared_from_this(), iter->second);
+		weak_sub = sub;
+		return sub;
+	}
+
+	Atlas_texture::Atlas_texture(const std::string& name,
+	                             std::shared_ptr<const Texture_atlas> atlas, glm::vec4 clip)
+	    : Texture(*atlas->_texture, clip), _name(name), _atlas(atlas) {
+	}
+
+	Atlas_texture::~Atlas_texture() {
+		if(_atlas)
+			_atlas->_subs.erase(_name);
+	}
+
 
 	Framebuffer::Framebuffer(int width, int height, bool depth_buffer)
 		: Texture(width, height), _fb_handle(0), _db_handle(0) {

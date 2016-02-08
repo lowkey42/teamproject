@@ -69,6 +69,7 @@ namespace asset {
 			AID _aid;
 	};
 
+	extern auto get_asset_manager() -> Asset_manager&;
 
 	class Asset_manager : util::no_copy_move {
 		public:

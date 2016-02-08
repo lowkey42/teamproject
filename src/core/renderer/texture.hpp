@@ -19,6 +19,7 @@
 #include <vector>
 #include <stdexcept>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 #include "../utils/log.hpp"
 #include "../asset/asset_manager.hpp"
@@ -33,14 +34,14 @@ namespace renderer {
 	class Texture {
 		public:
 			explicit Texture(std::vector<uint8_t> buffer) throw(Texture_loading_failed);
-			Texture(int width, int height, std::vector<uint8_t> rgba_data);
 			virtual ~Texture()noexcept;
 
 			Texture& operator=(Texture&&)noexcept;
-			Texture(Texture&& s)noexcept;
+			Texture(Texture&&)noexcept;
 
 			void bind(int index=0)const;
-			void unbind(int index=0)const;
+
+			auto clip_rect()const noexcept {return _clip;}
 
 			auto width()const noexcept {return _width;}
 			auto height()const noexcept {return _height;}
@@ -50,11 +51,33 @@ namespace renderer {
 
 		protected:
 			Texture(int width, int height);
+			Texture(const Texture&, glm::vec4 clip)noexcept;
+			void _update(const Texture&, glm::vec4 clip);
 
 			unsigned int _handle;
-			int _width=1, _height=1;
+			bool         _owner = true;
+			int          _width, _height;
+			glm::vec4    _clip {0,0,1,1};
 	};
 	using Texture_ptr = asset::Ptr<Texture>;
+
+	class Atlas_texture;
+
+	class Texture_atlas : public std::enable_shared_from_this<Texture_atlas> {
+		public:
+			Texture_atlas(asset::istream);
+			Texture_atlas& operator=(Texture_atlas&&)noexcept;
+			~Texture_atlas();
+
+			auto get(const std::string& name)const -> std::shared_ptr<Texture>;
+
+		private:
+			friend class Atlas_texture;
+			Texture_ptr _texture;
+			std::unordered_map<std::string, glm::vec4> _sub_positions;
+			mutable std::unordered_map<std::string, std::weak_ptr<Atlas_texture>> _subs;
+	};
+	using Texture_atlas_ptr = asset::Ptr<Texture_atlas>;
 
 
 	class Framebuffer : public Texture {
@@ -84,20 +107,23 @@ namespace renderer {
 		int old_viewport[4];
 	};
 
-	struct Texture_binder {
-		Texture_binder(const Framebuffer& tex, std::size_t idx=0) : tex(tex), idx(idx) {
-			tex.bind(idx);
-		}
-		~Texture_binder()noexcept {
-			tex.unbind(idx);
-		}
-
-		const Texture& tex;
-		std::size_t idx;
-	};
-
-
 } /* namespace renderer */
+
+
+namespace asset {
+	template<>
+	struct Loader<renderer::Texture_atlas> {
+		using RT = std::shared_ptr<renderer::Texture_atlas>;
+
+		static RT load(istream in) throw(Loading_failed){
+			return std::make_shared<renderer::Texture_atlas>(std::move(in));
+		}
+
+		static void store(ostream out, const renderer::Texture_atlas& asset) throw(Loading_failed) {
+			FAIL("NOT IMPLEMENTED!");
+		}
+	};
+}
 
 namespace asset {
 	template<>
@@ -105,13 +131,21 @@ namespace asset {
 		using RT = std::shared_ptr<renderer::Texture>;
 
 		static RT load(istream in) throw(Loading_failed){
+			INFO("Loading: "<<in.physical_location().get_or_other("???"));
+			if(util::ends_with(in.physical_location().get_or_other(".png"), ".json")) {
+				in.close();
+
+				auto atlas = in.manager().load<renderer::Texture_atlas>(in.aid());
+				return atlas->get(in.aid().name());
+			}
+
 			return std::make_shared<renderer::Texture>(in.bytes());
 		}
 
 		static void store(ostream out, const renderer::Texture& asset) throw(Loading_failed) {
-			// TODO
-			FAIL("NOT IMPLEMENTED, YET!");
+			FAIL("NOT IMPLEMENTED!");
 		}
 	};
 }
-}
+
+} /* namespace mo */

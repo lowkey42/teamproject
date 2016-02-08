@@ -1,5 +1,7 @@
 #include "transform_comp.hpp"
 
+#include <core/utils/sf2_glm.hpp>
+#include <core/units.hpp>
 #include <sf2/sf2.hpp>
 
 namespace mo {
@@ -8,41 +10,40 @@ namespace physics {
 
 	using namespace unit_literals;
 
-	struct Transform_comp::Persisted_state {
-		float x, y, rot, rot_speed, layer;
-		bool rotation_fixed;
-
-		Persisted_state(const Transform_comp& c)
-				: x(c._position.x.value()), y(c._position.y.value()),
-		          rot(c._rotation.value()), rot_speed(c._max_rotation_speed/ (1_deg/second)),
-		          layer(c._layer), rotation_fixed(c._rotation_fixed) {}
-	};
-
-	sf2_structDef(Transform_comp::Persisted_state,
-		x,
-		y,
-		rot,
-		rot_speed,
-		layer,
-		rotation_fixed
-	)
-
 	void Transform_comp::load(sf2::JsonDeserializer& state,
 	                          asset::Asset_manager&){
-		auto s = Persisted_state{*this};
-		state.read(s);
+		glm::vec2 position_f = remove_units(_position);
+		float rotation_f = _rotation / 1_deg;
 
-		_position.x = Distance(s.x);
-		_position.y = Distance(s.y);
-		_rotation = Angle(s.rot);
-		_max_rotation_speed = s.rot_speed * (1_deg/second);
-		_rotation_fixed = s.rotation_fixed;
-		layer(s.layer);
-		_dirty = true;
+		state.read_virtual(
+			sf2::vmember("position", position_f),
+			sf2::vmember("rotation", rotation_f),
+			sf2::vmember("layer", _layer),
+			sf2::vmember("rotation_fixed", _rotation_fixed)
+		);
+
+		_position = position_f * 1_m;
+		_rotation = rotation_f * 1_deg;
+		layer(_layer);
+		_dirty = State::uninitialized;
 	}
 	void Transform_comp::save(sf2::JsonSerializer& state)const {
-		auto s = Persisted_state{*this};
-		state.write(s);
+		state.write_virtual(
+			sf2::vmember("position", remove_units(_position)),
+			sf2::vmember("rotation", _rotation / 1_deg),
+			sf2::vmember("layer", _layer),
+			sf2::vmember("rotation_fixed", _rotation_fixed)
+		);
+	}
+
+	void Transform_comp::position(Position pos)noexcept {
+		_position=pos;
+		if(_dirty==State::clear)
+			_dirty=State::dirty;
+	}
+	void Transform_comp::rotation(Angle a)noexcept {
+		if(!_rotation_fixed)
+			_rotation = a;
 	}
 
 }

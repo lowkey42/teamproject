@@ -18,24 +18,16 @@ namespace mo {
 	using namespace renderer;
 
 	namespace {
-		constexpr Time fade = 2_s;
-
 		glm::vec2 offset = {0,0};
 		float rotation = 0;
 		float scale = 1;
 	}
 
-	Intro_screen::Intro_screen(Engine& game_engine) :
-		Screen(game_engine),
-	    _mailbox(game_engine.bus()),
-	    _camera(calculate_vscreen(game_engine, 512)),
-		_box(game_engine.assets(),  game_engine.assets().load<Texture>("tex:ui_intro"_aid),  _camera.viewport().w*2.f, _camera.viewport().w),
-	    _box2(game_engine.assets(), game_engine.assets().load<Texture>("tex:ui_intro2"_aid), _camera.viewport().w*2.f, _camera.viewport().w),
-	    _circle(game_engine.assets(), game_engine.assets().load<Texture>("tex:ui_intro_circle"_aid), _camera.viewport().w*2 *(800/2048.f), _camera.viewport().w*2 *(800/2048.f)),
-	    _text_renderer(game_engine.assets()),
-	    _debug_Text(game_engine.assets().load<Font>("font:menu_font"_aid)),
-	    _fade_left(fade + 0.5_s),
-	    _fadein_left(fade + fade/2 +1.0_s)
+	Intro_screen::Intro_screen(Engine& game_engine)
+	    : Screen(game_engine),
+	      _mailbox(game_engine.bus()),
+	      _camera(calculate_vscreen(game_engine, 512)),
+	      _debug_Text(game_engine.assets().load<Font>("font:menu_font"_aid))
 	{
 
 		_mailbox.subscribe_to([&](input::Once_action& e){
@@ -73,7 +65,7 @@ namespace mo {
 			}
 		});
 
-		_text_renderer.set_vp(_camera.vp());
+		_render_queue.shared_uniforms(renderer::make_uniform_map("VP", _camera.vp()));
 	}
 
 	void Intro_screen::_on_enter(util::maybe<Screen&> prev) {
@@ -84,11 +76,8 @@ namespace mo {
 
 	}
 
-	void Intro_screen::_update(Time delta_time) {
+	void Intro_screen::_update(Time) {
 		_mailbox.update_subscriptions();
-
-//		_fade_left-=delta_time;
-//		_fadein_left-=delta_time;
 
 		auto p1 = _engine.input().pointer_screen_position(0).get_or_other({0,0});
 		auto p2 = _engine.input().pointer_screen_position(1).get_or_other({0,0});
@@ -98,31 +87,8 @@ namespace mo {
 
 
 	void Intro_screen::_draw() {
-		renderer::Disable_depthtest ddt{};
-		(void)ddt;
-/*
-		auto fp = glm::clamp(_fade_left/fade, 0.f, 1.f);
-		auto fg_color = 1-glm::clamp(_fadein_left/(fade/2), 0.f, 1.f);
+		_debug_Text.draw(_render_queue,  glm::vec2(0,0), glm::vec4(1,1,1,1), 0.5f);
 
-		_box.set_vp(_camera.vp()
-		            * glm::translate(glm::mat4(), {offset.x, offset.y, 0.f})
-		             * glm::rotate(glm::mat4(), rotation, {0.f,0.f,1.f})
-		             * glm::scale(glm::mat4(), {scale,scale,0.f}));
-		_box.set_color({fp+0.18f,fp+0.18f,fp+0.18f,fp+0.18f});
-		_box.draw(glm::vec2(0.f, 0.f));
-
-		auto circle_color = (1-fp) - fg_color*0.85f;
-		_circle.set_vp(_camera.vp() * glm::rotate(glm::mat4(), -_fade_left/20_s, {0.f,0.f,1.f}));
-		_circle.set_color({circle_color,circle_color,circle_color,0.f});
-		_circle.draw(glm::vec2(0.f, 0.f));
-
-		if(fg_color>0) {
-			_box2.set_vp(_camera.vp());
-			_box2.set_color(glm::vec4{1,1,1,1}*fg_color);
-			_box2.draw(glm::vec2(0.f, 0.f));
-		}
-*/
-
-		_text_renderer.draw(_debug_Text, glm::vec2(0,0), glm::vec4(1,1,1,1), 0.5f);
+		_render_queue.flush();
 	}
 }

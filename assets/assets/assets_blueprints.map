@@ -1,2 +1,3 @@
 blueprint: = blueprints/
 
+blueprint:test = blueprints/test.json

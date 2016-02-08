@@ -47,26 +47,16 @@ namespace physics {
 
 			Transform_comp(ecs::Entity& owner, Distance x=Distance(0),
 						   Distance y=Distance(0), Angle rotation=Angle(0))noexcept
-			  : Component(owner), _position(x, y), _rotation(rotation), _max_rotation_speed(0) {}
+			  : Component(owner), _position(x, y), _rotation(rotation) {}
 
 			auto position()const noexcept {return _position;}
-			void position(Position pos)noexcept {_position=pos; _dirty=true;}
+			void position(Position pos)noexcept;
 			auto rotation()const noexcept {return _rotation;}
-			void rotation(Angle a)noexcept {if(!_rotation_fixed) _rotation = a;}
-			void rotate(Angle offset, Time dt) noexcept{
-				auto max_rot = _max_rotation_speed*_max_rotation_speed_factor*dt;
-
-				if(abs(offset)>max_rot)
-					offset = sign(offset).value() * max_rot;
-
-				rotation(rotation() + offset);
-			}
-
-			void set_max_rot_factor(float f) {_max_rotation_speed_factor = f;}
+			void rotation(Angle a)noexcept;
 
 			auto layer()const noexcept {return _layer;}
 			void layer(float layer)noexcept {
-				INVARIANT(layer>=0 && layer<=1,"layer out of bounds!");
+				INVARIANT(layer>=-1 && layer<=1,"layer out of bounds!");
 				_layer=layer;
 			}
 
@@ -75,14 +65,18 @@ namespace physics {
 		private:
 			friend class Transform_system;
 
+			enum class State {
+				clear, dirty, uninitialized
+			};
+
 			Position _position;
-			float _layer = 0.5f;
+			float _layer = 0.0f;
+
 			Angle _rotation;
 			bool _rotation_fixed = false;
-			Angle_per_time _max_rotation_speed;
-			float _max_rotation_speed_factor = 1.f;
+
 			Cell_key _cell_idx;
-			bool _dirty = true;
+			State _dirty = State::uninitialized;
 	};
 
 }

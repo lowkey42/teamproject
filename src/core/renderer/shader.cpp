@@ -7,12 +7,15 @@
 
 #include "shader.hpp"
 
+#include "vertex_object.hpp"
+
+#include "uniform_map.hpp"
+
 #include "../utils/string_utils.hpp"
 #include "../utils/log.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "vertex_object.hpp"
 
 namespace mo {
 namespace renderer {
@@ -102,6 +105,7 @@ namespace renderer {
 	Shader_program::Shader_program() {
 		_handle = glCreateProgram();
 	}
+
 	Shader_program::~Shader_program()noexcept {
 		detach_all();
 
@@ -146,7 +150,31 @@ namespace renderer {
 		for(auto& s : _attached_shaders)
 			glDetachShader(_handle, s->_handle);
 
-		_uniform_locations.clear();  // clear uniform cache
+		// clear uniform caches
+		_uniform_locations_int.clear();
+		_uniform_locations_float.clear();
+		_uniform_locations_vec2.clear();
+		_uniform_locations_vec3.clear();
+		_uniform_locations_vec4.clear();
+		_uniform_locations_mat2.clear();
+		_uniform_locations_mat3.clear();
+		_uniform_locations_mat4.clear();
+
+		if(_uniforms) {
+			glUseProgram(_handle);
+			_uniforms->bind_all(*this);
+			glUseProgram(0);
+		}
+
+		return *this;
+	}
+
+	Shader_program& Shader_program::uniforms(std::unique_ptr<IUniform_map>&& uniforms) {
+		_uniforms = std::move(uniforms);
+		if(_uniforms) {
+			glUseProgram(_handle);
+			_uniforms->bind_all(*this);
+		}
 
 		return *this;
 	}
@@ -172,31 +200,107 @@ namespace renderer {
 		return *this;
 	}
 
-#define SHADER_SETU(TYPE,CALL) \
-	Shader_program& Shader_program::set_uniform(const std::string& name, TYPE value) {\
-		auto it = _uniform_locations.find(name);\
-		if (it == _uniform_locations.end()) {\
-			it = _uniform_locations.emplace(name,\
-			glGetUniformLocation(_handle, name.c_str())).first;\
-		}\
-		CALL;\
-		return *this;\
+
+	namespace {
+		template<class T, class V>
+		auto locate_uniform(const char* name, int shader_handle, T& cache, const V& value) {
+			using ET = typename T::mapped_type;
+
+			auto dirty = false;
+			auto it = cache.find(name);
+			if (it == cache.end()) {
+				it = cache.emplace(name,
+				                   ET{glGetUniformLocation(shader_handle, name), value}).first;
+				dirty = true;
+			} else if(it->second.last_value!=value) {
+				dirty = true;
+				it->second.last_value = value;
+			}
+
+			return std::make_pair(dirty, it->second.handle);
+		}
 	}
 
-    SHADER_SETU(int,                           glUniform1i(it->second, value))
-    SHADER_SETU(float,                         glUniform1f(it->second, value))
-    SHADER_SETU(const glm::vec2&,              glUniform2fv(it->second, 1, glm::value_ptr(value)))
-    SHADER_SETU(const glm::vec3&,              glUniform3fv(it->second, 1, glm::value_ptr(value)))
-    SHADER_SETU(const glm::vec4&,              glUniform4fv(it->second, 1, glm::value_ptr(value)))
-    SHADER_SETU(const glm::mat2&,              glUniformMatrix2fv(it->second, 1, GL_FALSE, glm::value_ptr(value)))
-    SHADER_SETU(const glm::mat3&,              glUniformMatrix3fv(it->second, 1, GL_FALSE, glm::value_ptr(value)))
-    SHADER_SETU(const glm::mat4&,              glUniformMatrix4fv(it->second, 1, GL_FALSE, glm::value_ptr(value)))
-    SHADER_SETU(const std::vector<float>& ,    glUniform1fv(it->second, value.size(), value.data()))
-    SHADER_SETU(const std::vector<glm::vec2>&, glUniform2fv(it->second, value.size(), reinterpret_cast<const GLfloat*>(value.data())))
-    SHADER_SETU(const std::vector<glm::vec3>&, glUniform3fv(it->second, value.size(), reinterpret_cast<const GLfloat*>(value.data())))
-    SHADER_SETU(const std::vector<glm::vec4>&, glUniform4fv(it->second, value.size(), reinterpret_cast<const GLfloat*>(value.data())))
+	Shader_program& Shader_program::set_uniform(const char* name, int value) {
+		auto dirty = true;
+		auto handle = 0;
+		std::tie(dirty, handle) = locate_uniform(name, _handle, _uniform_locations_int, value);
 
-#undef SHADER_SETU
+		if(dirty)
+			glUniform1i(handle, value);
+
+		return *this;
+	}
+	Shader_program& Shader_program::set_uniform(const char* name, float value) {
+		auto dirty = true;
+		auto handle = 0;
+		std::tie(dirty, handle) = locate_uniform(name, _handle, _uniform_locations_float, value);
+
+		if(dirty)
+			glUniform1f(handle, value);
+
+		return *this;
+	}
+	Shader_program& Shader_program::set_uniform(const char* name, const glm::vec2& value) {
+		auto dirty = true;
+		auto handle = 0;
+		std::tie(dirty, handle) = locate_uniform(name, _handle, _uniform_locations_vec2, value);
+
+		if(dirty)
+			glUniform2fv(handle, 1, glm::value_ptr(value));
+
+		return *this;
+	}
+	Shader_program& Shader_program::set_uniform(const char* name, const glm::vec3& value) {
+		auto dirty = true;
+		auto handle = 0;
+		std::tie(dirty, handle) = locate_uniform(name, _handle, _uniform_locations_vec3, value);
+
+		if(dirty)
+			glUniform3fv(handle, 1, glm::value_ptr(value));
+
+		return *this;
+	}
+	Shader_program& Shader_program::set_uniform(const char* name, const glm::vec4& value) {
+		auto dirty = true;
+		auto handle = 0;
+		std::tie(dirty, handle) = locate_uniform(name, _handle, _uniform_locations_vec4, value);
+
+		if(dirty)
+			glUniform4fv(handle, 1, glm::value_ptr(value));
+
+		return *this;
+	}
+	Shader_program& Shader_program::set_uniform(const char* name, const glm::mat2& value) {
+		auto dirty = true;
+		auto handle = 0;
+		std::tie(dirty, handle) = locate_uniform(name, _handle, _uniform_locations_mat2, value);
+
+		if(dirty)
+			glUniformMatrix2fv(handle, 1, GL_FALSE, glm::value_ptr(value));
+
+		return *this;
+	}
+	Shader_program& Shader_program::set_uniform(const char* name, const glm::mat3& value) {
+		auto dirty = true;
+		auto handle = 0;
+		std::tie(dirty, handle) = locate_uniform(name, _handle, _uniform_locations_mat3, value);
+
+		if(dirty)
+			glUniformMatrix3fv(handle, 1, GL_FALSE, glm::value_ptr(value));
+
+		return *this;
+	}
+	Shader_program& Shader_program::set_uniform(const char* name, const glm::mat4& value) {
+		auto dirty = true;
+		auto handle = 0;
+		std::tie(dirty, handle) = locate_uniform(name, _handle, _uniform_locations_mat4, value);
+
+		if(dirty)
+			glUniformMatrix4fv(handle, 1, GL_FALSE, glm::value_ptr(value));
+
+		return *this;
+	}
 
 } /* namespace renderer */
 }

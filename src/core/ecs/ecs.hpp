@@ -47,6 +47,8 @@ namespace ecs {
 	class Entity_manager;
 	class Serializer;
 
+	using Component_filter = std::function<bool(Component_type)>;
+
 	namespace details {
 		using Comp_add_function = std::function<void(Entity& e)>;
 		using Comp_get_function = std::function<Component_base*(Entity& e)>;
@@ -112,15 +114,16 @@ namespace ecs {
 			template<typename T>
 			void register_component_type();
 			auto comp_info(const std::string& name)const -> const details::Component_type_info&;
+			auto find_comp_info(const std::string& name)const -> util::maybe<const details::Component_type_info&>;
 			auto list_comp_infos()const {return util::range(_types);}
 
 			void process_queued_actions();
 			void shrink_to_fit();
 
 
-			void write(std::ostream&);
-			void write(std::ostream&, const std::vector<Entity_ptr>&);
-			void read(std::istream&, bool clear=true);
+			void write(std::ostream&, Component_filter filter={});
+			void write(std::ostream&, const std::vector<Entity_ptr>&, Component_filter filter={});
+			void read(std::istream&, bool clear=true, Component_filter filter={});
 
 		private:
 			friend class Entity;

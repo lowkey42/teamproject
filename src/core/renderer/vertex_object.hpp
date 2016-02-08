@@ -98,6 +98,11 @@ namespace renderer {
 	template<class T>
 	Buffer create_buffer(const std::vector<T>& container, bool dynamic=false);
 
+	template<class T>
+	Buffer create_buffer(typename std::vector<T>::const_iterator begin,
+	                     typename std::vector<T>::const_iterator end,
+	                     bool dynamic=false);
+
 
 	class Vertex_layout {
 		friend class Object;

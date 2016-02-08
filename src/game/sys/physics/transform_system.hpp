@@ -122,6 +122,8 @@ namespace physics {
 			Cell_key _max_cell_key;
 	};
 
+	using Scene_graph = Transform_system;
+
 	template<typename F>
 	void Transform_system::foreach_in_cell(Position pos, F&& func) {
 		foreach_in_cell(_get_cell_idx_for(pos), std::forward<F>(func));

@@ -41,23 +41,22 @@ namespace physics {
 
 	void Transform_system::update(Time) {
 		for(auto& c : _pool) {
-			c._max_rotation_speed_factor = 1.f;
-			if(c._dirty) {
-				c._dirty = false;
-
+			if(c._dirty!=Transform_comp::State::clear) {
 				auto old_cell_idx = c._cell_idx;
 				auto new_cell_idx = _get_cell_idx_for(c._position);
 
-				if(old_cell_idx!=new_cell_idx) {
+				if(old_cell_idx!=new_cell_idx || c._dirty == Transform_comp::State::uninitialized) {
 					c._cell_idx = new_cell_idx;
-
-					auto& new_cell = _cell_for(new_cell_idx);
-					new_cell.add(c.owner());
 
 					_ro_cell_for(old_cell_idx) >> [&](auto& cell) {
 						cell.remove(c.owner());
 					};
+
+					auto& new_cell = _cell_for(new_cell_idx);
+					new_cell.add(c.owner());
 				}
+
+				c._dirty = Transform_comp::State::clear;
 			}
 		}
 	}

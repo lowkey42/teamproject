@@ -76,11 +76,11 @@ namespace ecs {
 
 	EcsDeserializer::EcsDeserializer(
 	        const std::string& source_name, std::istream& stream,
-	        Entity_manager& m, asset::Asset_manager& assets)
+	        Entity_manager& m, asset::Asset_manager& assets, Component_filter filter)
 		: sf2::JsonDeserializer(
 	          format::Json_reader{stream, create_error_handler(source_name)},
 	          create_error_handler(source_name) ),
-	      manager(m), assets(assets) {
+	      manager(m), assets(assets), filter(filter) {
 	}
 
 	namespace {
@@ -170,7 +170,21 @@ namespace ecs {
 	void load(sf2::JsonDeserializer& s, Entity& e) {
 		static_assert(sf2::details::has_load<format::Json_reader,details::Component_base>::value, "missing load");
 		s.read_lambda([&](const auto& key){
-			auto comp = e.manager().comp_info(key);
+			auto mb_comp = e.manager().find_comp_info(key);
+
+			if(mb_comp.is_nothing()) {
+				s.skip_obj();
+				return true;
+
+			}
+
+			auto& comp = mb_comp.get_or_throw();
+			auto& ecs_deserializer = static_cast<EcsDeserializer&>(s);
+
+			if(ecs_deserializer.filter && !ecs_deserializer.filter(comp.type)) {
+				s.skip_obj();
+				return true;
+			}
 
 			auto comp_ptr = comp.get(e);
 			if(!comp_ptr) {
@@ -179,16 +193,23 @@ namespace ecs {
 			}
 
 			s.read_value(*comp_ptr);
+
 			return true;
 		});
 	}
 	void save(sf2::JsonSerializer& s, const Entity& e) {
+		auto& ecs_s = static_cast<EcsSerializer&>(s);
+
 		std::unordered_map<std::string, details::Component_base*> comps;
 
 		EcsSerializer& ecss = static_cast<EcsSerializer&>(s);
 
 		for(auto& comp : ecss.manager.list_comp_infos()) {
 			const details::Component_type_info& compInfo = comp.second;
+
+			if(ecs_s.filter && !ecs_s.filter(compInfo.type)) {
+				continue;
+			}
 
 			auto comp_ptr = compInfo.get(const_cast<Entity&>(e));
 			if(comp_ptr) {

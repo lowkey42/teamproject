@@ -1,6 +1,10 @@
+#define GLM_SWIZZLE
+
 #include "text.hpp"
 
 #include "shader.hpp"
+#include "command_queue.hpp"
+
 #include "../asset/asset_manager.hpp"
 
 #include <glm/glm.hpp>
@@ -10,13 +14,6 @@
 
 namespace mo {
 namespace renderer {
-
-	Vertex_layout text_vertex_layout{
-		Vertex_layout::Mode::triangles,
-		vertex("position", &Font_vertex::xy),
-		vertex("uv", &Font_vertex::uv)
-	};
-
 
 	Font::Font(asset::Asset_manager& assets, std::istream& stream) {
 		std::string line;
@@ -61,23 +58,27 @@ namespace renderer {
 	using glm::vec2;
 
 	namespace {
-		void create_quad(std::vector<Font_vertex>& vertices,
+		// FIXME: must use Texute::clip() to calculate scale and UVs
+		template<class F>
+		void create_quad(const F& mod_clip, std::vector<Simple_vertex>& vertices,
 		                float x, float y,
 		                float u, float v,
 		                float w, float h,
 		                float tw,float th) {
-			vertices.push_back({{x  ,y  },   {u    /tw, 1-(v  )/th}});
-			vertices.push_back({{x  ,(y+h)}, {u    /tw, 1-(v+h)/th}});
-			vertices.push_back({{x+w,y  },   {(u+w)/tw, 1-(v  )/th}});
+			vertices.push_back({{x  ,y  },   mod_clip({u    /tw, 1-(v  )/th})});
+			vertices.push_back({{x  ,(y+h)}, mod_clip({u    /tw, 1-(v+h)/th})});
+			vertices.push_back({{x+w,y  },   mod_clip({(u+w)/tw, 1-(v  )/th})});
 
-			vertices.push_back({{x+w,(y+h)}, {(u+w)/tw, 1-(v+h)/th}});
-			vertices.push_back({{x+w,y  },   {(u+w)/tw, 1-(v  )/th}});
-			vertices.push_back({{x  ,(y+h)}, {u    /tw, 1-(v+h)/th}});
+			vertices.push_back({{x+w,(y+h)}, mod_clip({(u+w)/tw, 1-(v+h)/th})});
+			vertices.push_back({{x+w,y  },   mod_clip({(u+w)/tw, 1-(v  )/th})});
+			vertices.push_back({{x  ,(y+h)}, mod_clip({u    /tw, 1-(v+h)/th})});
 		}
 
 		template<typename Func>
 		void parse(const std::string str, int height, int tex_width, int tex_height,
-		           const std::unordered_map<Text_char, Glyph>& glyphs, Func quad_callback, bool monospace=false) {
+		           const std::unordered_map<Text_char, Glyph>& glyphs, Func quad_callback,
+		           bool monospace=false) {
+
 			glm::vec2 offset{0,-height};
 			Text_char prev = 0;
 
@@ -168,12 +169,17 @@ namespace renderer {
 	}
 
 	void Font::calculate_vertices(const std::string& str,
-	                              std::vector<Font_vertex>& vertices, bool monospace)const {
+	                              std::vector<Simple_vertex>& vertices, bool monospace)const {
 
 		vertices.reserve(str.length()*4);
 
+		auto tex_clip_size = _texture->clip_rect().zw() - _texture->clip_rect().xy();
+		auto mod_clip = [&](glm::vec2 uv) {
+			return _texture->clip_rect().xy() + uv*tex_clip_size;
+		};
+
 		parse(str, _height, _texture->width(), _texture->height(), _glyphs, [&](auto... args) {
-			create_quad(vertices, args...);
+			create_quad(mod_clip, vertices, args...);
 		}, monospace);
 	}
 
@@ -183,10 +189,10 @@ namespace renderer {
 		if(entry)
 			return entry;
 
-		std::vector<Font_vertex> vertices;
+		std::vector<Simple_vertex> vertices;
 		calculate_vertices(str, vertices);
 
-		return entry=std::make_shared<Text>(vertices);
+		return entry=std::make_shared<Text>(shared_from_this(), vertices);
 	}
 
 	auto Font::calculate_size(const std::string& str)const -> glm::vec2 {
@@ -207,13 +213,9 @@ namespace renderer {
 		return bottom_right - top_left;
 	}
 
-	void Font::bind()const{
-		_texture->bind(0);
-	}
 
-
-	Text::Text(std::vector<Font_vertex> vertices)
-	    : _obj(text_vertex_layout, create_buffer(vertices)) {
+	Text::Text(Font_sptr font, std::vector<Simple_vertex> vertices)
+	    : _font(font), _obj(simple_vertex_layout, create_buffer(vertices)) {
 
 		glm::vec2 top_left, bottom_right;
 		for(auto& v : vertices) {
@@ -226,20 +228,13 @@ namespace renderer {
 
 		_size = bottom_right - top_left;
 	}
-	void Text::draw()const {
-		_obj.draw();
-	}
 
-	Text_dynamic::Text_dynamic(Font_ptr font)
+	Text_dynamic::Text_dynamic(Font_sptr font)
 	    : _font(font),
 	      _data(),
-	      _obj(text_vertex_layout, create_dynamic_buffer<Font_vertex>(3*2*10)) { // initial size = 10 letters
+	      _obj(simple_vertex_layout, create_dynamic_buffer<Simple_vertex>(3*2*10)) { // initial size = 10 letters
 	}
 
-	void Text_dynamic::draw()const {
-		_font->bind();
-		_obj.draw();
-	}
 	void Text_dynamic::set(const std::string& str, bool monospace) {
 		_data.clear();
 		_font->calculate_vertices(str, _data, monospace);
@@ -258,57 +253,52 @@ namespace renderer {
 	}
 
 
-	Text_renderer::Text_renderer(asset::Asset_manager& assets, Font_ptr font)
-	    : _font(font) {
-		_prog.attach_shader(assets.load<renderer::Shader>("vert_shader:simple"_aid))
-		    .attach_shader(assets.load<renderer::Shader>("frag_shader:simple"_aid))
-		    .bind_all_attribute_locations(renderer::text_vertex_layout)
-		    .build()
-		    .bind()
-		    .set_uniform("texture", 0)
-		    .detach_all();
+	namespace {
+		std::unique_ptr<Shader_program> font_shader;
+
+		auto create_text_draw_cmd(glm::vec2 center, glm::vec4 color, float scale,
+		                          glm::vec2 size, const Object& obj, const Texture& tex) {
+			auto cmd = create_command()
+				.shader(*font_shader)
+				.texture(Texture_unit::color, tex)
+				.object(obj)
+				.order_dependent()
+				.require_not(Gl_option::depth_write)
+				.require_not(Gl_option::depth_test);
+
+			auto trans = glm::scale(glm::translate(glm::mat4(),
+			                            glm::vec3(center.x-size.x/2*scale,
+			                                      center.y+size.y/2*scale,
+			                                      0.f)),
+			                            {scale, scale,1});
+			cmd.uniforms()
+			        .emplace("model", trans)
+			        .emplace("color", color);
+
+			return cmd;
+		}
 	}
 
-	void Text_renderer::set_vp(const glm::mat4& vp) {
-		_prog.bind().set_uniform("VP", vp);
+	void init_font_renderer(asset::Asset_manager& assets) {
+		font_shader = std::make_unique<Shader_program>();
+		font_shader->attach_shader(assets.load<Shader>("vert_shader:simple"_aid))
+		           .attach_shader(assets.load<Shader>("frag_shader:simple"_aid))
+		           .bind_all_attribute_locations(simple_vertex_layout)
+		           .build()
+		           .uniforms(make_uniform_map(
+		                "texture", 0,
+		                "clip", glm::vec4(0,0,1,1),
+		                "layer", 1.0f
+		           ));
 	}
 
-	void Text_renderer::draw(Text& text, glm::vec2 center,
-	                         glm::vec4 color, float scale) {
-
-		auto trans = glm::scale(glm::translate(glm::mat4(),
-		                            glm::vec3(center.x-text.size().x/2*scale,
-		                                      center.y+text.size().y/2*scale,
-		                                      0.f)),
-		                            {scale, scale,1});
-
-		_prog.bind()
-		     .set_uniform("model", trans)
-		     .set_uniform("color", color)
-		     .set_uniform("clip", glm::vec4(0,0,1,1))
-		     .set_uniform("layer", 1.f);
-
-		if(_font)
-			_font->bind();
-
-		text.draw();
+	void Text::draw(Command_queue& queue, glm::vec2 center,
+	                glm::vec4 color, float scale)const {
+		queue.push_back(create_text_draw_cmd(center, color, scale, size(), _obj, *_font->_texture));
 	}
-
-	void Text_renderer::draw(Text_dynamic& text, glm::vec2 center,
-	                         glm::vec4 color, float scale) {
-
-		auto trans = glm::scale(glm::translate(glm::mat4(),
-		                            glm::vec3(center.x-text.size().x/2*scale,
-		                                      center.y+text.size().y/2*scale,
-		                                      0.f)),
-		                            {scale, scale,1});
-		_prog.bind()
-		     .set_uniform("model", trans)
-		     .set_uniform("color", color)
-		     .set_uniform("clip", glm::vec4(0,0,1,1))
-		     .set_uniform("layer", 1.f);
-
-		text.draw();
+	void Text_dynamic::draw(Command_queue& queue, glm::vec2 center,
+	                        glm::vec4 color, float scale)const {
+		queue.push_back(create_text_draw_cmd(center, color, scale, size(), _obj, *_font->_texture));
 	}
 
 }

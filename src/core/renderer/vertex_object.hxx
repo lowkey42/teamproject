@@ -14,7 +14,7 @@ namespace renderer {
 	template<class T>
 	void Buffer::set(typename std::vector<T>::const_iterator begin,
 	                 typename std::vector<T>::const_iterator end) {
-		_set_raw(sizeof(T), std::distance(begin, end), &*begin);
+		_set_raw(sizeof(T), static_cast<std::size_t>(std::distance(begin, end)), &*begin);
 	}
 
 	template<class T>
@@ -25,6 +25,13 @@ namespace renderer {
 	template<class T>
 	Buffer create_buffer(const std::vector<T>& container, bool dynamic) {
 		return Buffer{sizeof(T), container.size(), dynamic, &container[0]};
+	}
+
+	template<class T>
+	Buffer create_buffer(typename std::vector<T>::const_iterator begin,
+	                     typename std::vector<T>::const_iterator end,
+	                     bool dynamic) {
+		return Buffer{sizeof(T), static_cast<std::size_t>(std::distance(begin, end)), dynamic, &*begin};
 	}
 
 	namespace details {

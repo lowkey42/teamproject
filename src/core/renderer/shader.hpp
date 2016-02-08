@@ -17,12 +17,16 @@
 
 #pragma once
 
+#include "../asset/asset_manager.hpp"
+
+#include <glm/glm.hpp>
+
+#include <gsl.h>
+
 #include <string>
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include <glm/glm.hpp>
-#include "../asset/asset_manager.hpp"
 
 namespace mo {
 namespace renderer {
@@ -57,41 +61,57 @@ namespace renderer {
 
 	class Vertex_layout;
 
+	struct IUniform_map;
+
 	class Shader_program {
 		public:
 			Shader_program();
-			Shader_program(Shader_program&&) = default;
+			Shader_program(Shader_program&&) = delete;
 			~Shader_program()noexcept;
 
-			Shader_program& operator=(Shader_program&&) = default;
+			Shader_program& operator=(Shader_program&&) = delete;
 
 			Shader_program& attach_shader(std::shared_ptr<const Shader> shader);
 			Shader_program& bind_all_attribute_locations(const Vertex_layout&);
 			Shader_program& bind_attribute_location(const std::string& name, int l);
 			Shader_program& build()throw(Shader_compiler_error);
+			Shader_program& uniforms(std::unique_ptr<IUniform_map>&&);
 			Shader_program& detach_all();
 
 
 			Shader_program& bind();
 			Shader_program& unbind();
 
-			Shader_program& set_uniform(const std::string& name, int value);
-			Shader_program& set_uniform(const std::string& name,float value);
-			Shader_program& set_uniform(const std::string& name,const glm::vec2& value);
-			Shader_program& set_uniform(const std::string& name,const glm::vec3& value);
-			Shader_program& set_uniform(const std::string& name,const glm::vec4& value);
-			Shader_program& set_uniform(const std::string& name,const glm::mat2& value);
-			Shader_program& set_uniform(const std::string& name,const glm::mat3& value);
-			Shader_program& set_uniform(const std::string& name,const glm::mat4& value);
-			Shader_program& set_uniform(const std::string& name,const std::vector<float>& value);
-			Shader_program& set_uniform(const std::string& name,const std::vector<glm::vec2>& value);
-			Shader_program& set_uniform(const std::string& name,const std::vector<glm::vec3>& value);
-			Shader_program& set_uniform(const std::string& name,const std::vector<glm::vec4>& value);
+			Shader_program& set_uniform(const char* name, int value);
+			Shader_program& set_uniform(const char* name, float value);
+			Shader_program& set_uniform(const char* name, const glm::vec2& value);
+			Shader_program& set_uniform(const char* name, const glm::vec3& value);
+			Shader_program& set_uniform(const char* name, const glm::vec4& value);
+			Shader_program& set_uniform(const char* name, const glm::mat2& value);
+			Shader_program& set_uniform(const char* name, const glm::mat3& value);
+			Shader_program& set_uniform(const char* name, const glm::mat4& value);
 
 		private:
+			template<class T>
+			struct Uniform_entry {
+				int handle;
+				T last_value;
+			};
+			template<class T>
+			using Uniform_cache = std::unordered_map<std::string, Uniform_entry<T>>;
+
 			unsigned int _handle;
 			std::vector<std::shared_ptr<const Shader>> _attached_shaders;
-			std::unordered_map<std::string,int> _uniform_locations;
+			std::unique_ptr<IUniform_map> _uniforms;
+
+			Uniform_cache<int> _uniform_locations_int;
+			Uniform_cache<float> _uniform_locations_float;
+			Uniform_cache<glm::vec2> _uniform_locations_vec2;
+			Uniform_cache<glm::vec3> _uniform_locations_vec3;
+			Uniform_cache<glm::vec4> _uniform_locations_vec4;
+			Uniform_cache<glm::mat2> _uniform_locations_mat2;
+			Uniform_cache<glm::mat3> _uniform_locations_mat3;
+			Uniform_cache<glm::mat4> _uniform_locations_mat4;
 	};
 
 } /* namespace renderer */

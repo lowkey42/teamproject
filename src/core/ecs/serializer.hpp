@@ -34,26 +34,30 @@ namespace ecs {
 
 	struct EcsSerializer : public sf2::JsonSerializer {
 		EcsSerializer(std::ostream& stream, Entity_manager& m,
-		              asset::Asset_manager& assets)
+		              asset::Asset_manager& assets,
+		              Component_filter filter={})
 			: sf2::JsonSerializer(stream),
-			  manager(m), assets(assets) {
+			  manager(m), assets(assets), filter(filter) {
 		}
 
 		Entity_manager& manager;
 		asset::Asset_manager& assets;
+		Component_filter filter;
 	};
 	struct EcsDeserializer : public sf2::JsonDeserializer {
 		EcsDeserializer(const std::string& source_name,
 		                std::istream& stream, Entity_manager& m,
-		                asset::Asset_manager& assets);
+		                asset::Asset_manager& assets,
+		                Component_filter filter={});
 
 		Entity_manager& manager;
 		asset::Asset_manager& assets;
+		Component_filter filter;
 	};
 
 	extern void load(sf2::JsonDeserializer& s, Entity& e);
 	extern void save(sf2::JsonSerializer& s, const Entity& e);
-	extern void load(sf2::JsonDeserializer& s, Entity_ptr& e);
+	extern void load(sf2::JsonDeserializer& s, Entity_ptr& e); // deprecated?
 
 
 	class Blueprint;

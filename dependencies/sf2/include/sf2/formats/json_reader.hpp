@@ -38,6 +38,8 @@ namespace format {
 			bool in_obj();
 			bool in_array();
 
+			void skip_obj();
+
 			bool read_nullptr(); // look-ahead if false
 
 			void read(std::string&);
@@ -302,6 +304,35 @@ namespace format {
 				_on_error(std::string("Unexpected character ")+c+" in array");
 				return false;
 		}
+	}
+
+	inline void Json_reader::skip_obj() {
+		auto c = _next();
+		if(c!='{')
+			_on_error(std::string("Unexpected character ")+c+" in object");
+
+		int obj_depth = 1;
+		while(obj_depth>0) {
+			switch(_next()) {
+				case '{':
+					obj_depth++;
+					break;
+				case '}':
+					obj_depth--;
+					break;
+				case '"': {
+					auto str_c = _get();
+					while(str_c!='"') {
+						if(str_c=='\\') _get();
+					}
+					break;
+				}
+				default:
+					break; // skip
+			}
+		}
+
+		_post_read();
 	}
 
 	inline bool Json_reader::read_nullptr() { // look-ahead if false

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+
 if(ANDROID)
 	SET(PHYSFS_HAVE_CDROM_SUPPORT FALSE)
 endif()
@@ -20,9 +22,9 @@ endif()
 set(ROOT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${ROOT_DIR}/modules")
 
-include_directories(BEFORE ${ROOT_DIR}/dependencies)
-include_directories(BEFORE ${ROOT_DIR}/dependencies/sf2/include)
-include_directories(BEFORE ${ROOT_DIR}/dependencies/gsl/include)
+include_directories(BEFORE "${ROOT_DIR}/dependencies")
+include_directories(BEFORE "${ROOT_DIR}/dependencies/gsl/include")
+include_directories(BEFORE "${ROOT_DIR}/dependencies/sf2/include")
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DENABLE_SF2_ASSETS)
 if(NOT EMSCRIPTEN AND NOT ANDROID)

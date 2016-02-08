@@ -135,8 +135,9 @@ namespace util {
 		if(pattern.length()>str.length())
 			return false;
 
-		for(auto i=str.length()-pattern.length(); i<str.length(); ++i)
-			if(pattern[i]!=str[i])
+		auto begin = str.length()-pattern.length();
+		for(auto i=0u; i<pattern.length(); ++i)
+			if(pattern[i]!=str[begin + i])
 				return false;
 
 		return true;

@@ -22,6 +22,7 @@
 #include "../core/renderer/vertex_object.hpp"
 #include "../core/renderer/primitives.hpp"
 #include "../core/renderer/text.hpp"
+#include <core/renderer/command_queue.hpp>
 
 namespace mo {
 
@@ -46,15 +47,9 @@ namespace mo {
 
 			renderer::Camera _camera;
 
-			renderer::Textured_box _box;
-			renderer::Textured_box _box2;
-			renderer::Textured_box _circle;
-
-			renderer::Text_renderer _text_renderer;
 			renderer::Text_dynamic _debug_Text;
 
-			Time _fade_left;
-			Time _fadein_left;
+			renderer::Command_queue _render_queue;
 	};
 
 }
