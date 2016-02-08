@@ -53,7 +53,9 @@ namespace renderer {
 		glGenBuffers(1, &_id);
 		glBindBuffer(GL_ARRAY_BUFFER, _id);
 		glBufferData(GL_ARRAY_BUFFER, _elements*_element_size, data,
-		             _dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+		             _dynamic ? GL_STREAM_DRAW : GL_STATIC_DRAW);
+
+		INFO("Created new VBO for "<<elements<<" Elements");
 	}
 	Buffer::Buffer(Buffer&& b)noexcept
 	    : _id(b._id), _element_size(b._element_size),
@@ -111,7 +113,7 @@ namespace renderer {
 		} else {
 			_max_elements = elements;
 			glBufferData(GL_ARRAY_BUFFER, elements*_element_size, data,
-			             GL_DYNAMIC_DRAW);
+			             GL_STREAM_DRAW);
 		}
 #endif
 	}

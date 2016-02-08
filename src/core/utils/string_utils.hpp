@@ -121,6 +121,10 @@ namespace util {
 		return str;
 	}
 
+	template<class T>
+	bool contains(const std::string& str, T&& pattern) {
+		return str.find(pattern) != std::string::npos;
+	}
 	inline bool starts_with(const std::string& str, const std::string& pattern) {
 		if(pattern.length()>str.length())
 			return false;

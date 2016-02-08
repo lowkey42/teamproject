@@ -161,7 +161,11 @@ namespace renderer {
 	}
 
 	void Graphics_ctx::start_frame() {
-		glClearColor(_clear_color.r, _clear_color.g, _clear_color.b,1.f);
+		if(_clear_color_dirty) {
+			glClearColor(_clear_color.r, _clear_color.g, _clear_color.b,1.f);
+			_clear_color_dirty = false;
+		}
+
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 		_frame_start_time = SDL_GetTicks() / 1000.0f;
@@ -190,6 +194,7 @@ namespace renderer {
 	}
 	void Graphics_ctx::set_clear_color(float r, float g, float b) {
 		_clear_color = glm::vec3(r,g,b);
+		_clear_color_dirty = true;
 	}
 
 	auto Graphics_ctx::max_screenshake()const noexcept -> float {

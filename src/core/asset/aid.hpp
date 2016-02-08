@@ -24,6 +24,7 @@ namespace asset {
 	enum class Asset_type : uint8_t {
 		gen,
 		tex,
+		tex_atlas,
 		tex_cube,
 		vert_shader,
 		frag_shader,

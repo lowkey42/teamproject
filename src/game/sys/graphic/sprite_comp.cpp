@@ -23,6 +23,9 @@ namespace graphic {
 		);
 
 		_texture = assets.load<renderer::Texture>(asset::AID(aid));
+		INVARIANT(_texture, "Texture '"<<aid<<"' not found");
+		INVARIANT(_texture->width()>1 && _texture->width()<4096 &&
+		          _texture->height()>1 && _texture->height()<4096, "Invalid size of texture '"<<aid<<"'");
 		_size = size * 1_m;
 	}
 

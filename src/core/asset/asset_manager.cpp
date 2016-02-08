@@ -258,30 +258,32 @@ namespace asset {
 		_assets.emplace(id, Asset{asset, reloader, PHYSFS_getLastModTime(path.c_str())});
 	}
 
-	util::maybe<std::string> Asset_manager::_locate(const AID& id)const {
+	auto Asset_manager::_locate(const AID& id)const -> std::tuple<Location_type, std::string> {
 		auto res = _dispatcher.find(id);
 
 		if(res!=_dispatcher.end()) {
 			if(exists_file(res->second))
-				return res->second;
+				return std::make_tuple(Location_type::file, res->second);
+			else if(util::contains(res->second, ":"))
+				return std::make_tuple(Location_type::indirection, res->second);
 			else
 				INFO("Asset not found in configured place: "<<res->second);
 		}
 
 		if(exists_file(id.name()))
-			return id.name();
+			return std::make_tuple(Location_type::file, res->second);
 
 		auto baseDir = _base_dir(id.type());
 
 		if(baseDir.is_some()) {
 			auto path = append_file(baseDir.get_or_throw(), id.name());
 			if(exists_file(path))
-				return util::just(std::move(path));
+				return std::make_tuple(Location_type::file, std::move(path));
 			else
 				DEBUG("asset "<<id.str()<<" not found in "<<path);
 		}
 
-		return util::nothing();
+		return std::make_tuple(Location_type::none, std::string());
 	}
 
 	ostream Asset_manager::_create(const AID& id) throw(Loading_failed) {
@@ -308,27 +310,33 @@ namespace asset {
 	}
 
 	auto Asset_manager::physical_location(const AID& id)const noexcept -> util::maybe<std::string>{
-		using RT = util::maybe<std::string>;
 		using namespace std::literals;
-		auto location = _locate(id);
 
-		return location.process<RT>(util::nothing(), [&](auto& f) -> RT{
-			auto dir = PHYSFS_getRealDir(f.c_str());
-			if(!dir)
-				return util::nothing();
+		Location_type type;
+		std::string location;
+		std::tie(type, location) = _locate(id);
 
-			auto file = dir+"/"s+f;
-			return exists_file(file) ? util::just(std::move(file)) : util::nothing();
-		});
+		if(type!=Location_type::file)
+			return util::nothing();
+
+		auto dir = PHYSFS_getRealDir(location.c_str());
+		if(!dir)
+			return util::nothing();
+
+		auto file = dir + "/"s + location;
+		return exists_file(file) ? util::just(std::move(file)) : util::nothing();
 	}
 
 	void Asset_manager::reload() {
 		for(auto& a : _assets) {
-			auto location = _locate(a.first);
-			location.process([&](const std::string& path){
-				auto last_mod = PHYSFS_getLastModTime(path.c_str());
+			Location_type type;
+			std::string location;
+			std::tie(type, location) = _locate(a.first);
+
+			if(type==Location_type::file) {
+				auto last_mod = PHYSFS_getLastModTime(location.c_str());
 				if(last_mod!=-1 && last_mod>a.second.last_modified) {
-					_open(path, a.first).process([&](istream& in){
+					_open(location, a.first).process([&](istream& in){
 						DEBUG("Reload: "<<a.first.str());
 						try {
 							a.second.reloader(a.second.data.get(), std::move(in));
@@ -338,7 +346,7 @@ namespace asset {
 						a.second.last_modified = last_mod;
 					});
 				}
-			});
+			}
 		}
 	}
 
@@ -347,11 +355,22 @@ namespace asset {
 	}
 
 	bool Asset_manager::exists(const AID& id)const noexcept {
-		auto path = _locate(id);
-		if(!path)
-			return false;
+		Location_type type;
+		std::string location;
+		std::tie(type, location) = _locate(id);
 
-		return exists_file(path.get_or_throw());
+		switch(type) {
+			case Location_type::none:
+				return false;
+
+			case Location_type::file:
+				return exists_file(location);
+
+			case Location_type::indirection:
+				return true;
+		}
+
+		FAIL("Unexpected Location_type: "<<(int)type);
 	}
 
 } /* namespace asset */

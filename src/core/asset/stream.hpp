@@ -111,6 +111,14 @@ namespace asset {
 		}
 	};
 
+	template<class T>
+	struct Interceptor {
+		static auto on_intercept(Asset_manager& manager, const AID& interceptor_aid,
+		                         const AID& org_aid) throw(Loading_failed) -> std::shared_ptr<T> {
+			FAIL("Required Interceptor specialization not found loading '"<<org_aid.str()<<"' via '"<<interceptor_aid.str()<<"'");
+		}
+	};
+
 }
 }
 #else

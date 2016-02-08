@@ -108,6 +108,9 @@ namespace asset {
 
 				Asset(std::shared_ptr<void> data, Reloader reloader, int64_t last_modified);
 			};
+			enum class Location_type {
+				none, file, indirection
+			};
 
 			std::unordered_map<AID, Asset> _assets;
 			std::unordered_map<AID, std::string> _dispatcher;
@@ -117,7 +120,7 @@ namespace asset {
 			auto _base_dir(Asset_type type)const -> util::maybe<std::string>;
 			auto _open(const std::string& path) -> util::maybe<istream>;
 			auto _open(const std::string& path, const AID& aid) -> util::maybe<istream>;
-			auto _locate(const AID& id)const -> util::maybe<std::string>;
+			auto _locate(const AID& id)const -> std::tuple<Location_type, std::string>;
 
 			auto _create(const AID& id)throw(Loading_failed) -> ostream;
 			void _post_write();

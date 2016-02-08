@@ -18,6 +18,7 @@ namespace asset {
 
 		if     ("gen"==r.first)          _type=Asset_type::gen;
 		else if("tex"==r.first)          _type=Asset_type::tex;
+		else if("tex_atlas"==r.first)    _type=Asset_type::tex_atlas;
 		else if("tex_cube"==r.first)     _type=Asset_type::tex_cube;
 		else if("vert_shader"==r.first)  _type=Asset_type::vert_shader;
 		else if("frag_shader"==r.first)  _type=Asset_type::frag_shader;
@@ -39,6 +40,7 @@ namespace asset {
 		switch(_type) {
 			case Asset_type::gen:         class_name="gen";         break;
 			case Asset_type::tex:         class_name="tex";         break;
+			case Asset_type::tex_atlas:   class_name="tex_atlas";   break;
 			case Asset_type::tex_cube:    class_name="tex_cube";    break;
 			case Asset_type::vert_shader: class_name="vert_shader"; break;
 			case Asset_type::frag_shader: class_name="frag_shader"; break;

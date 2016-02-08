@@ -64,6 +64,7 @@ namespace renderer {
 			std::unique_ptr<SDL_Window,void(*)(SDL_Window*)> _window;
 			SDL_GLContext _gl_ctx;
 			glm::vec3 _clear_color;
+			bool _clear_color_dirty = true;
 
 			float _frame_start_time = 0;
 			float _delta_time_smoothed = 0;

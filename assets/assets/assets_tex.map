@@ -5,7 +5,8 @@ tex:satisfy_font = textures/satisfy_regular_20.tga
 
 tex:ui_intro = textures/ui_intro.png
 tex:ui_intro2 = textures/ui_intro2.png
-tex:ui_intro_circle = textures/atlas_example.json
+tex:ui_intro_circle = tex_atlas:example
 
+tex_atlas:example = textures/atlas_example.json
 tex:atlas_example_tex = textures/ui_intro_circle.png
 

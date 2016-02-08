@@ -21,11 +21,16 @@
 
 #include <core/renderer/texture.hpp>
 #include <core/renderer/camera.hpp>
+#include <core/renderer/sprite_batch.hpp>
 
 #include <core/ecs/ecs.hpp>
 
 
 namespace mo {
+	namespace renderer {
+		class Command_queue;
+	}
+
 namespace sys {
 namespace editor {
 
@@ -39,13 +44,18 @@ namespace editor {
 		public:
 			Editor_system(asset::Asset_manager& assets);
 
-			void draw_blueprint_list(const renderer::Camera& camera);
+			void draw_blueprint_list(renderer::Command_queue& queue, glm::vec2 offset);
 			auto find_blueprint(glm::vec2 screen_position,
 			                    const renderer::Camera&)const -> util::maybe<const Entity_blueprint_info&>;
 
+			// TODO: set category
+			// TODO: list categories
+
 		private:
 			asset::Ptr<Editor_conf> _conf;
-			std::string current_category;
+			std::string _current_category;
+
+			renderer::Sprite_batch _icon_batch;
 	};
 
 }

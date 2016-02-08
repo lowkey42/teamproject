@@ -30,18 +30,31 @@ namespace asset {
 		if(res!=_assets.end())
 			return Ptr<T>{*this, id, std::static_pointer_cast<const T>(res->second.data)};
 
-		auto path = _locate(id);
+		Location_type type;
+		std::string path;
+		std::tie(type, path) = _locate(id);
 
-		if(!path)
-			return util::nothing();
+		auto asset = std::shared_ptr<T>{};
 
-		auto stream = _open(path.get_or_throw(), id);
-		if(!stream)
-			return util::nothing();
+		switch(type){
+			case Location_type::none:
+				return util::nothing();
 
-		auto asset = Loader<T>::load(std::move(stream.get_or_throw()));
+			case Location_type::indirection:
+				asset = Interceptor<T>::on_intercept(*this, std::move(path), id);
+				break;
 
-		_add_asset(id, path.get_or_throw(), &_asset_reloader_impl<T>, std::static_pointer_cast<void>(asset));
+			case Location_type::file: {
+				auto stream = _open(path, id);
+				if(!stream)
+					return util::nothing();
+
+				asset = Loader<T>::load(std::move(stream.get_or_throw()));
+				break;
+			}
+		}
+
+		_add_asset(id, path, &_asset_reloader_impl<T>, std::static_pointer_cast<void>(asset));
 
 		return Ptr<T>{*this, id, asset};
 	}

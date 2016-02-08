@@ -35,15 +35,14 @@ namespace renderer {
 
 
 	struct Sprite {
-		Position position;
-		float layer = 0;
+		glm::vec3 position;
 		Angle rotation;
-		Position size;
+		glm::vec2 size;
 		glm::vec4 uv;
 		const renderer::Texture* texture = nullptr;
 
-		Sprite()noexcept = default;
-		Sprite(Position position, float layer, Angle rotation, Position size,
+		Sprite() = default;
+		Sprite(glm::vec3 position, Angle rotation, glm::vec2 size,
 		       glm::vec4 uv, const renderer::Texture& texture)noexcept;
 	};
 

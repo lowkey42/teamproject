@@ -28,9 +28,9 @@ namespace renderer {
 		};
 	}
 
-	Sprite::Sprite(Position position, float layer, Angle rotation, Position size,
+	Sprite::Sprite(glm::vec3 position, Angle rotation, glm::vec2 size,
 	               glm::vec4 uv, const renderer::Texture& texture)noexcept
-	    : position(position), layer(layer), rotation(rotation), size(size),
+	    : position(position), rotation(rotation), size(size),
 	      uv(uv), texture(&texture) {
 	}
 
@@ -57,19 +57,14 @@ namespace renderer {
 	}
 
 	void Sprite_batch::insert(const Sprite& sprite) {
-		auto offset = vec3 {
-			sprite.position.x.value(),
-			sprite.position.y.value(),
-			sprite.layer
-		};
 		auto scale = vec3 {
-			sprite.size.x.value(),
-			sprite.size.y.value(),
+			sprite.size.x,
+			sprite.size.y,
 			1.f
 		};
 
 		auto transform = [&](vec3 p) {
-			return offset + rotate(p, sprite.rotation, vec3{0,0,1})*scale;
+			return sprite.position + rotate(p, sprite.rotation, vec3{0,0,1})*scale;
 		};
 
 		auto tex_clip = sprite.texture->clip_rect();
@@ -93,6 +88,7 @@ namespace renderer {
 	void Sprite_batch::flush(Command_queue& queue) {
 		_draw(queue);
 		_vertices.clear();
+		_free_obj = 0;
 	}
 
 	void Sprite_batch::_draw(Command_queue& queue) {

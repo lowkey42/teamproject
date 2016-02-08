@@ -1,0 +1,14 @@
+{
+	"columns": 2,
+	"icon_size": 32,
+	"default_category": "main",
+	
+	"blueprints": {
+		"main": [
+			{"id": "test", "icon": "tex:ui_intro_circle"},
+			{"id": "test", "icon": "tex:ui_intro2"},
+			{"id": "test", "icon": "tex:ui_intro"},
+			{"id": "test", "icon": "tex:satisfy_font"}
+		]
+	}
+}

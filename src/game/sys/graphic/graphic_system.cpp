@@ -38,8 +38,15 @@ namespace graphic {
 			process(entity.get<physics::Transform_comp>(),
 			        entity.get<Sprite_comp>())
 			>> [&](const auto& trans, const auto& sp) {
-				_sprite_batch.insert(renderer::Sprite{trans.position(), trans.layer(), trans.rotation(),
-				                     sp._size, glm::vec4{0,0,1,1}, *sp._texture});
+				auto position = glm::vec3 {
+					trans.position().x.value(),
+					trans.position().y.value(),
+					trans.layer()
+				};
+
+				_sprite_batch.insert(renderer::Sprite{position, trans.rotation(),
+				                     remove_units(sp._size), glm::vec4{0,0,1,1},
+				                     *sp._texture});
 			};
 		});
 

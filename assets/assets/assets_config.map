@@ -3,4 +3,4 @@ cfg:graphics = graphics-cfg.json
 cfg:sounds = sounds-cfg.json
 cfg:highscore = highscore.json
 cfg:savegame = savegame
-
+cfg:editor = settings/editor.json

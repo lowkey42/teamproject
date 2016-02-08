@@ -123,27 +123,27 @@ namespace asset {
 			FAIL("NOT IMPLEMENTED!");
 		}
 	};
-}
 
-namespace asset {
 	template<>
 	struct Loader<renderer::Texture> {
 		using RT = std::shared_ptr<renderer::Texture>;
 
-		static RT load(istream in) throw(Loading_failed){
-			INFO("Loading: "<<in.physical_location().get_or_other("???"));
-			if(util::ends_with(in.physical_location().get_or_other(".png"), ".json")) {
-				in.close();
-
-				auto atlas = in.manager().load<renderer::Texture_atlas>(in.aid());
-				return atlas->get(in.aid().name());
-			}
-
+		static RT load(istream in) throw(Loading_failed) {
 			return std::make_shared<renderer::Texture>(in.bytes());
 		}
 
 		static void store(ostream out, const renderer::Texture& asset) throw(Loading_failed) {
 			FAIL("NOT IMPLEMENTED!");
+		}
+	};
+
+	template<>
+	struct Interceptor<renderer::Texture> {
+		static auto on_intercept(Asset_manager& manager, const AID& interceptor_aid,
+		                         const AID& org_aid) throw(Loading_failed) {
+			auto atlas = manager.load<renderer::Texture_atlas>(interceptor_aid);
+
+			return atlas->get(org_aid.name());
 		}
 	};
 }

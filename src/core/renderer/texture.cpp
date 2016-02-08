@@ -80,19 +80,27 @@ namespace renderer {
 		if(_handle!=0 && _owner)
 			glDeleteTextures(1, &_handle);
 
+		_owner = s._owner;
 		_handle = s._handle;
 		s._handle = 0;
 
 		_width = s._width;
 		_height = s._height;
+		_clip = s._clip;
 
 		return *this;
 	}
 
 	void Texture::bind(int index)const {
+		static int current_texture_unit = -1;
+
 		auto tex = GL_TEXTURE0+index;
 		INVARIANT(tex<GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, "to many textures");
-		glActiveTexture(index);
+
+		if(current_texture_unit!=index) {
+			glActiveTexture(GL_TEXTURE0 + index);
+			current_texture_unit = index;
+		}
 		glBindTexture(GL_TEXTURE_2D, _handle);
 	}
 

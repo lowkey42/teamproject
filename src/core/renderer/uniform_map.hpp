@@ -75,7 +75,7 @@ namespace renderer {
 			auto emplace(const char* name, const glm::mat2& val) -> this_t& override final;
 			auto emplace(const char* name, const glm::mat3& val) -> this_t& override final;
 			auto emplace(const char* name, const glm::mat4& val) -> this_t& override final;
-			void clear();
+			void clear() override final;
 
 			void bind_all(Shader_program&)const override final;
 
@@ -123,8 +123,8 @@ namespace renderer {
 	auto make_uniform_map(Args&&... args) -> std::unique_ptr<IUniform_map> {
 		constexpr auto max_slots = sizeof...(args)/2;
 		constexpr auto sum_size = detail::sum_even(sizeof(args)...);
-		constexpr auto average_size = static_cast<std::size_t>(std::ceil(sum_size*1.f / max_slots));
-		auto m = std::make_unique<Uniform_map<max_slots, average_size>>();
+		constexpr auto average_size = static_cast<std::size_t>(sum_size*1.f / max_slots + 0.5f);
+		auto m = std::unique_ptr<IUniform_map>(new Uniform_map<max_slots, average_size>);
 
 		util::apply2([&m](auto&& name, auto&& value){
 			m->emplace(std::forward<decltype(name)>(name), std::forward<decltype(value)>(value));

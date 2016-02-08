@@ -17,13 +17,15 @@
 
 #include "meta_system.hpp"
 
+#include "sys/editor/editor_system.hpp"
+
 #include <core/engine.hpp>
 #include <core/renderer/camera.hpp>
-#include "../core/renderer/texture.hpp"
-#include "../core/renderer/shader.hpp"
-#include "../core/renderer/vertex_object.hpp"
-#include "../core/renderer/primitives.hpp"
-#include "../core/renderer/text.hpp"
+#include <core/renderer/texture.hpp>
+#include <core/renderer/shader.hpp>
+#include <core/renderer/vertex_object.hpp>
+#include <core/renderer/primitives.hpp>
+#include <core/renderer/text.hpp>
 #include <core/renderer/command_queue.hpp>
 
 namespace mo {
@@ -48,6 +50,7 @@ namespace mo {
 			util::Mailbox_collection _mailbox;
 
 			Meta_system _systems;
+			sys::editor::Editor_system _editor_sys;
 
 			// TODO: sidebar for blueprints
 			// TODO: entity placement

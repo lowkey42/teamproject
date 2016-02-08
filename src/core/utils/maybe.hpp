@@ -299,6 +299,12 @@ namespace util {
 		return details::processor<T...>{std::tuple<decltype(m)...>(std::forward<T>(m)...)};
 	}
 
+	template<class Map, class Key>
+	auto find_maybe(Map& map, const Key& key) -> auto {
+		auto iter = map.find(key);
+		return iter!=map.end() ? justPtr(&iter->second) : nothing();
+	}
+
 	template<typename T>
 	class lazy {
 		public:

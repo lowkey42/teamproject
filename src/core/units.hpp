@@ -36,7 +36,7 @@ namespace mo {
 	template<class S>
 	struct Value_type {
 		protected:
-			constexpr Value_type(float v) : val(v){}
+			constexpr Value_type(float v=0)noexcept : val(v){}
 
 			float val;
 
@@ -98,11 +98,11 @@ namespace mo {
 
 
 	struct Distance : Value_type<Distance> {
-		constexpr explicit Distance(float meters) : Value_type(meters){}
+		constexpr explicit Distance(float meters=0)noexcept : Value_type(meters){}
 	};
 
 	struct Angle : Value_type<Angle> {
-		constexpr explicit Angle(float radians) : Value_type(radians){}
+		constexpr explicit Angle(float radians=0)noexcept : Value_type(radians){}
 		constexpr operator float()const noexcept {return val;}
 		constexpr float in_degrees()const noexcept {return val * (180.f / PI);}
 	};
@@ -117,40 +117,40 @@ namespace mo {
 
 
 	struct Time : Value_type<Time> {
-		constexpr explicit Time(float seconds) : Value_type(seconds){}
+		constexpr explicit Time(float seconds=0)noexcept : Value_type(seconds){}
 	};
 	class Time_squared : public Value_type<Time_squared> {
-		constexpr explicit Time_squared(float seconds) : Value_type(seconds){}
+		constexpr explicit Time_squared(float seconds=0)noexcept : Value_type(seconds){}
 
 		friend constexpr Time_squared operator*(Time a, Time b) noexcept;
 	};
 
 
 	struct Force : Value_type<Force> {
-		constexpr explicit Force(float newton) : Value_type(newton){}
+		constexpr explicit Force(float newton=0)noexcept : Value_type(newton){}
 	};
 
 	struct Mass : Value_type<Mass> {
-		constexpr explicit Mass(float g) : Value_type(g){}
+		constexpr explicit Mass(float g=0)noexcept : Value_type(g){}
 	};
 	struct Inv_mass : Value_type<Inv_mass> {
-		constexpr explicit Inv_mass(Mass w) : Value_type(1.f/w.value()){}
-		constexpr explicit Inv_mass(float g) : Value_type(g){}
+		constexpr explicit Inv_mass(Mass w)noexcept : Value_type(1.f/w.value()){}
+		constexpr explicit Inv_mass(float g=0)noexcept : Value_type(g){}
 	};
 
 	struct Speed : Value_type<Speed> {
-		constexpr explicit Speed(float meterPs) : Value_type(meterPs){}
+		constexpr explicit Speed(float meterPs=0)noexcept : Value_type(meterPs){}
 	};
 	struct Speed_per_time : Value_type<Speed_per_time> {
-		constexpr explicit Speed_per_time(float meter_pss) : Value_type(meter_pss){}
+		constexpr explicit Speed_per_time(float meter_pss=0)noexcept : Value_type(meter_pss){}
 	};
 
 	struct Angle_per_time : Value_type<Angle_per_time> {
-		constexpr explicit Angle_per_time(float radians) : Value_type(radians){}
+		constexpr explicit Angle_per_time(float radians=0)noexcept : Value_type(radians){}
 	};
 	using Angle_velocity = Angle_per_time;
 	struct Angle_acceleration : Value_type<Angle_acceleration> {
-		constexpr explicit Angle_acceleration(float radians) : Value_type(radians){}
+		constexpr explicit Angle_acceleration(float radians=0)noexcept : Value_type(radians){}
 	};
 
 	// directed units
