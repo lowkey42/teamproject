@@ -50,12 +50,12 @@ namespace editor {
 
 		auto& blueprints = util::find_maybe(_conf->blueprints, _current_category).get_or_throw();
 
-		const auto base_pos = vec3{
+		const auto base_pos = vec2{
 			offset.x - _conf->icon_size*_conf->columns,
-			offset.y, 0.f
+			offset.y + _conf->icon_size
 		};
 		auto column = 0.f;
-		auto row = 0.f;
+		auto row = 1.f;
 
 		for(auto& blueprint : blueprints) {
 			auto w = blueprint.icon->width();
@@ -68,13 +68,12 @@ namespace editor {
 				h = _conf->icon_size;
 			}
 
-			const auto pos = base_pos + vec3 {
+			const auto pos = base_pos + vec2 {
 				(column+0.5f) * _conf->icon_size,
-				(row+0.5f) * _conf->icon_size,
-				0.f
+				(row+0.5f) * _conf->icon_size
 			};
 
-			_icon_batch.insert(Sprite{pos, 0_deg, vec2{w,h}, glm::vec4{0,0,1,1}, *blueprint.icon});
+			_icon_batch.insert(*blueprint.icon, pos, vec2{w,h});
 
 			column++;
 			if(column >= _conf->columns) {
@@ -88,12 +87,20 @@ namespace editor {
 
 	auto Editor_system::find_blueprint(
 	        glm::vec2 screen_position,
+	        glm::vec2 offset,
 	        const renderer::Camera& camera
 	        )const -> util::maybe<const Entity_blueprint_info&> {
 
-		auto pos = camera.screen_to_world(screen_position);
+		const auto base_pos = vec2 {
+			offset.x - _conf->icon_size*_conf->columns,
+			offset.y + _conf->icon_size*2
+		};
+		auto pos = camera.screen_to_world(screen_position) - base_pos;
 
 		pos = glm::floor(pos / _conf->icon_size);
+
+		if(pos.x<0 || pos.x>=_conf->columns || pos.y<0)
+			return util::nothing();
 
 		auto index = static_cast<std::size_t>(pos.x + pos.y * _conf->columns);
 

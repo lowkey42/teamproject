@@ -27,7 +27,7 @@ namespace renderer {
 		std::getline(stream, line);
 		std::getline(stream, line);
 		util::replace_inplace(line, "\r", "");
-		_texture = assets.load<Texture>(asset::AID(asset::Asset_type::tex, line));
+		_texture = assets.load<Texture>(asset::AID("tex"_strid, line));
 
 		int symbols;
 		stream>>symbols;

@@ -101,10 +101,10 @@ namespace util {
 
 			template<typename Msg, typename... Arg>
 			void send(Arg&&... arg) {
-				send<Msg>(util::typeuid_of<void>(), std::forward<Arg>(arg)...);
+				send_others<Msg>(util::typeuid_of<void>(), std::forward<Arg>(arg)...);
 			}
 			template<typename Msg, typename... Arg>
-			void send(Typeuid self, Arg&&... arg) {
+			void send_others(Typeuid self, Arg&&... arg) {
 				send_msg(Msg{std::forward<Arg>(arg)...}, self);
 			}
 

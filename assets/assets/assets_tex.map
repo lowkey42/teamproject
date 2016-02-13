@@ -1,5 +1,7 @@
 tex: = textures/
 
+tex:black = textures/default_black.png
+
 tex:x_font = textures/x.template_regular_48.tga
 tex:satisfy_font = textures/satisfy_regular_20.tga
 
@@ -10,3 +12,4 @@ tex:ui_intro_circle = tex_atlas:example
 tex_atlas:example = textures/atlas_example.json
 tex:atlas_example_tex = textures/ui_intro_circle.png
 
+mat:test = materials/test.mat

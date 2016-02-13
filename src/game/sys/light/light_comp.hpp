@@ -1,5 +1,5 @@
 /**************************************************************************\
- * event-types caused by user-input                                       *
+ * a simple point or spot light                                           *
  *                                               ___                      *
  *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
  *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
@@ -15,50 +15,37 @@
 
 #pragma once
 
-#include "types.hpp"
-
-#include <memory>
-#include <glm/vec2.hpp>
+#include <core/units.hpp>
+#include <core/ecs/ecs.hpp>
 
 
 namespace mo {
-namespace input {
+namespace sys {
+namespace light {
 
-	struct Char_input {std::string character;};
+	struct Light_comp : public ecs::Component<Light_comp> {
+		public:
+			static constexpr const char* name() {return "Light";}
+			void load(sf2::JsonDeserializer& state,
+			          asset::Asset_manager& asset_mgr)override;
+			void save(sf2::JsonSerializer& state)const override;
 
-	struct Source_added {
-		Input_source src;
-	};
-	struct Source_removed {
-		Input_source src;
-	};
+			Light_comp(ecs::Entity& owner) : Component(owner) {}
 
+			auto color()const noexcept {return _color;}
+			auto radius()const noexcept {return _radius;}
 
-	// mapped inputs
-	struct Once_action {
-		Action_id id;
-		Input_source src;
-	};
-	inline bool operator==(const Once_action& lhs, const Once_action& rhs) {
-		return lhs.id==rhs.id && lhs.src==rhs.src;
-	}
+		private:
+			friend class Light_system;
 
-	struct Continuous_action {
-		Action_id id;
-		Input_source src;
-		bool begin; //< true=begin, false=end
-	};
-
-	struct Range_action {
-		Action_id id;
-		Input_source src;
-		glm::vec2 rel;
-		glm::vec2 abs;
+			Angle _direction;
+			Angle _angle;
+			Rgb _color;
+			Distance _radius;
+			bool _falloff;
+			float _falloff_factor;
 	};
 
-	struct Force_feedback {
-		Input_source src;
-		float force; //< 0-1
-	};
+}
 }
 }

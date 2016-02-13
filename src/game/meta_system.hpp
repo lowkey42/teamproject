@@ -16,6 +16,7 @@
 #pragma once
 
 #include "sys/graphic/graphic_system.hpp"
+#include "sys/light/light_system.hpp"
 #include "sys/physics/transform_system.hpp"
 
 #include <core/engine.hpp>
@@ -57,6 +58,7 @@ namespace mo {
 
 			ecs::Entity_manager entity_manager;
 			sys::physics::Scene_graph scene_graph;
+			sys::light::Light_system lights;
 			sys::graphic::Graphic_system renderer;
 
 		private:

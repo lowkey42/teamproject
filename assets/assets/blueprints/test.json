@@ -2,7 +2,7 @@
     "Transform":{
     },
     "Sprite": {
-        "aid": "tex:ui_intro_circle",
+        "material": "mat:test",
         "size": {"x":100, "y":100}
     }
 }

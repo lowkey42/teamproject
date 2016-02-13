@@ -1,5 +1,5 @@
 /**************************************************************************\
- * GUUID for all assets used in the project                               *
+ * simple wrapper for materials (collection of textures)                  *
  *                                               ___                      *
  *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
  *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
@@ -16,50 +16,57 @@
 #pragma once
 
 #include <string>
-#include <memory>
-#include "../utils/str_id.hpp"
+#include <vector>
+#include <stdexcept>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+
+#include "texture.hpp"
+#include "../utils/log.hpp"
+#include "../asset/asset_manager.hpp"
 
 namespace mo {
-namespace asset {
+namespace renderer {
 
-	using Asset_type = util::Str_id;
+	class Command;
 
-	/**
-	 * Asset_type ':' Name; not case-sensitiv; e.g. "tex:Player/main"
-	 */
-	class AID {
+	class Material {
 		public:
-			AID() : _type("gen") {}
-			AID(std::string n);
-			AID(Asset_type c, std::string n);
+			Material(asset::istream);
 
-			bool operator==(const AID& o)const noexcept;
-			bool operator!=(const AID& o)const noexcept;
-			bool operator<(const AID& o)const noexcept;
-			operator bool()const noexcept;
+			void set_textures(Command&)const;
 
-			auto str()const noexcept -> std::string;
-			auto type()const noexcept{return _type;}
-			auto name()const noexcept{return _name;}
+			auto albedo()const noexcept -> const Texture& {
+				return *_albedo;
+			}
 
 		private:
-			Asset_type _type;
-			std::string _name;
+			Texture_ptr _albedo;
+			Texture_ptr _normal;
+			Texture_ptr _roughness;
+			Texture_ptr _metallic;
+			Texture_ptr _emission;
+			Texture_ptr _height;
 	};
+	using Material_ptr = asset::Ptr<Material>;
+
+	extern void init_materials(asset::Asset_manager&);
 
 }
-}
 
-inline mo::asset::AID operator "" _aid(const char* str, std::size_t) {
-	return mo::asset::AID(str);
-}
+namespace asset {
+	template<>
+	struct Loader<renderer::Material> {
+		using RT = std::shared_ptr<renderer::Material>;
 
-namespace std {
-	template <> struct hash<mo::asset::AID> {
-		size_t operator()(const mo::asset::AID& aid)const noexcept {
-			return 71*hash<mo::asset::Asset_type>()(aid.type())
-			        + hash<string>()(aid.name());
+		static RT load(istream in) {
+			return std::make_shared<renderer::Material>(std::move(in));
+		}
+
+		static void store(ostream out, const renderer::Texture_atlas& asset) {
+			FAIL("NOT IMPLEMENTED!");
 		}
 	};
 }
 
+}

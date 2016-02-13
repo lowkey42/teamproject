@@ -131,7 +131,6 @@ namespace input {
 			gp->update(dt);
 
 		_mailbox.update_subscriptions();
-		_mapper->update();
 	}
 
 
@@ -161,7 +160,7 @@ namespace input {
 				_pointer_world_pos[idx]  = world_pos;
 				_pointer_active[idx]     = true;
 
-				_mapper->on_mouse_pos_change(world_diff);
+				_mapper->on_mouse_pos_change(world_diff, world_pos);
 				break;
 			}
 
@@ -187,7 +186,7 @@ namespace input {
 					_pointer_active[idx]     = event.type!=SDL_FINGERUP;
 
 					if(idx==0) { //< mouse emulation
-						_mapper->on_mouse_pos_change(world_diff);
+						_mapper->on_mouse_pos_change(world_diff, world_pos);
 
 						if(event.tfinger.type==SDL_FINGERDOWN)
 							_mapper->on_mouse_button_pressed(1, event.tfinger.pressure);
@@ -373,8 +372,8 @@ namespace input {
 
 			auto state = axis(stick);
 			if(state!=_stick_state[i]) {
+				_mapper.on_pad_stick_change(_src_id, stick, state-_stick_state[i], state);
 				_stick_state[i] = state;
-				_mapper.on_pad_stick_change(_src_id, stick, state);
 			}
 		}
 	}

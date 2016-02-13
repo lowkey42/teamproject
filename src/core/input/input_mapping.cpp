@@ -65,15 +65,8 @@ namespace input {
 	                           asset::Asset_manager& assets)
 	    : _bus(bus) {
 
-		_continuous_actions.reserve(64);
-
 		std::tie(_context, _default_context_id) = load_context_map(assets, _context);
 		enable_context(_default_context_id);
-	}
-
-	void Input_mapper::update() {
-		for(const auto& a : _continuous_actions)
-			_bus.send_msg(a, 0);
 	}
 
 	void Input_mapper::enable_context(Context_id id) {
@@ -82,23 +75,20 @@ namespace input {
 		auto def_ctx = _context.find(_active_context_id);
 		INVARIANT(def_ctx!=_context.end(), "Enabled undefined input context");
 		_active_context = &def_ctx->second;
-
-		_continuous_actions.clear();
 	}
 
 	namespace {
 
-		void process_pressed(std::vector<Once_action>& continuous_actions,
-		                     util::Message_bus& bus, const Reaction& action,
+		void process_pressed(util::Message_bus& bus, const Reaction& action,
 		                     Input_source src=0, float intensity=1.f) {
 			switch(action.type) {
 				case Reaction_type::continuous:
-					continuous_actions.emplace_back(Once_action{action.action, src});
+					bus.send<Continuous_action>(action.action, src, true);
 					break;
 
 				case Reaction_type::range:
 					bus.send<Range_action>(action.action, src,
-					                       glm::vec2{intensity,0});
+					                       glm::vec2{intensity,0}, glm::vec2{0,0});
 					break;
 
 				case Reaction_type::once:
@@ -107,17 +97,16 @@ namespace input {
 			}
 		}
 
-		void process_release(std::vector<Once_action>& continuous_actions,
-		                     util::Message_bus& bus, const Reaction& action,
+		void process_release(util::Message_bus& bus, const Reaction& action,
 		                     Input_source src=0) {
 			switch(action.type) {
 				case Reaction_type::continuous:
-					util::erase_fast(continuous_actions, Once_action{action.action, src});
+					bus.send<Continuous_action>(action.action, src, false);
 					break;
 
 				case Reaction_type::range:
 					bus.send<Range_action>(action.action, src,
-					                       glm::vec2{0,0});
+					                       glm::vec2{0,0}, glm::vec2{0,0});
 					break;
 
 				case Reaction_type::once:
@@ -129,13 +118,15 @@ namespace input {
 		}
 
 		void process_movement(util::Message_bus& bus, const Reaction& action,
-		                      Input_source src, glm::vec2 rel) {
+		                      Input_source src, glm::vec2 rel, glm::vec2 abs) {
 			switch(action.type) {
-				case Reaction_type::range:
-					bus.send<Range_action>(action.action, src, rel);
+				case Reaction_type::continuous:
+					bus.send<Continuous_action>(action.action, src, true);
+					bus.send<Continuous_action>(action.action, src, false);
 					break;
 
-				case Reaction_type::continuous:
+				case Reaction_type::range:
+					bus.send<Range_action>(action.action, src, rel, abs);
 					break;
 
 				case Reaction_type::once:
@@ -150,23 +141,23 @@ namespace input {
 
 	void Input_mapper::on_key_pressed (Key k) {
 		find_maybe(_active_context->keys, k).process([&](auto& action) {
-			process_pressed(_continuous_actions,_bus, action);
+			process_pressed(_bus, action);
 		});
 	}
 
 	void Input_mapper::on_key_released(Key k) {
 		find_maybe(_active_context->keys, k).process([&](auto& action) {
-			process_release(_continuous_actions,_bus, action);
+			process_release(_bus, action);
 		});
 	}
 
-	void Input_mapper::on_mouse_pos_change(glm::vec2 rel) {
-		process_movement(_bus, _active_context->mouse_movement, Input_source(0), rel);
+	void Input_mapper::on_mouse_pos_change(glm::vec2 rel, glm::vec2 abs) {
+		process_movement(_bus, _active_context->mouse_movement, Input_source(0), rel, abs);
 
 		if(_primary_mouse_button_down
 		        && (_is_mouse_drag || glm::length2(rel)>=min_mouse_drag_movement)) {
 			_is_mouse_drag = true;
-			process_movement(_bus, _active_context->mouse_drag, Input_source(0), rel);
+			process_movement(_bus, _active_context->mouse_drag, Input_source(0), rel, abs);
 		}
 	}
 
@@ -176,8 +167,7 @@ namespace input {
 
 		switch(action.type) {
 			case Reaction_type::range:
-				_bus.send<Range_action>(action.action, Input_source(0), rel);
-				_bus.send<Range_action>(action.action, Input_source(0), glm::vec2{});
+				_bus.send<Range_action>(action.action, Input_source(0), rel, rel);
 				break;
 
 			case Reaction_type::once:
@@ -185,6 +175,8 @@ namespace input {
 				break;
 
 			case Reaction_type::continuous:
+				_bus.send<Continuous_action>(action.action, Input_source(0), true);
+				_bus.send<Continuous_action>(action.action, Input_source(0), false);
 			default:
 				break;
 		}
@@ -193,7 +185,7 @@ namespace input {
 	void Input_mapper::on_pad_button_pressed (Input_source src, Pad_button b,
 	                                          float intensity) {
 		find_maybe(_active_context->pad_buttons, b).process([&](auto& action) {
-			process_pressed(_continuous_actions,_bus, action, src, intensity);
+			process_pressed(_bus, action, src, intensity);
 		});
 	}
 
@@ -201,19 +193,19 @@ namespace input {
 	                                          float intensity) {
 		find_maybe(_active_context->pad_buttons, b).process([&](auto& action) {
 			if(action.type==Reaction_type::range)
-				_bus.send<Range_action>(action.action, src, glm::vec2{intensity,0});
+				_bus.send<Range_action>(action.action, src, glm::vec2{intensity,0}, glm::vec2{intensity,0});
 		});
 	}
 
 	void Input_mapper::on_pad_button_released(Input_source src, Pad_button b) {
 		find_maybe(_active_context->pad_buttons, b).process([&](auto& action) {
-			process_release(_continuous_actions,_bus, action, src);
+			process_release(_bus, action, src);
 		});
 	}
 
 	void Input_mapper::on_mouse_button_pressed (Mouse_button b, float pressure) {
 		find_maybe(_active_context->mouse_buttons, {b,1}).process([&](auto& action) {
-			process_pressed(_continuous_actions,_bus, action, Input_source{0}, pressure);
+			process_pressed(_bus, action, Input_source{0}, pressure);
 		});
 
 		if(b==1)
@@ -224,7 +216,7 @@ namespace input {
 	                                            uint8_t clicks) {
 		if(b!=1 || !_is_mouse_drag) {
 			find_maybe(_active_context->mouse_buttons, {b,clicks}).process([&](auto& action) {
-				process_release(_continuous_actions,_bus, action);
+				process_release(_bus, action);
 			});
 		}
 
@@ -235,9 +227,9 @@ namespace input {
 	}
 
 	void Input_mapper::on_pad_stick_change(Input_source src, Pad_stick s,
-	                                       glm::vec2 value) {
+	                                       glm::vec2 rel, glm::vec2 abs) {
 		find_maybe(_active_context->pad_sticks, s).process([&](auto& action) {
-			process_movement(_bus, action, src, value);
+			process_movement(_bus, action, src, rel, abs);
 		});
 	}
 

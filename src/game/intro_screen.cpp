@@ -17,12 +17,6 @@ namespace mo {
 	using namespace unit_literals;
 	using namespace renderer;
 
-	namespace {
-		glm::vec2 offset = {0,0};
-		float rotation = 0;
-		float scale = 1;
-	}
-
 	Intro_screen::Intro_screen(Engine& game_engine)
 	    : Screen(game_engine),
 	      _mailbox(game_engine.bus()),
@@ -34,33 +28,6 @@ namespace mo {
 			switch(e.id) {
 				case "back"_strid:
 					_engine.exit();
-					break;
-
-				case "test_ff_a"_strid:
-					_mailbox.send<input::Force_feedback>(input::Input_source{1}, 1.f);
-					break;
-				case "test_ff_b"_strid:
-					_mailbox.send<input::Force_feedback>(input::Input_source{1}, 0.2f);
-					break;
-			}
-		});
-
-		_mailbox.subscribe_to([&](input::Range_action& e){
-			switch(e.id) {
-				case "move"_strid:
-					offset+=e.value;
-					break;
-
-				case "rotate"_strid:
-					rotation+=e.value.x;
-					_mailbox.send<input::Force_feedback>(input::Input_source{0}, 1.0f);
-					_mailbox.send<input::Force_feedback>(input::Input_source{1}, 1.0f);
-					break;
-
-				case "zoom"_strid:
-					scale=glm::clamp(scale * (e.value.x/50), 0.01f, 10.f);
-					_mailbox.send<input::Force_feedback>(input::Input_source{0}, 1.0f);
-					_mailbox.send<input::Force_feedback>(input::Input_source{1}, 1.0f);
 					break;
 			}
 		});

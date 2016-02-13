@@ -17,7 +17,7 @@
 
 #include <core/units.hpp>
 #include <core/ecs/ecs.hpp>
-#include <core/renderer/texture.hpp>
+#include <core/renderer/material.hpp>
 
 namespace mo {
 namespace sys {
@@ -30,13 +30,13 @@ namespace graphic {
 			          asset::Asset_manager& asset_mgr)override;
 			void save(sf2::JsonSerializer& state)const override;
 
-			Sprite_comp(ecs::Entity& owner, renderer::Texture_ptr texture = {}) :
-				Component(owner), _texture(texture) {}
+			Sprite_comp(ecs::Entity& owner, renderer::Material_ptr material = {}) :
+				Component(owner), _material(material) {}
 
 		private:
 			friend class Graphic_system;
 
-			renderer::Texture_ptr _texture;
+			renderer::Material_ptr _material;
 			Position _size;
 	};
 

@@ -123,10 +123,10 @@ namespace asset {
 
 		static RT load(istream in) throw(Loading_failed){
 			switch(in.aid().type()) {
-				case Asset_type::frag_shader:
+				case "frag_shader"_strid:
 					return std::make_shared<renderer::Shader>(renderer::Shader_type::fragment, in.content(), in.aid().str());
 
-				case Asset_type::vert_shader:
+				case "vert_shader"_strid:
 					return std::make_shared<renderer::Shader>(renderer::Shader_type::vertex, in.content(), in.aid().str());
 
 				default:

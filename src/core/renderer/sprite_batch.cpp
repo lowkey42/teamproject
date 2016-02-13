@@ -13,30 +13,32 @@ namespace renderer {
 		Vertex_layout sprite_layout {
 			Vertex_layout::Mode::triangles,
 			vertex("position",  &Sprite_vertex::position),
-			vertex("uv",        &Sprite_vertex::uv)
+			vertex("uv",        &Sprite_vertex::uv),
+			vertex("rotation",  &Sprite_vertex::rotation)
 		};
 
 		std::unique_ptr<Shader_program> sprite_shader;
 		const Sprite_vertex single_sprite_vert[] {
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,0}, nullptr},
-			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,1}, nullptr},
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,1}, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,0}, 0, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,1}, 0, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,1}, 0, nullptr},
 
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,1}, nullptr},
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,0}, nullptr},
-			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,0}, nullptr}
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,1}, 0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,0}, 0, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,0}, 0, nullptr}
 		};
 	}
 
 	Sprite::Sprite(glm::vec3 position, Angle rotation, glm::vec2 size,
-	               glm::vec4 uv, const renderer::Texture& texture)noexcept
+	               glm::vec4 uv, const renderer::Material& material)noexcept
 	    : position(position), rotation(rotation), size(size),
-	      uv(uv), texture(&texture) {
+	      uv(uv), material(&material) {
 	}
 
 	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords,
-	                             const renderer::Texture* texture)
-	    : position(pos), uv(uv_coords), texture(texture) {
+	                             float rotation,
+	                             const renderer::Material* material)
+	    : position(pos), uv(uv_coords), rotation(rotation), material(material) {
 	}
 
 
@@ -47,7 +49,18 @@ namespace renderer {
 		              .bind_all_attribute_locations(sprite_layout)
 		              .build()
 		              .uniforms(make_uniform_map(
-		                  "texture", 0
+		                  "albedo", int(Texture_unit::color),
+		                  "normal", int(Texture_unit::normal),
+		                  "emission", int(Texture_unit::emission),
+		                  "roughness", int(Texture_unit::roughness),
+		                  "metallic", int(Texture_unit::metallic),
+		                  "height", int(Texture_unit::height),
+		                  "shadowmap_1", int(Texture_unit::shadowmap_1),
+		                  "shadowmap_2", int(Texture_unit::shadowmap_2),
+		                  "shadowmap_3", int(Texture_unit::shadowmap_3),
+		                  "shadowmap_4", int(Texture_unit::shadowmap_4),
+		                  "environment", int(Texture_unit::environment),
+		                  "last_frame", int(Texture_unit::last_frame)
 		              ));
 	}
 
@@ -67,7 +80,7 @@ namespace renderer {
 			return sprite.position + rotate(p, sprite.rotation, vec3{0,0,1})*scale;
 		};
 
-		auto tex_clip = sprite.texture->clip_rect();
+		auto tex_clip = sprite.material->albedo().clip_rect();
 		auto sprite_clip = sprite.uv;
 
 		// rescale uv to texture clip_rect
@@ -81,7 +94,8 @@ namespace renderer {
 
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
-			_vertices.emplace_back(transform(vert.position), uv, sprite.texture);
+			_vertices.emplace_back(transform(vert.position), uv,
+			                       sprite.rotation.value(), sprite.material);
 		}
 	}
 
@@ -98,7 +112,7 @@ namespace renderer {
 		// draw one batch for each partition
 		auto last = _vertices.begin();
 		for(auto current = _vertices.begin(); current!=_vertices.end(); ++current) {
-			if(current->texture != last->texture) {
+			if(current->material != last->material) {
 				queue.push_back(_draw_part(last, current));
 				last = current;
 			}
@@ -109,7 +123,7 @@ namespace renderer {
 	}
 
 	auto Sprite_batch::_draw_part(Vertex_citer begin, Vertex_citer end) -> Command {
-		INVARIANT(begin!=end && begin->texture, "Invalid iterators");
+		INVARIANT(begin!=end && begin->material, "Invalid iterators");
 
 		auto obj_idx = _free_obj++;
 
@@ -120,9 +134,10 @@ namespace renderer {
 		}
 
 		auto cmd = create_command()
-		        .texture(Texture_unit::color, *begin->texture)
 		        .shader(*sprite_shader)
 		        .object(_objects.at(obj_idx));
+
+		begin->material->set_textures(cmd);
 
 		cmd.uniforms().emplace("model", glm::mat4());
 

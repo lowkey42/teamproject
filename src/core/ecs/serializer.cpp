@@ -99,7 +99,7 @@ namespace ecs {
 		std::string blueprintName;
 		state.read_virtual(sf2::vmember("name", blueprintName));
 
-		blueprint = asset_mgr.load<Blueprint>(AID{Asset_type::blueprint, blueprintName});
+		blueprint = asset_mgr.load<Blueprint>(AID{"blueprint"_strid, blueprintName});
 		apply_blueprint(asset_mgr, owner(), *blueprint);
 	}
 	void BlueprintComponent::save(sf2::JsonSerializer& state)const {

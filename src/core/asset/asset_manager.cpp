@@ -244,7 +244,7 @@ namespace asset {
 	}
 
 	util::maybe<istream> Asset_manager::_open(const std::string& path) {
-		return _open(path, AID{Asset_type::gen, path});
+		return _open(path, AID{"gen"_strid, path});
 	}
 	util::maybe<istream> Asset_manager::_open(const std::string& path, const AID& aid) {
 		return exists_file(path) ? util::just(istream{aid, *this, path}) : util::nothing();
@@ -271,7 +271,7 @@ namespace asset {
 		}
 
 		if(exists_file(id.name()))
-			return std::make_tuple(Location_type::file, res->second);
+			return std::make_tuple(Location_type::file, id.name());
 
 		auto baseDir = _base_dir(id.type());
 

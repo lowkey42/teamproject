@@ -46,7 +46,7 @@ namespace graphic {
 
 				_sprite_batch.insert(renderer::Sprite{position, trans.rotation(),
 				                     remove_units(sp._size), glm::vec4{0,0,1,1},
-				                     *sp._texture});
+				                     *sp._material});
 			};
 		});
 

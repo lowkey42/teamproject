@@ -105,6 +105,9 @@ namespace mo {
 		constexpr explicit Angle(float radians=0)noexcept : Value_type(radians){}
 		constexpr operator float()const noexcept {return val;}
 		constexpr float in_degrees()const noexcept {return val * (180.f / PI);}
+		constexpr static auto from_degrees(float d) {
+			return Angle(d / (180.f / PI));
+		}
 	};
 
 	inline float sin(Angle a)noexcept {return std::sin(a.value());}

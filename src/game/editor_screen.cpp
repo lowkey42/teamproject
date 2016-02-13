@@ -17,12 +17,18 @@ namespace mo {
 	using namespace unit_literals;
 	using namespace renderer;
 
+	namespace {
+		auto is_inside(const ecs::Entity& entity, glm::vec2 p) {
+			return false; // TODO
+		}
+	}
+
 	Editor_screen::Editor_screen(Engine& engine) :
 		Screen(engine),
 	    _mailbox(engine.bus()),
 	    _systems(engine),
 	    _editor_sys(engine.assets()),
-	    _camera_menu(calculate_vscreen(engine, 512)),
+	    _camera_menu({engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
 	    _camera_world(calculate_vscreen(engine, 512)),
 	    _debug_Text(engine.assets().load<Font>("font:menu_font"_aid))
 	{
@@ -45,7 +51,7 @@ namespace mo {
 		_mailbox.subscribe_to([&](input::Range_action& e){
 			switch(e.id) {
 				case "drag"_strid:
-
+					_on_drag(e.abs - e.rel, e.abs);
 					break;
 
 				case "mouse_down"_strid:
@@ -67,6 +73,25 @@ namespace mo {
 
 	}
 
+	void Editor_screen::_on_drag(glm::vec2 src, glm::vec2 target) {
+		auto wsrc = _camera_world.screen_to_world(src);
+		auto wtarget = _camera_world.screen_to_world(target);
+
+		auto blueprint_offset = glm::vec2 {
+			_camera_menu.area().z, _camera_menu.area().x
+		};
+		auto blueprint = _editor_sys.find_blueprint(src, blueprint_offset, _camera_menu);
+
+		if(blueprint.is_some()) {
+			DEBUG("Blueprint drag");
+
+		} else if(_selected_entity && is_inside(*_selected_entity, wsrc)) {
+			// TODO
+		} else {
+			_camera_world.move((wsrc-wtarget) /2.f);
+		}
+	}
+
 	void Editor_screen::_update(Time dt) {
 		_mailbox.update_subscriptions();
 
@@ -83,12 +108,12 @@ namespace mo {
 		_systems.draw(_camera_world);
 
 		auto blueprint_offset = glm::vec2 {
-			_camera_menu.area().z, _camera_menu.area().x+50
+			_camera_menu.area().z, _camera_menu.area().x
 		};
 
 		_editor_sys.draw_blueprint_list(_render_queue, blueprint_offset);
 
-		_debug_Text.draw(_render_queue,  glm::vec2(0,0), glm::vec4(1,1,1,1), 0.5f);
+		_debug_Text.draw(_render_queue,  glm::vec2(0,0), glm::vec4(1,1,1,1), 0.1f);
 
 		_render_queue.flush();
 	}

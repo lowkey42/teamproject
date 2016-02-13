@@ -57,14 +57,12 @@ namespace input {
 		public:
 			Input_mapper(util::Message_bus& bus, asset::Asset_manager& assets);
 
-			void update();
-
 			void enable_context(Context_id id);
 
 			void on_key_pressed (Key);
 			void on_key_released(Key);
 
-			void on_mouse_pos_change(glm::vec2 rel);
+			void on_mouse_pos_change(glm::vec2 rel, glm::vec2 abs);
 
 			void on_mouse_wheel_change(glm::vec2 rel);
 
@@ -77,7 +75,7 @@ namespace input {
 			void on_mouse_button_pressed (Mouse_button, float pressure=1.f);
 			void on_mouse_button_released(Mouse_button, uint8_t clicks);
 
-			void on_pad_stick_change(Input_source src, Pad_stick, glm::vec2 value);
+			void on_pad_stick_change(Input_source src, Pad_stick, glm::vec2 rel, glm::vec2 abs);
 
 		private:
 			util::Message_bus& _bus;
@@ -86,8 +84,6 @@ namespace input {
 			Context_id _default_context_id;
 			Context_id _active_context_id;
 			Context* _active_context;
-
-			std::vector<Once_action> _continuous_actions;
 
 			bool _primary_mouse_button_down = false;
 			bool _is_mouse_drag = false;

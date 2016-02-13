@@ -39,15 +39,17 @@ namespace renderer {
 		emission  = 2,
 		roughness = 3,
 		metallic  = 4,
-		specular  = 5,
-		height    = 6,
+		height    = 5,
 
 		shadowmap_1=7,
 		shadowmap_2=8,
 		shadowmap_3=9,
-		shadowmap_4=10
+		shadowmap_4=10,
+
+		environment = 11, //< used for reflections
+		last_frame = 12 //< used for reflections
 	};
-	constexpr auto texture_units = static_cast<std::size_t>(Texture_unit::shadowmap_4)+1;
+	constexpr auto texture_units = static_cast<std::size_t>(Texture_unit::last_frame)+1;
 
 	enum class Gl_option : unsigned int {
 		blend       = 0b001,

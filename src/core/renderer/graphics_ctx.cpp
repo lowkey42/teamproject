@@ -9,6 +9,8 @@
 
 #include "text.hpp"
 #include "sprite_batch.hpp"
+#include "texture_batch.hpp"
+#include "material.hpp"
 
 #include "../utils/log.hpp"
 #include "../asset/asset_manager.hpp"
@@ -150,6 +152,8 @@ namespace renderer {
 
 		init_font_renderer(assets);
 		init_sprite_renderer(assets);
+		init_texture_renderer(assets);
+		init_materials(assets);
 	}
 
 	Graphics_ctx::~Graphics_ctx() {

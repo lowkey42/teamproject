@@ -72,6 +72,10 @@ namespace mo {
 			renderer::Text_dynamic _debug_Text;
 
 			renderer::Command_queue _render_queue;
+
+			ecs::Entity_ptr _selected_entity;
+
+			void _on_drag(glm::vec2 src, glm::vec2 target);
 	};
 
 }

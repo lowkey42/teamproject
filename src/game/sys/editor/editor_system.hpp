@@ -21,7 +21,7 @@
 
 #include <core/renderer/texture.hpp>
 #include <core/renderer/camera.hpp>
-#include <core/renderer/sprite_batch.hpp>
+#include <core/renderer/texture_batch.hpp>
 
 #include <core/ecs/ecs.hpp>
 
@@ -45,7 +45,7 @@ namespace editor {
 			Editor_system(asset::Asset_manager& assets);
 
 			void draw_blueprint_list(renderer::Command_queue& queue, glm::vec2 offset);
-			auto find_blueprint(glm::vec2 screen_position,
+			auto find_blueprint(glm::vec2 screen_position, glm::vec2 offset,
 			                    const renderer::Camera&)const -> util::maybe<const Entity_blueprint_info&>;
 
 			// TODO: set category
@@ -55,7 +55,7 @@ namespace editor {
 			asset::Ptr<Editor_conf> _conf;
 			std::string _current_category;
 
-			renderer::Sprite_batch _icon_batch;
+			renderer::Texture_batch _icon_batch;
 	};
 
 }
