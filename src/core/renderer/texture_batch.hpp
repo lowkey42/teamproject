@@ -46,6 +46,8 @@ namespace renderer {
 
 	extern void init_texture_renderer(asset::Asset_manager& asset_manager);
 
+	extern void draw_fullscreen_quad(const renderer::Texture&);
+
 
 	class Texture_batch {
 		public:

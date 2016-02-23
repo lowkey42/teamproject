@@ -1,3 +1,4 @@
 blueprint: = blueprints/
 
 blueprint:test = blueprints/test.json
+blueprint:test_light = blueprints/test_light.json

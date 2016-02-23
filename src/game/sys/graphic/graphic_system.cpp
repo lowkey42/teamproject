@@ -1,8 +1,8 @@
 #include "graphic_system.hpp"
 
-#include <core/units.hpp>
+#include "../physics/transform_comp.hpp"
 
-#include "../physics/physics_comp.hpp"
+#include <core/units.hpp>
 
 
 namespace mo {
@@ -16,10 +16,8 @@ namespace graphic {
 	Graphic_system::Graphic_system(
 	        util::Message_bus& bus,
 	        ecs::Entity_manager& entity_manager,
-	        sys::physics::Scene_graph& scene_graph,
 	        asset::Asset_manager& asset_manager)
 	    : _mailbox(bus),
-	      _scene_graph(scene_graph),
 	      _sprites(entity_manager.list<Sprite_comp>()),
 	      _sprite_batch()
 	{
@@ -31,24 +29,15 @@ namespace graphic {
 	}
 
 	void Graphic_system::draw(renderer::Command_queue& queue, const renderer::Camera& camera)const {
-		glm::vec2 upper_left = camera.screen_to_world({camera.viewport().x, camera.viewport().y});
-		glm::vec2 lower_right = camera.screen_to_world({camera.viewport().z, camera.viewport().w});
+		for(Sprite_comp& sprite : _sprites) {
+			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
 
-		_scene_graph.foreach_in_rect(upper_left, lower_right, [&](ecs::Entity& entity) {
-			process(entity.get<physics::Transform_comp>(),
-			        entity.get<Sprite_comp>())
-			>> [&](const auto& trans, const auto& sp) {
-				auto position = glm::vec3 {
-					trans.position().x.value(),
-					trans.position().y.value(),
-					trans.layer()
-				};
+			auto position = remove_units(trans.position());
 
-				_sprite_batch.insert(renderer::Sprite{position, trans.rotation(),
-				                     remove_units(sp._size), glm::vec4{0,0,1,1},
-				                     *sp._material});
-			};
-		});
+			_sprite_batch.insert(renderer::Sprite{position, trans.rotation(),
+			                     sprite._size, glm::vec4{0,0,1,1},
+			                     *sprite._material});
+		}
 
 		_sprite_batch.flush(queue);
 	}

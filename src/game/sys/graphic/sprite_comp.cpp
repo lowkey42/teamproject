@@ -15,16 +15,14 @@ namespace graphic {
 	void Sprite_comp::load(sf2::JsonDeserializer& state,
 	                       asset::Asset_manager& assets){
 		std::string aid = _material ? _material.aid().str() : "";
-		auto size = remove_units(_size);
 
 		state.read_virtual(
 			sf2::vmember("material", aid),
-			sf2::vmember("size", size)
+			sf2::vmember("size", _size)
 		);
 
 		_material = assets.load<renderer::Material>(asset::AID(aid));
 		INVARIANT(_material, "Material '"<<aid<<"' not found");
-		_size = size * 1_m;
 	}
 
 	void Sprite_comp::save(sf2::JsonSerializer& state)const {
@@ -32,7 +30,7 @@ namespace graphic {
 
 		state.write_virtual(
 			sf2::vmember("material", aid),
-			sf2::vmember("size", remove_units(_size))
+			sf2::vmember("size", _size)
 		);
 	}
 

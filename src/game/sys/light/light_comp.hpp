@@ -30,7 +30,7 @@ namespace light {
 			          asset::Asset_manager& asset_mgr)override;
 			void save(sf2::JsonSerializer& state)const override;
 
-			Light_comp(ecs::Entity& owner) : Component(owner) {}
+			Light_comp(ecs::Entity& owner);
 
 			auto color()const noexcept {return _color;}
 			auto radius()const noexcept {return _radius;}
@@ -41,9 +41,10 @@ namespace light {
 			Angle _direction;
 			Angle _angle;
 			Rgb _color;
+			glm::vec3 _factors {1,0,1};
+
+			bool _radius_based;
 			Distance _radius;
-			bool _falloff;
-			float _falloff_factor;
 	};
 
 }

@@ -45,7 +45,7 @@ namespace mo {
 		private:
 			util::Mailbox_collection _mailbox;
 
-			renderer::Camera _camera;
+			renderer::Camera_2d _camera;
 
 			renderer::Text_dynamic _debug_Text;
 

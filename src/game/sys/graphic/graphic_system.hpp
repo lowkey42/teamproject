@@ -15,12 +15,11 @@
 
 #pragma once
 
-#include "../physics/transform_system.hpp"
-
 #include "../../entity_events.hpp"
 
 #include <core/renderer/sprite_batch.hpp>
 #include <core/renderer/camera.hpp>
+#include <core/utils/messagebus.hpp>
 
 #include "sprite_comp.hpp"
 
@@ -33,7 +32,6 @@ namespace graphic {
 		public:
 			Graphic_system(util::Message_bus& bus,
 			               ecs::Entity_manager& entity_manager,
-			               physics::Scene_graph& scene_graph,
 			               asset::Asset_manager& asset_manager);
 
 			void draw(renderer::Command_queue&, const renderer::Camera& camera)const;
@@ -44,7 +42,6 @@ namespace graphic {
 
 
 			util::Mailbox_collection _mailbox;
-			physics::Scene_graph& _scene_graph;
 			Sprite_comp::Pool& _sprites;
 
 			mutable renderer::Sprite_batch _sprite_batch;

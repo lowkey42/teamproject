@@ -45,8 +45,8 @@ namespace editor {
 			Editor_system(asset::Asset_manager& assets);
 
 			void draw_blueprint_list(renderer::Command_queue& queue, glm::vec2 offset);
-			auto find_blueprint(glm::vec2 screen_position, glm::vec2 offset,
-			                    const renderer::Camera&)const -> util::maybe<const Entity_blueprint_info&>;
+			auto find_blueprint(glm::vec2 click_position,
+			                    glm::vec2 offset)const -> util::maybe<const Entity_blueprint_info&>;
 
 			// TODO: set category
 			// TODO: list categories

@@ -86,16 +86,15 @@ namespace editor {
 	}
 
 	auto Editor_system::find_blueprint(
-	        glm::vec2 screen_position,
-	        glm::vec2 offset,
-	        const renderer::Camera& camera
+	        glm::vec2 click_position,
+	        glm::vec2 offset
 	        )const -> util::maybe<const Entity_blueprint_info&> {
 
 		const auto base_pos = vec2 {
 			offset.x - _conf->icon_size*_conf->columns,
 			offset.y + _conf->icon_size*2
 		};
-		auto pos = camera.screen_to_world(screen_position) - base_pos;
+		auto pos = click_position - base_pos;
 
 		pos = glm::floor(pos / _conf->icon_size);
 

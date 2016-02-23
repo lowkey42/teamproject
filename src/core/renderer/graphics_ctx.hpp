@@ -44,6 +44,7 @@ namespace renderer {
 
 			auto win_width()const noexcept{return _win_width;}
 			auto win_height()const noexcept{return _win_height;}
+			auto viewport()const noexcept {return glm::vec4{0, 0, _win_width, _win_height};}
 
 			auto max_screenshake()const noexcept -> float;
 			auto brightness()const noexcept {return _brightness;}

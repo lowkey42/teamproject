@@ -12,26 +12,23 @@ namespace physics {
 
 	void Transform_comp::load(sf2::JsonDeserializer& state,
 	                          asset::Asset_manager&){
-		glm::vec2 position_f = remove_units(_position);
-		float rotation_f = _rotation / 1_deg;
+		auto position_f = remove_units(_position);
+		auto rotation_f = _rotation / 1_deg;
 
 		state.read_virtual(
 			sf2::vmember("position", position_f),
 			sf2::vmember("rotation", rotation_f),
-			sf2::vmember("layer", _layer),
 			sf2::vmember("rotation_fixed", _rotation_fixed)
 		);
 
 		_position = position_f * 1_m;
 		_rotation = rotation_f * 1_deg;
-		layer(_layer);
 		_dirty = State::uninitialized;
 	}
 	void Transform_comp::save(sf2::JsonSerializer& state)const {
 		state.write_virtual(
 			sf2::vmember("position", remove_units(_position)),
 			sf2::vmember("rotation", _rotation / 1_deg),
-			sf2::vmember("layer", _layer),
 			sf2::vmember("rotation_fixed", _rotation_fixed)
 		);
 	}

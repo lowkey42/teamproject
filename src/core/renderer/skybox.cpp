@@ -1,0 +1,97 @@
+#include "skybox.hpp"
+
+
+namespace mo {
+namespace renderer {
+
+	using namespace glm;
+	using namespace unit_literals;
+
+	namespace {
+
+		struct Sky_vertex {
+			glm::vec3 pos;
+		};
+
+		Vertex_layout sky_vertex_layout {
+			Vertex_layout::Mode::triangles,
+			vertex("position", &Sky_vertex::pos)
+		};
+
+		const std::vector<Sky_vertex> skybox_vertices {
+			// front
+			Sky_vertex{{-1,-1,-1}},
+			Sky_vertex{{-1,-1, 1}},
+			Sky_vertex{{ 1,-1,-1}},
+			Sky_vertex{{ 1,-1,-1}},
+			Sky_vertex{{-1,-1, 1}},
+			Sky_vertex{{ 1,-1, 1}},
+
+			// back
+			Sky_vertex{{-1, 1,-1}},
+			Sky_vertex{{ 1, 1,-1}},
+			Sky_vertex{{-1, 1, 1}},
+			Sky_vertex{{ 1, 1,-1}},
+			Sky_vertex{{ 1, 1, 1}},
+			Sky_vertex{{-1, 1, 1}},
+
+			// left
+			Sky_vertex{{-1,-1,-1}},
+			Sky_vertex{{-1, 1,-1}},
+			Sky_vertex{{-1,-1, 1}},
+			Sky_vertex{{-1, 1,-1}},
+			Sky_vertex{{-1, 1, 1}},
+			Sky_vertex{{-1,-1, 1}},
+
+			// right
+			Sky_vertex{{ 1,-1,-1}},
+			Sky_vertex{{ 1,-1, 1}},
+			Sky_vertex{{ 1, 1,-1}},
+			Sky_vertex{{ 1, 1,-1}},
+			Sky_vertex{{ 1,-1, 1}},
+			Sky_vertex{{ 1, 1, 1}},
+
+			// bottom
+			Sky_vertex{{-1,-1,-1}},
+			Sky_vertex{{ 1,-1,-1}},
+			Sky_vertex{{-1, 1,-1}},
+			Sky_vertex{{ 1,-1,-1}},
+			Sky_vertex{{ 1, 1,-1}},
+			Sky_vertex{{-1, 1,-1}},
+
+			// top
+			Sky_vertex{{-1,-1, 1}},
+			Sky_vertex{{-1, 1, 1}},
+			Sky_vertex{{ 1,-1, 1}},
+			Sky_vertex{{ 1,-1, 1}},
+			Sky_vertex{{-1, 1, 1}},
+			Sky_vertex{{ 1, 1, 1}},
+		};
+	}
+
+	Skybox::Skybox(asset::Asset_manager& assets,
+	               const asset::AID& sky)
+	    : _obj(sky_vertex_layout, create_buffer(skybox_vertices)),
+	      _tex(assets.load<Texture>(sky)) {
+
+		_prog
+		        .attach_shader(assets.load<Shader>("vert_shader:skybox"_aid))
+		        .attach_shader(assets.load<Shader>("frag_shader:skybox"_aid))
+		        .bind_all_attribute_locations(sky_vertex_layout)
+		        .build()
+		        .uniforms(make_uniform_map(
+	                "texture", int(Texture_unit::environment)
+	            ));
+
+		_tex->bind(int(Texture_unit::environment));
+	}
+
+	void Skybox::draw(Command_queue& q)const {
+		q.push_back(create_command()
+		        .shader(_prog)
+		        .texture(Texture_unit::environment, *_tex)
+		        .object(_obj) );
+	}
+
+}
+}

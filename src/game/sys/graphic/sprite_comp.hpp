@@ -37,7 +37,7 @@ namespace graphic {
 			friend class Graphic_system;
 
 			renderer::Material_ptr _material;
-			Position _size;
+			glm::vec2 _size;
 	};
 
 }

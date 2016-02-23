@@ -34,12 +34,14 @@ namespace renderer {
 
 
 	enum class Texture_unit {
-		color     = 0,
-		normal    = 1,
-		emission  = 2,
-		roughness = 3,
-		metallic  = 4,
-		height    = 5,
+		temporary = 0, //< may be rebound at any momemnt
+
+		color     = 1,
+		normal    = 2,
+		emission  = 3,
+		roughness = 4,
+		metallic  = 5,
+		height    = 6,
 
 		shadowmap_1=7,
 		shadowmap_2=8,

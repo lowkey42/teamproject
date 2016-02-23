@@ -45,20 +45,14 @@ namespace physics {
 			          asset::Asset_manager& asset_mgr)override;
 			void save(sf2::JsonSerializer& state)const override;
 
-			Transform_comp(ecs::Entity& owner, Distance x=Distance(0),
-						   Distance y=Distance(0), Angle rotation=Angle(0))noexcept
-			  : Component(owner), _position(x, y), _rotation(rotation) {}
+			Transform_comp(ecs::Entity& owner)noexcept
+			  : Component(owner) {}
 
 			auto position()const noexcept {return _position;}
 			void position(Position pos)noexcept;
+			void move(Position o)noexcept {position(position() + o);}
 			auto rotation()const noexcept {return _rotation;}
 			void rotation(Angle a)noexcept;
-
-			auto layer()const noexcept {return _layer;}
-			void layer(float layer)noexcept {
-				INVARIANT(layer>=-1 && layer<=1,"layer out of bounds!");
-				_layer=layer;
-			}
 
 			struct Persisted_state;
 			friend struct Persisted_state;
@@ -70,7 +64,6 @@ namespace physics {
 			};
 
 			Position _position;
-			float _layer = 0.0f;
 
 			Angle _rotation;
 			bool _rotation_fixed = false;

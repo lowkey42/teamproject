@@ -15,12 +15,11 @@
 
 #pragma once
 
-#include "../physics/transform_system.hpp"
-
 #include "../../entity_events.hpp"
 
 #include <core/renderer/sprite_batch.hpp>
 #include <core/renderer/camera.hpp>
+#include <core/utils/messagebus.hpp>
 
 #include "light_comp.hpp"
 
@@ -29,7 +28,7 @@ namespace mo {
 namespace sys {
 namespace light {
 
-	constexpr auto max_lights = 6;
+	constexpr auto max_lights = 4;
 	constexpr auto light_uniforms = 3+5*max_lights;
 	constexpr auto light_uniforms_size = 3+1+3+(3+1+1+3+1)*max_lights;
 
@@ -37,20 +36,18 @@ namespace light {
 		public:
 			Light_system(util::Message_bus& bus,
 			             ecs::Entity_manager& entity_manager,
-			             physics::Scene_graph& scene_graph,
 			             Rgb sun_light = Rgb{0.5, 0.5, 0.5},
-			             Angle sun_dir = Angle::from_degrees(90),
-			             Rgb ambient_light = Rgb{0.5, 0.5, 0.5});
+			             glm::vec3 sun_dir = {0.1, -0.8, 0.4},
+			             Rgb ambient_light = Rgb{0.01, 0.01, 0.01});
 
 			void draw(renderer::Command_queue&, const renderer::Camera& camera)const;
 			void update(Time dt);
 
 		private:
 			util::Mailbox_collection _mailbox;
-			physics::Scene_graph& _scene_graph;
 			Light_comp::Pool& _lights;
 			Rgb _sun_light;
-			Angle _sun_dir;
+			glm::vec3 _sun_dir;
 			Rgb _ambient_light;
 	};
 

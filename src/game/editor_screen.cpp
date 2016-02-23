@@ -1,3 +1,5 @@
+#define GLM_SWIZZLE
+
 #include "editor_screen.hpp"
 
 #include "../core/units.hpp"
@@ -18,8 +20,8 @@ namespace mo {
 	using namespace renderer;
 
 	namespace {
-		auto is_inside(const ecs::Entity& entity, glm::vec2 p) {
-			return false; // TODO
+		auto is_inside(const ecs::Entity& entity, glm::vec3 p) {
+			return true; // TODO
 		}
 	}
 
@@ -28,8 +30,9 @@ namespace mo {
 	    _mailbox(engine.bus()),
 	    _systems(engine),
 	    _editor_sys(engine.assets()),
-	    _camera_menu({engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
-	    _camera_world(calculate_vscreen(engine, 512)),
+	    _camera_menu(engine.graphics_ctx().viewport(),
+	                  {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
+	    _camera_world(engine.graphics_ctx().viewport(), 80_deg, -5_m, 20_m),
 	    _debug_Text(engine.assets().load<Font>("font:menu_font"_aid))
 	{
 
@@ -61,8 +64,15 @@ namespace mo {
 
 		_render_queue.shared_uniforms(renderer::make_uniform_map("VP", _camera_menu.vp()));
 
-		auto& transform = _systems.entity_manager.emplace("blueprint:test"_aid)->get<sys::physics::Transform_comp>().get_or_throw();
-		transform.position(Position{0_m, 0_m});
+		{
+			_selected_entity = _systems.entity_manager.emplace("blueprint:test"_aid);
+			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
+			transform.position(Position{0_m, 0_m, 0_m});
+		}
+		{
+			auto& transform = _systems.entity_manager.emplace("blueprint:test_light"_aid)->get<sys::physics::Transform_comp>().get_or_throw();
+			transform.position(Position{0_m, 0_m, 2.0_m});
+		}
 	}
 
 	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {
@@ -74,21 +84,26 @@ namespace mo {
 	}
 
 	void Editor_screen::_on_drag(glm::vec2 src, glm::vec2 target) {
-		auto wsrc = _camera_world.screen_to_world(src);
-		auto wtarget = _camera_world.screen_to_world(target);
+		auto wsrc = _camera_world.screen_to_world(src, glm::vec3(0,0,0));
+		auto wtarget = _camera_world.screen_to_world(target, glm::vec3(0,0,0));
+
+		auto msrc = _camera_menu.screen_to_world(src).xy();
 
 		auto blueprint_offset = glm::vec2 {
 			_camera_menu.area().z, _camera_menu.area().x
 		};
-		auto blueprint = _editor_sys.find_blueprint(src, blueprint_offset, _camera_menu);
+		auto blueprint = _editor_sys.find_blueprint(msrc, blueprint_offset);
 
 		if(blueprint.is_some()) {
 			DEBUG("Blueprint drag");
 
 		} else if(_selected_entity && is_inside(*_selected_entity, wsrc)) {
+			auto diff = wtarget-wsrc;
+			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
+			transform.move(1_m * glm::vec3(diff.x, diff.y, 0.f));
 			// TODO
 		} else {
-			_camera_world.move((wsrc-wtarget) /2.f);
+			_camera_world.move((wsrc-wtarget)* 1_m);
 		}
 	}
 
@@ -105,8 +120,9 @@ namespace mo {
 
 
 	void Editor_screen::_draw() {
-		_systems.draw(_camera_world);
 
+		_systems.draw(_camera_world);
+/*
 		auto blueprint_offset = glm::vec2 {
 			_camera_menu.area().z, _camera_menu.area().x
 		};
@@ -116,5 +132,6 @@ namespace mo {
 		_debug_Text.draw(_render_queue,  glm::vec2(0,0), glm::vec4(1,1,1,1), 0.1f);
 
 		_render_queue.flush();
+		*/
 	}
 }

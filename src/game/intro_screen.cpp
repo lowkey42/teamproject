@@ -20,7 +20,7 @@ namespace mo {
 	Intro_screen::Intro_screen(Engine& game_engine)
 	    : Screen(game_engine),
 	      _mailbox(game_engine.bus()),
-	      _camera(calculate_vscreen(game_engine, 512)),
+	      _camera(game_engine.graphics_ctx().viewport(), calculate_vscreen(game_engine, 512)),
 	      _debug_Text(game_engine.assets().load<Font>("font:menu_font"_aid))
 	{
 

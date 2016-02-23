@@ -28,6 +28,7 @@
 #include <core/renderer/text.hpp>
 #include <core/renderer/command_queue.hpp>
 
+
 namespace mo {
 
 	class Editor_screen : public Screen {
@@ -66,8 +67,8 @@ namespace mo {
 			// TODO: entity settings
 			// TODO: smart textures
 
-			renderer::Camera _camera_menu;
-			renderer::Camera _camera_world;
+			renderer::Camera_2d _camera_menu;
+			renderer::Camera_sidescroller _camera_world;
 
 			renderer::Text_dynamic _debug_Text;
 

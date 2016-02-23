@@ -13,3 +13,5 @@ tex_atlas:example = textures/atlas_example.json
 tex:atlas_example_tex = textures/ui_intro_circle.png
 
 mat:test = materials/test.mat
+
+tex_cube:default_env = textures/default_env.png

@@ -1,11 +1,16 @@
 #include "meta_system.hpp"
 
+#include <core/renderer/graphics_ctx.hpp>
 #include <core/renderer/command_queue.hpp>
 #include <core/renderer/uniform_map.hpp>
+#include <core/renderer/texture.hpp>
+#include <core/renderer/texture_batch.hpp>
+#include <core/renderer/primitives.hpp>
 
 
 namespace mo {
 
+	using namespace renderer;
 	using namespace unit_literals;
 
 	namespace {
@@ -17,15 +22,33 @@ namespace mo {
 
 		using Global_uniform_map = renderer::Uniform_map<global_uniforms,
 		                                                 global_uniforms_avg_size*sizeof(float)>;
+
+		auto create_framebuffer(Engine& engine) {
+			return Framebuffer{
+				engine.graphics_ctx().win_width(),
+				engine.graphics_ctx().win_height(),
+				true, true};
+		}
 	}
 
 	Meta_system::Meta_system(Engine& engine)
 	    : entity_manager(engine.assets()),
-	      scene_graph(entity_manager, max_entity_size),
-	      lights(engine.bus(), entity_manager, scene_graph),
-	      renderer(engine.bus(), entity_manager, scene_graph, engine.assets()) {
+	      scene_graph(entity_manager),
+	      lights(engine.bus(), entity_manager),
+	      renderer(engine.bus(), entity_manager, engine.assets()),
+
+	      _canvas{create_framebuffer(engine), create_framebuffer(engine)},
+	      _skybox(engine.assets(), "tex_cube:default_env"_aid /*TODO: should be loaded*/) {
 
 		_render_queue.shared_uniforms(std::make_unique<Global_uniform_map>());
+
+		_post_shader.attach_shader(engine.assets().load<Shader>("vert_shader:post"_aid))
+		            .attach_shader(engine.assets().load<Shader>("frag_shader:post"_aid))
+		            .bind_all_attribute_locations(simple_vertex_layout)
+		            .build()
+		            .uniforms(make_uniform_map(
+		                "texture", int(Texture_unit::temporary), "gamma", 2.2f, "exposure", 1.0f
+		            ));
 	}
 
 	Meta_system::~Meta_system() {
@@ -47,13 +70,28 @@ namespace mo {
 		}
 	}
 
-	void Meta_system::draw(const renderer::Camera& cam)const {
+	void Meta_system::draw(const renderer::Camera& cam) {
 		_render_queue.shared_uniforms().emplace("VP", cam.vp());
+		_render_queue.shared_uniforms().emplace("eye", cam.eye_position());
 
 		lights.draw(_render_queue, cam);
 		renderer.draw(_render_queue, cam);
 
+		_skybox.draw(_render_queue);
+
+
+		_active_canvas().bind_target();
+		_active_canvas().clear();
+
 		_render_queue.flush();
+
+		_active_canvas().unbind_target();
+
+		_post_shader.bind()
+		        .set_uniform("exposure", 1.0f); // TODO: calc real exposure
+		renderer::draw_fullscreen_quad(_active_canvas());
+
+		_canvas_first_active = !_canvas_first_active;
 	}
 
 }

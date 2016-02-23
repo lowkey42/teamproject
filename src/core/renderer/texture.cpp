@@ -19,30 +19,62 @@ namespace renderer {
 
 #define CLAMP_TO_EDGE 0x812F
 
-	Texture::Texture(std::vector<uint8_t> buffer) throw(Texture_loading_failed) {
-		_handle = SOIL_load_OGL_texture_from_memory
-		(
-			buffer.data(),
-			buffer.size(),
-			SOIL_LOAD_AUTO,
-			SOIL_CREATE_NEW_ID,
-			SOIL_FLAG_INVERT_Y | SOIL_FLAG_MULTIPLY_ALPHA,
-			&_width,
-			&_height
-		);
+	Texture::Texture(std::vector<uint8_t> buffer, bool cubemap) throw(Texture_loading_failed)
+	    : _cubemap(cubemap) {
+
+		if(!cubemap) {
+			_handle = SOIL_load_OGL_texture_from_memory
+			(
+				buffer.data(),
+				buffer.size(),
+				SOIL_LOAD_AUTO,
+				SOIL_CREATE_NEW_ID,
+				SOIL_FLAG_MULTIPLY_ALPHA | SOIL_FLAG_MIPMAPS,
+				&_width,
+				&_height
+			);
+		} else {
+			_handle = SOIL_load_OGL_single_cubemap_from_memory
+			(
+				buffer.data(),
+				buffer.size(),
+				SOIL_DDS_CUBEMAP_FACE_ORDER,
+				SOIL_LOAD_AUTO,
+				SOIL_CREATE_NEW_ID,
+				SOIL_FLAG_MIPMAPS
+			);
+		}
 
 		if(!_handle)
 			throw Texture_loading_failed(SOIL_last_result());
 
-		glBindTexture(GL_TEXTURE_2D, _handle);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		auto tex_type = _cubemap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
+
+		glBindTexture(tex_type, _handle);
+		glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(tex_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glBindTexture(tex_type, 0);
 	}
-	Texture::Texture(int width, int height) : _width(width), _height(height) {
+	Texture::Texture(int width, int height, int bpp) : _width(width), _height(height) {
 		glGenTextures( 1, &_handle );
 		glBindTexture( GL_TEXTURE_2D, _handle );
-		glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+		int internal_format;
+		switch(bpp) {
+			case 8:
+				internal_format = GL_RGBA;
+				break;
+			case 16:
+				internal_format = GL_RGBA16F;
+				break;
+			case 32:
+				internal_format = GL_RGBA32F;
+				break;
+			default:
+				FAIL("Unsupported bits-per-pixel: "<<bpp);
+		}
+
+		glTexImage2D(GL_TEXTURE_2D, 0,internal_format, _width, _height, 0, GL_RGBA, GL_FLOAT, 0);
 
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -71,7 +103,7 @@ namespace renderer {
 	}
 
 	Texture::Texture(Texture&& rhs)noexcept
-	    : _handle(rhs._handle), _owner(rhs._owner), _width(rhs._width),
+	    : _handle(rhs._handle), _cubemap(rhs._cubemap), _owner(rhs._owner), _width(rhs._width),
 	      _height(rhs._height), _clip(rhs._clip) {
 
 		rhs._handle = 0;
@@ -80,6 +112,7 @@ namespace renderer {
 		if(_handle!=0 && _owner)
 			glDeleteTextures(1, &_handle);
 
+		_cubemap = s._cubemap;
 		_owner = s._owner;
 		_handle = s._handle;
 		s._handle = 0;
@@ -101,7 +134,7 @@ namespace renderer {
 			glActiveTexture(GL_TEXTURE0 + index);
 			current_texture_unit = index;
 		}
-		glBindTexture(GL_TEXTURE_2D, _handle);
+		glBindTexture(_cubemap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, _handle);
 	}
 
 
@@ -207,8 +240,8 @@ namespace renderer {
 	}
 
 
-	Framebuffer::Framebuffer(int width, int height, bool depth_buffer)
-		: Texture(width, height), _fb_handle(0), _db_handle(0) {
+	Framebuffer::Framebuffer(int width, int height, bool depth_buffer, bool hdr)
+		: Texture(width, height, hdr?16:8), _fb_handle(0), _db_handle(0) {
 
 		glGenFramebuffers(1, &_fb_handle);
 		glBindFramebuffer(GL_FRAMEBUFFER, _fb_handle);

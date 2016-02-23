@@ -157,28 +157,28 @@ namespace mo {
 	};
 
 	// directed units
-	using Position = glm::detail::tvec2<Distance, glm::highp>;
-	using Dir_force = glm::detail::tvec2<Force, glm::highp>;
-	using Velocity = glm::detail::tvec2<Speed, glm::highp>;
-	using Acceleration = glm::detail::tvec2<Speed_per_time, glm::highp>;
+	using Position = glm::detail::tvec3<Distance, glm::highp>;
+	using Dir_force = glm::detail::tvec3<Force, glm::highp>;
+	using Velocity = glm::detail::tvec3<Speed, glm::highp>;
+	using Acceleration = glm::detail::tvec3<Speed_per_time, glm::highp>;
 
-	inline Position operator*(Position a, float b)noexcept {return Position(a.x*b, a.y*b);}
-	inline Position operator*(float b, Position a)noexcept {return Position(a.x*b, a.y*b);}
-	inline Dir_force operator*(Dir_force a, float b)noexcept {return Dir_force(a.x*b, a.y*b);}
-	inline Dir_force operator*(float b, Dir_force a)noexcept {return Dir_force(a.x*b, a.y*b);}
-	inline Velocity operator*(Velocity a, float b)noexcept {return Velocity(a.x*b, a.y*b);}
-	inline Velocity operator*(float b, Velocity a)noexcept {return Velocity(a.x*b, a.y*b);}
-	inline Acceleration operator*(Acceleration a, float b)noexcept {return Acceleration(a.x*b, a.y*b);}
-	inline Acceleration operator*(float b, Acceleration a)noexcept {return Acceleration(a.x*b, a.y*b);}
+	inline Position operator*(Position a, float b)noexcept {return Position(a.x*b, a.y*b, a.z*b);}
+	inline Position operator*(float b, Position a)noexcept {return Position(a.x*b, a.y*b, a.z*b);}
+	inline Dir_force operator*(Dir_force a, float b)noexcept {return Dir_force(a.x*b, a.y*b, a.z*b);}
+	inline Dir_force operator*(float b, Dir_force a)noexcept {return Dir_force(a.x*b, a.y*b, a.z*b);}
+	inline Velocity operator*(Velocity a, float b)noexcept {return Velocity(a.x*b, a.y*b, a.z*b);}
+	inline Velocity operator*(float b, Velocity a)noexcept {return Velocity(a.x*b, a.y*b, a.z*b);}
+	inline Acceleration operator*(Acceleration a, float b)noexcept {return Acceleration(a.x*b, a.y*b, a.z*b);}
+	inline Acceleration operator*(float b, Acceleration a)noexcept {return Acceleration(a.x*b, a.y*b, a.z*b);}
 
-	inline Position operator*(Distance v, glm::vec2 normal)noexcept {return Position(normal.x*v, normal.y*v);}
-	inline Position operator*(glm::vec2 normal, Distance v)noexcept {return Position(normal.x*v, normal.y*v);}
-	inline Dir_force operator*(Force v, glm::vec2 normal)noexcept {return Dir_force(normal.x*v, normal.y*v);}
-	inline Dir_force operator*(glm::vec2 normal, Force v)noexcept {return Dir_force(normal.x*v, normal.y*v);}
-	inline Velocity operator*(Speed v, glm::vec2 normal)noexcept {return Velocity(normal.x*v, normal.y*v);}
-	inline Velocity operator*(glm::vec2 normal, Speed v)noexcept {return Velocity(normal.x*v, normal.y*v);}
-	inline Acceleration operator*(Speed_per_time v, glm::vec2 normal)noexcept {return Acceleration(normal.x*v, normal.y*v);}
-	inline Acceleration operator*(glm::vec2 normal, Speed_per_time v)noexcept {return Acceleration(normal.x*v, normal.y*v);}
+	inline Position operator*(Distance v, glm::vec3 normal)noexcept {return Position(normal.x*v, normal.y*v, normal.z*v);}
+	inline Position operator*(glm::vec3 normal, Distance v)noexcept {return Position(normal.x*v, normal.y*v, normal.z*v);}
+	inline Dir_force operator*(Force v, glm::vec3 normal)noexcept {return Dir_force(normal.x*v, normal.y*v, normal.z*v);}
+	inline Dir_force operator*(glm::vec3 normal, Force v)noexcept {return Dir_force(normal.x*v, normal.y*v, normal.z*v);}
+	inline Velocity operator*(Speed v, glm::vec3 normal)noexcept {return Velocity(normal.x*v, normal.y*v, normal.z*v);}
+	inline Velocity operator*(glm::vec3 normal, Speed v)noexcept {return Velocity(normal.x*v, normal.y*v, normal.z*v);}
+	inline Acceleration operator*(Speed_per_time v, glm::vec3 normal)noexcept {return Acceleration(normal.x*v, normal.y*v, normal.z*v);}
+	inline Acceleration operator*(glm::vec3 normal, Speed_per_time v)noexcept {return Acceleration(normal.x*v, normal.y*v, normal.z*v);}
 
 	constexpr Time_squared operator*(Time a, Time b) noexcept { return Time_squared(a.value()*b.value()); }
 	constexpr Speed operator/(Distance s, Time t) noexcept { return Speed(s.value()/t.value()); }
@@ -196,22 +196,22 @@ namespace mo {
 	constexpr Angle operator*(Angle_acceleration at, Time_squared t) noexcept { return Angle(at.value()*t.value()); }
 
 
-	inline Velocity operator*(Acceleration a, Time t) noexcept { return Velocity(a.x*t, a.y*t); }
-	inline Velocity operator/(Position a, Time t) noexcept { return {a.x/t, a.y/t}; }
-	inline Position operator*(Velocity v, Time t) noexcept { return Position(v.x*t, v.y*t); }
-	inline Position operator*(Time t, Velocity v) noexcept { return Position(v.x*t, v.y*t); }
+	inline Velocity operator*(Acceleration a, Time t) noexcept { return Velocity(a.x*t, a.y*t, a.z*t); }
+	inline Velocity operator/(Position a, Time t) noexcept { return {a.x/t, a.y/t, a.z/t}; }
+	inline Position operator*(Velocity v, Time t) noexcept { return Position(v.x*t, v.y*t, v.z*t); }
+	inline Position operator*(Time t, Velocity v) noexcept { return Position(v.x*t, v.y*t, v.z*t); }
 
 	constexpr Inv_mass operator/(float a, Mass b) noexcept { return Inv_mass(a/b.value()); }
 	constexpr Mass operator/(float a, Inv_mass b) noexcept { return Mass(a/b.value()); }
 	constexpr Speed operator*(Inv_mass a, Force b) noexcept { return Speed(a.value()*b.value()); }
 	constexpr Speed operator*(Force b, Inv_mass a) noexcept { return Speed(a.value()*b.value()); }
-	inline Acceleration operator*(Inv_mass a, Dir_force b) noexcept { return {a.value()*b.x.value(), a.value()*b.y.value()}; }
-	inline Acceleration operator*(Dir_force b, Inv_mass a) noexcept { return {a.value()*b.x.value(), a.value()*b.y.value()}; }
-	inline Acceleration operator/(Dir_force b, Mass a) noexcept { return {b.x.value()/a.value(), b.y.value()/a.value()}; }
+	inline Acceleration operator*(Inv_mass a, Dir_force b) noexcept { return {a.value()*b.x.value(), a.value()*b.y.value(), a.value()*b.z.value()}; }
+	inline Acceleration operator*(Dir_force b, Inv_mass a) noexcept { return {a.value()*b.x.value(), a.value()*b.y.value(), a.value()*b.z.value()}; }
+	inline Acceleration operator/(Dir_force b, Mass a) noexcept { return {b.x.value()/a.value(), b.y.value()/a.value(), a.value()/b.z.value()}; }
 
 	inline Force operator*(Speed_per_time a, Mass b) noexcept { return Force(a.value()*b.value()); }
 	inline Force operator/(Speed_per_time a, Inv_mass b) noexcept { return Force(a.value()/b.value()); }
-	inline Dir_force operator/(Velocity a, Inv_mass b) noexcept { return {Force(a.x.value()/b.value()), Force(a.y.value()/b.value())}; }
+	inline Dir_force operator/(Velocity a, Inv_mass b) noexcept { return {Force(a.x.value()/b.value()), Force(a.y.value()/b.value()), Force(a.z.value()/b.value())}; }
 
 
 	template<typename T, typename = std::enable_if_t<!is_value_type<T>::value>>
@@ -235,6 +235,10 @@ namespace mo {
 	inline glm::detail::tvec2<T, glm::highp> clamp(glm::detail::tvec2<T, glm::highp> v, glm::detail::tvec2<T, glm::highp> min, glm::detail::tvec2<T, glm::highp> max)noexcept {
 		return glm::detail::tvec2<T, glm::highp>(clamp(v.x, min.x, max.x), clamp(v.y, min.y, max.y));
 	}
+	template<typename T>
+	inline glm::detail::tvec3<T, glm::highp> clamp(glm::detail::tvec3<T, glm::highp> v, glm::detail::tvec3<T, glm::highp> min, glm::detail::tvec3<T, glm::highp> max)noexcept {
+		return glm::detail::tvec3<T, glm::highp>(clamp(v.x, min.x, max.x), clamp(v.y, min.y, max.y), clamp(v.z, min.z, max.z));
+	}
 
 	template<typename T>
 	inline auto rotate(glm::detail::tvec2<T, glm::highp> v, Angle a)noexcept
@@ -254,11 +258,16 @@ namespace mo {
 	inline constexpr bool is_zero(glm::detail::tvec2<T, glm::highp> v)noexcept {
 		return v.x==0.f && v.y==0.f;
 	}
+	template<typename T>
+	inline constexpr bool is_zero(glm::detail::tvec3<T, glm::highp> v)noexcept {
+		return v.x==0.f && v.y==0.f && v.z==0.f;
+	}
 
 	inline Distance distance_squared(const Position a, const Position b)noexcept {
 		return Distance{
 		            (a.x.value()-b.x.value())*(a.x.value()-b.x.value()) +
-			        (a.y.value()-b.y.value())*(a.y.value()-b.y.value()) };
+			        (a.y.value()-b.y.value())*(a.y.value()-b.y.value()) +
+			        (a.z.value()-b.z.value())*(a.z.value()-b.z.value()) };
 	}
 
 	namespace unit_literals {

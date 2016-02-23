@@ -341,7 +341,7 @@ int SOIL_GL_ExtensionSupported(const char *extension)
 		start = terminator;
 	}
 
-	return 0;
+	return 1; // FIXME: workaround ofr missing cube_map extention
 }
 
 /*	other functions	*/

@@ -23,6 +23,9 @@
 #include <core/ecs/ecs.hpp>
 #include <core/renderer/camera.hpp>
 #include <core/renderer/command_queue.hpp>
+#include <core/renderer/skybox.hpp>
+#include <core/renderer/texture.hpp>
+#include <core/renderer/shader.hpp>
 
 
 namespace mo {
@@ -54,7 +57,7 @@ namespace mo {
 
 			void update(Time dt, Update_mask mask=update_all);
 			void update(Time dt, Update update=Update::none);
-			void draw(const renderer::Camera&)const;
+			void draw(const renderer::Camera&);
 
 			ecs::Entity_manager entity_manager;
 			sys::physics::Scene_graph scene_graph;
@@ -63,6 +66,18 @@ namespace mo {
 
 		private:
 			mutable renderer::Command_queue _render_queue;
+
+			renderer::Shader_program _post_shader;
+
+			renderer::Framebuffer _canvas[2];
+			bool                  _canvas_first_active = true;
+
+			renderer::Skybox _skybox;
+
+
+			auto& _active_canvas() {
+				return _canvas[_canvas_first_active ? 0: 1];
+			}
 	};
 
 }

@@ -49,18 +49,16 @@ namespace renderer {
 		              .bind_all_attribute_locations(sprite_layout)
 		              .build()
 		              .uniforms(make_uniform_map(
-		                  "albedo", int(Texture_unit::color),
-		                  "normal", int(Texture_unit::normal),
-		                  "emission", int(Texture_unit::emission),
-		                  "roughness", int(Texture_unit::roughness),
-		                  "metallic", int(Texture_unit::metallic),
-		                  "height", int(Texture_unit::height),
-		                  "shadowmap_1", int(Texture_unit::shadowmap_1),
-		                  "shadowmap_2", int(Texture_unit::shadowmap_2),
-		                  "shadowmap_3", int(Texture_unit::shadowmap_3),
-		                  "shadowmap_4", int(Texture_unit::shadowmap_4),
-		                  "environment", int(Texture_unit::environment),
-		                  "last_frame", int(Texture_unit::last_frame)
+		                  "albedo_tex", int(Texture_unit::color),
+		                  "normal_tex", int(Texture_unit::normal),
+		                  "emission_tex", int(Texture_unit::emission),
+		                  "roughness_tex", int(Texture_unit::roughness),
+		                  "metallic_tex", int(Texture_unit::metallic),
+		                  "height_tex", int(Texture_unit::height),
+		                  "shadowmap_1_tex", int(Texture_unit::shadowmap_1),
+		                  "shadowmap_2_tex", int(Texture_unit::shadowmap_2),
+		                  "environment_tex", int(Texture_unit::environment),
+		                  "last_frame_tex", int(Texture_unit::last_frame)
 		              ));
 	}
 

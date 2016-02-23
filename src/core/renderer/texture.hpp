@@ -33,7 +33,7 @@ namespace renderer {
 
 	class Texture {
 		public:
-			explicit Texture(std::vector<uint8_t> buffer) throw(Texture_loading_failed);
+			explicit Texture(std::vector<uint8_t> buffer, bool cubemap) throw(Texture_loading_failed);
 			virtual ~Texture()noexcept;
 
 			Texture& operator=(Texture&&)noexcept;
@@ -50,11 +50,12 @@ namespace renderer {
 			Texture& operator=(const Texture&) = delete;
 
 		protected:
-			Texture(int width, int height);
+			Texture(int width, int height, int bpp=8);
 			Texture(const Texture&, glm::vec4 clip)noexcept;
 			void _update(const Texture&, glm::vec4 clip);
 
 			unsigned int _handle;
+			bool         _cubemap = false;
 			bool         _owner = true;
 			int          _width, _height;
 			glm::vec4    _clip {0,0,1,1};
@@ -82,7 +83,7 @@ namespace renderer {
 
 	class Framebuffer : public Texture {
 		public:
-			Framebuffer(int width, int height, bool depth_buffer);
+			Framebuffer(int width, int height, bool depth_buffer, bool hdr);
 			~Framebuffer()noexcept;
 
 			Framebuffer& operator=(Framebuffer&&)noexcept;
@@ -129,7 +130,8 @@ namespace asset {
 		using RT = std::shared_ptr<renderer::Texture>;
 
 		static RT load(istream in) throw(Loading_failed) {
-			return std::make_shared<renderer::Texture>(in.bytes());
+			constexpr auto cube_aid = util::Str_id{"tex_cube"};
+			return std::make_shared<renderer::Texture>(in.bytes(), in.aid().type()==cube_aid);
 		}
 
 		static void store(ostream out, const renderer::Texture& asset) throw(Loading_failed) {

@@ -3,6 +3,8 @@
 #include "texture_batch.hpp"
 
 #include "command_queue.hpp"
+#include "primitives.hpp"
+
 
 namespace mo {
 namespace renderer {
@@ -17,14 +19,17 @@ namespace renderer {
 		};
 
 		std::unique_ptr<Shader_program> tex_shader;
-		const Texture_Vertex single_tex_vert[] {
-			Texture_Vertex{{-0.5f,-0.5f}, {0,0}, nullptr},
-			Texture_Vertex{{-0.5f,+0.5f}, {0,1}, nullptr},
-			Texture_Vertex{{+0.5f,+0.5f}, {1,1}, nullptr},
 
-			Texture_Vertex{{+0.5f,+0.5f}, {1,1}, nullptr},
-			Texture_Vertex{{-0.5f,-0.5f}, {0,0}, nullptr},
-			Texture_Vertex{{+0.5f,-0.5f}, {1,0}, nullptr}
+		std::unique_ptr<Object> single_quat_tex;
+
+		const auto single_tex_vert = std::vector<Simple_vertex> {
+			Simple_vertex{{-0.5f,-0.5f}, {0,0}},
+			Simple_vertex{{-0.5f,+0.5f}, {0,1}},
+			Simple_vertex{{+0.5f,+0.5f}, {1,1}},
+
+			Simple_vertex{{+0.5f,+0.5f}, {1,1}},
+			Simple_vertex{{-0.5f,-0.5f}, {0,0}},
+			Simple_vertex{{+0.5f,-0.5f}, {1,0}}
 		};
 	}
 
@@ -47,6 +52,13 @@ namespace renderer {
 		               "clip", glm::vec4{0,0,1,1},
 		               "color", glm::vec4{1,1,1,1}
 		           ));
+
+		single_quat_tex = std::make_unique<Object>(simple_vertex_layout, create_buffer(single_tex_vert));
+	}
+
+	void draw_fullscreen_quad(const renderer::Texture& tex) {
+		tex.bind(int(Texture_unit::temporary));
+		single_quat_tex->draw();
 	}
 
 	Texture_batch::Texture_batch(std::size_t expected_size) {
@@ -78,7 +90,7 @@ namespace renderer {
 
 		for(auto& vert : single_tex_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
-			_vertices.emplace_back(transform(vert.position), uv, &texture);
+			_vertices.emplace_back(transform(vert.xy), uv, &texture);
 		}
 	}
 
