@@ -151,13 +151,13 @@ namespace renderer {
 		}
 	}
 
-	auto Command_queue::shared_uniforms(std::unique_ptr<IUniform_map>&& umap) -> IUniform_map& {
+	auto Command_queue::shared_uniforms(std::shared_ptr<IUniform_map> umap) -> IUniform_map& {
 		_shared_uniforms = std::move(umap);
-		return shared_uniforms();
+		return *shared_uniforms();
 	}
-	auto Command_queue::shared_uniforms() -> IUniform_map& {
+	auto Command_queue::shared_uniforms() -> std::shared_ptr<IUniform_map> {
 		INVARIANT(_shared_uniforms, "No uniforms set in this command queue");
-		return *_shared_uniforms;
+		return _shared_uniforms;
 	}
 
 	void Command_queue::flush() {

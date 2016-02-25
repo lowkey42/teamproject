@@ -18,7 +18,8 @@ namespace graphic {
 
 		state.read_virtual(
 			sf2::vmember("material", aid),
-			sf2::vmember("size", _size)
+			sf2::vmember("size", _size),
+			sf2::vmember("shadowcaster", _shadowcaster)
 		);
 
 		_material = assets.load<renderer::Material>(asset::AID(aid));
@@ -30,7 +31,8 @@ namespace graphic {
 
 		state.write_virtual(
 			sf2::vmember("material", aid),
-			sf2::vmember("size", _size)
+			sf2::vmember("size", _size),
+			sf2::vmember("shadowcaster", _shadowcaster)
 		);
 	}
 

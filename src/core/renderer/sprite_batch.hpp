@@ -38,37 +38,45 @@ namespace renderer {
 		Angle rotation;
 		glm::vec2 size;
 		glm::vec4 uv;
+		float shadow_resistence;
 		const renderer::Material* material = nullptr;
 
 		Sprite() = default;
 		Sprite(glm::vec3 position, Angle rotation, glm::vec2 size,
-		       glm::vec4 uv, const renderer::Material& material)noexcept;
+		       glm::vec4 uv, float shadow_resistence, const renderer::Material& material)noexcept;
 	};
 
 	struct Sprite_vertex {
 		glm::vec3 position;
 		glm::vec2 uv;
 		float rotation;
+		float shadow_resistence;
 		const renderer::Material* material;
 
-		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, float rotation, const renderer::Material*);
+		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, float rotation, float shadow_resistence,
+		              const renderer::Material*);
 
 		bool operator<(const Sprite_vertex& rhs)const noexcept {
 			return material < rhs.material;
 		}
 	};
 
+	extern Vertex_layout sprite_layout;
+
 	extern void init_sprite_renderer(asset::Asset_manager& asset_manager);
 
 	class Sprite_batch {
 		public:
 			Sprite_batch(std::size_t expected_size=64);
+			Sprite_batch(Shader_program& shader, std::size_t expected_size=64);
 
 			void insert(const Sprite& sprite);
 			void flush(Command_queue&);
 
 		private:
 			using Vertex_citer = std::vector<Sprite_vertex>::const_iterator;
+
+			Shader_program& _shader;
 
 			std::vector<Sprite_vertex>    _vertices;
 			std::vector<renderer::Object> _objects;

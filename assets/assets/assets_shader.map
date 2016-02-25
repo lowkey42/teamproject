@@ -6,10 +6,17 @@ frag_shader:particles = shader/particles.frag
 
 vert_shader:sprite = shader/sprite.vert
 frag_shader:sprite = shader/sprite.frag
+frag_shader:sprite_shadow = shader/sprite_shadowcaster.frag
 
 vert_shader:skybox = shader/skybox.vert
 frag_shader:skybox = shader/skybox.frag
 
 vert_shader:post = shader/post.vert
 frag_shader:post = shader/post.frag
+
+vert_shader:shadowmap = shader/shadowmap.vert
+frag_shader:shadowmap = shader/shadowmap.frag
+
+vert_shader:blur = shader/blur.vert
+frag_shader:blur = shader/blur.frag
 

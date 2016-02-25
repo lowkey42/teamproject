@@ -35,6 +35,7 @@ namespace graphic {
 			               asset::Asset_manager& asset_manager);
 
 			void draw(renderer::Command_queue&, const renderer::Camera& camera)const;
+			void draw_shadowcaster(renderer::Sprite_batch&, const renderer::Camera& camera)const;
 			void update(Time dt);
 
 		private:

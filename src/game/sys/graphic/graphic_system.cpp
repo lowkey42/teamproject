@@ -35,11 +35,25 @@ namespace graphic {
 			auto position = remove_units(trans.position());
 
 			_sprite_batch.insert(renderer::Sprite{position, trans.rotation(),
-			                     sprite._size, glm::vec4{0,0,1,1},
+			                     sprite._size, glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
 			                     *sprite._material});
 		}
 
 		_sprite_batch.flush(queue);
+	}
+	void Graphic_system::draw_shadowcaster(renderer::Sprite_batch& batch,
+	                                       const renderer::Camera&)const {
+		for(Sprite_comp& sprite : _sprites) {
+			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
+
+			auto position = remove_units(trans.position());
+
+			if(sprite._shadowcaster && std::abs(position.z) < 1.0f) {
+				batch.insert(renderer::Sprite{position, trans.rotation(),
+				             sprite._size, glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
+				             *sprite._material});
+			}
+		}
 	}
 
 	void Graphic_system::update(Time dt) {

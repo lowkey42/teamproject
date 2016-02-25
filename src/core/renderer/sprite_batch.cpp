@@ -10,35 +10,38 @@ namespace renderer {
 	using namespace glm;
 
 	namespace {
-		Vertex_layout sprite_layout {
-			Vertex_layout::Mode::triangles,
-			vertex("position",  &Sprite_vertex::position),
-			vertex("uv",        &Sprite_vertex::uv),
-			vertex("rotation",  &Sprite_vertex::rotation)
-		};
-
 		std::unique_ptr<Shader_program> sprite_shader;
 		const Sprite_vertex single_sprite_vert[] {
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,0}, 0, nullptr},
-			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,1}, 0, nullptr},
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,1}, 0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, 0,0, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, 0,0, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, 0,0, nullptr},
 
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,1}, 0, nullptr},
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,0}, 0, nullptr},
-			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,0}, 0, nullptr}
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, 0,0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, 0,0, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, 0,0, nullptr}
 		};
 	}
 
+	Vertex_layout sprite_layout {
+		Vertex_layout::Mode::triangles,
+		vertex("position",  &Sprite_vertex::position),
+		vertex("uv",        &Sprite_vertex::uv),
+		vertex("rotation",  &Sprite_vertex::rotation),
+		vertex("shadow_resistence", &Sprite_vertex::shadow_resistence)
+	};
+
 	Sprite::Sprite(glm::vec3 position, Angle rotation, glm::vec2 size,
-	               glm::vec4 uv, const renderer::Material& material)noexcept
+	               glm::vec4 uv, float shadow_resistence,
+	               const renderer::Material& material)noexcept
 	    : position(position), rotation(rotation), size(size),
-	      uv(uv), material(&material) {
+	      uv(uv), shadow_resistence(shadow_resistence), material(&material) {
 	}
 
 	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords,
-	                             float rotation,
+	                             float rotation, float shadow_resistence,
 	                             const renderer::Material* material)
-	    : position(pos), uv(uv_coords), rotation(rotation), material(material) {
+	    : position(pos), uv(uv_coords), rotation(rotation),
+	      shadow_resistence(shadow_resistence), material(material) {
 	}
 
 
@@ -62,7 +65,12 @@ namespace renderer {
 		              ));
 	}
 
-	Sprite_batch::Sprite_batch(std::size_t expected_size) {
+	Sprite_batch::Sprite_batch(std::size_t expected_size)
+	    : Sprite_batch(*sprite_shader, expected_size) {
+	}
+	Sprite_batch::Sprite_batch(Shader_program& shader, std::size_t expected_size)
+	    : _shader(shader) {
+
 		_vertices.reserve(expected_size*4);
 		_objects.reserve(expected_size*0.25f);
 	}
@@ -93,7 +101,7 @@ namespace renderer {
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
 			_vertices.emplace_back(transform(vert.position), uv,
-			                       sprite.rotation.value(), sprite.material);
+			                       sprite.rotation.value(), sprite.shadow_resistence, sprite.material);
 		}
 	}
 
@@ -132,7 +140,7 @@ namespace renderer {
 		}
 
 		auto cmd = create_command()
-		        .shader(*sprite_shader)
+		        .shader(_shader)
 		        .object(_objects.at(obj_idx));
 
 		begin->material->set_textures(cmd);

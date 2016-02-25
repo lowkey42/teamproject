@@ -34,7 +34,7 @@ namespace mo {
 	Meta_system::Meta_system(Engine& engine)
 	    : entity_manager(engine.assets()),
 	      scene_graph(entity_manager),
-	      lights(engine.bus(), entity_manager),
+	      lights(engine.bus(), entity_manager, engine.assets()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
 
 	      _canvas{create_framebuffer(engine), create_framebuffer(engine)},
@@ -71,21 +71,24 @@ namespace mo {
 	}
 
 	void Meta_system::draw(const renderer::Camera& cam) {
-		_render_queue.shared_uniforms().emplace("VP", cam.vp());
-		_render_queue.shared_uniforms().emplace("eye", cam.eye_position());
+		auto uniforms = _render_queue.shared_uniforms();
 
-		lights.draw(_render_queue, cam);
+		renderer.draw_shadowcaster(lights.shadowcaster_batch(), cam);
+		lights.prepare_draw(_render_queue, cam);
+
+		uniforms->emplace("VP", cam.vp());
+		uniforms->emplace("eye", cam.eye_position());
+
 		renderer.draw(_render_queue, cam);
 
 		_skybox.draw(_render_queue);
 
+		{
+			auto fbo_cleanup = Framebuffer_binder{_active_canvas()};
+			_active_canvas().clear();
 
-		_active_canvas().bind_target();
-		_active_canvas().clear();
-
-		_render_queue.flush();
-
-		_active_canvas().unbind_target();
+			_render_queue.flush();
+		}
 
 		_post_shader.bind()
 		        .set_uniform("exposure", 1.0f); // TODO: calc real exposure

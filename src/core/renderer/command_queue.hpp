@@ -115,14 +115,14 @@ namespace renderer {
 		public:
 			Command_queue(std::size_t expected=64);
 
-			auto shared_uniforms(std::unique_ptr<IUniform_map>&&) -> IUniform_map&;
-			auto shared_uniforms() -> IUniform_map&;
+			auto shared_uniforms(std::shared_ptr<IUniform_map>) -> IUniform_map&;
+			auto shared_uniforms() -> std::shared_ptr<IUniform_map>;
 
 			void flush();
 			void push_back(const Command& command);
 
 		private:
-			std::unique_ptr<IUniform_map> _shared_uniforms;
+			std::shared_ptr<IUniform_map> _shared_uniforms;
 
 			std::vector<Command> _commands;
 			std::vector<Command> _order_dependent_commands;

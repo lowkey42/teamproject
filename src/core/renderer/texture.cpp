@@ -51,7 +51,7 @@ namespace renderer {
 		auto tex_type = _cubemap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
 
 		glBindTexture(tex_type, _handle);
-		glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, _cubemap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(tex_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glBindTexture(tex_type, 0);
 	}
@@ -59,22 +59,24 @@ namespace renderer {
 		glGenTextures( 1, &_handle );
 		glBindTexture( GL_TEXTURE_2D, _handle );
 
-		int internal_format;
 		switch(bpp) {
 			case 8:
-				internal_format = GL_RGBA;
+				glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 				break;
+
 			case 16:
-				internal_format = GL_RGBA16F;
+				glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA16F, _width, _height, 0, GL_RGBA, GL_FLOAT, 0);
 				break;
+
 			case 32:
-				internal_format = GL_RGBA32F;
+				glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA32F, _width, _height, 0, GL_RGBA, GL_FLOAT, 0);
 				break;
+
 			default:
 				FAIL("Unsupported bits-per-pixel: "<<bpp);
 		}
 
-		glTexImage2D(GL_TEXTURE_2D, 0,internal_format, _width, _height, 0, GL_RGBA, GL_FLOAT, 0);
+
 
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );

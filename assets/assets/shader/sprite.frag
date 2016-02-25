@@ -15,6 +15,7 @@ struct Point_light {
 
 varying vec2 uv_frag;
 varying vec3 pos_frag;
+varying float shadow_resistence_frag;
 
 uniform sampler2D albedo_tex;
 uniform sampler2D normal_tex;
@@ -24,7 +25,6 @@ uniform sampler2D metallic_tex;
 uniform sampler2D height_tex;
 
 uniform sampler2D shadowmap_1_tex;
-uniform sampler2D shadowmap_2_tex;
 
 uniform samplerCube environment_tex;
 uniform sampler2D last_frame_tex;
@@ -87,14 +87,58 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 al
 	return (diffuse + specular) * light_color * dotNL;
 }
 
-vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance) {
+float my_smoothstep(float edge0, float edge1, float x) {
+	x = clamp((x-edge0)/(edge1-edge0), 0.0, 1.0);
+	return x*x*(3.0-2.0*x);
+}
+
+float sample_shadow_ray(vec2 tc, float r) {
+	float d = texture2D(shadowmap_1_tex, tc).r;
+	return my_smoothstep(0.1, 0.2, r-d);
+}
+
+float sample_shadow(float light_num, float r, vec3 dir) {
+	const float PI = 3.141;
+	float theta = atan(dir.y, dir.x) + PI;
+	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/4.0);
+
+	//the center tex coord, which gives us hard shadows
+	float center = sample_shadow_ray(tc,r);
+
+	//we multiply the blur amount by our distance from center
+	//this leads to more blurriness as the shadow "fades away"
+	float blur = 1.0/1024.0 * my_smoothstep(0.0, 1.0, r);
+
+	//now we use a simple gaussian blur
+	float sum = 0.0;
+
+	sum += sample_shadow_ray(vec2(tc.x - 4.0*blur, tc.y), r) * 0.05;
+	sum += sample_shadow_ray(vec2(tc.x - 3.0*blur, tc.y), r) * 0.09;
+	sum += sample_shadow_ray(vec2(tc.x - 2.0*blur, tc.y), r) * 0.12;
+	sum += sample_shadow_ray(vec2(tc.x - 1.0*blur, tc.y), r) * 0.15;
+
+	sum += center * 0.16;
+
+	sum += sample_shadow_ray(vec2(tc.x + 1.0*blur, tc.y), r) * 0.15;
+	sum += sample_shadow_ray(vec2(tc.x + 2.0*blur, tc.y), r) * 0.12;
+	sum += sample_shadow_ray(vec2(tc.x + 3.0*blur, tc.y), r) * 0.09;
+	sum += sample_shadow_ray(vec2(tc.x + 4.0*blur, tc.y), r) * 0.05;
+
+	return 1.0-clamp(sum, 0.0, 1.0);
+}
+
+vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance, float light_num) {
 	vec3 light_dir = light.pos.xyz - pos;
+	float light_dist_linear = length(light_dir.xy);
+	light_dist_linear-= abs(pos.z) * light_dist_linear/8.0; // perspective correction
+
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
 
 	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z), 0.0, 1.0);
 
-	// TODO: calculate shadow and multiply wth attenuation
+	// TODO: integrate angle and direction attenuation
+	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir), 1.0, shadow_resistence_frag*0.2);
 
 	return calc_light(light_dir, light.color, pos, normal, albedo, roughness, metalness, reflectance) * attenuation;
 }
@@ -125,10 +169,10 @@ void main() {
 	vec3 color = albedo.rgb * light_ambient;
 
 	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
-color*=0.0;
-	// TODO
+
+
 	for(int i=0; i<4; i++) {
-		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
+		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance, float(i));
 	}
 
 	gl_FragColor = vec4(color, albedo.a);

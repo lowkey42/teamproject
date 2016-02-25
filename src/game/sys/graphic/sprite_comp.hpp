@@ -38,6 +38,7 @@ namespace graphic {
 
 			renderer::Material_ptr _material;
 			glm::vec2 _size;
+			bool _shadowcaster = true;
 	};
 
 }
