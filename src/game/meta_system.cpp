@@ -18,7 +18,7 @@ namespace mo {
 
 		constexpr auto global_uniforms = 4+sys::light::light_uniforms;
 		constexpr auto global_uniforms_size = 4*(4*4)+sys::light::light_uniforms_size;
-		constexpr auto global_uniforms_avg_size = (int)std::ceil(global_uniforms_size/global_uniforms);
+		constexpr auto global_uniforms_avg_size = (int)(global_uniforms_size/global_uniforms + 0.5f);
 
 		using Global_uniform_map = renderer::Uniform_map<global_uniforms,
 		                                                 global_uniforms_avg_size*sizeof(float)>;

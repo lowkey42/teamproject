@@ -107,7 +107,7 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 
 	//we multiply the blur amount by our distance from center
 	//this leads to more blurriness as the shadow "fades away"
-	float blur = 1.0/1024.0 * my_smoothstep(0.0, 1.0, r);
+	float blur = 1.0/512.0 * my_smoothstep(0.0, 1.0, r);
 
 	//now we use a simple gaussian blur
 	float sum = 0.0;
@@ -138,7 +138,7 @@ vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, flo
 	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z), 0.0, 1.0);
 
 	// TODO: integrate angle and direction attenuation
-	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir), 1.0, shadow_resistence_frag*0.2);
+	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir), 1.0, shadow_resistence_frag*0.9);
 
 	return calc_light(light_dir, light.color, pos, normal, albedo, roughness, metalness, reflectance) * attenuation;
 }
