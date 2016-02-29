@@ -14,7 +14,6 @@ namespace mo {
 	using namespace unit_literals;
 
 	namespace {
-		constexpr Distance max_entity_size = 20_m;
 
 		constexpr auto global_uniforms = 4+sys::light::light_uniforms;
 		constexpr auto global_uniforms_size = 4*(4*4)+sys::light::light_uniforms_size;

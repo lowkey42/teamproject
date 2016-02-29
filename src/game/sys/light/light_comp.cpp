@@ -14,7 +14,7 @@ namespace light {
 
 	void Light_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager& asset_mgr) {
 		auto direction = _direction / 1_deg;
-		auto angle = 0.f;
+		auto angle = _angle / 1_deg;
 		auto radius = 0.f;
 
 		state.read_virtual(

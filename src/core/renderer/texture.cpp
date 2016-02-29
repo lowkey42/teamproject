@@ -59,6 +59,9 @@ namespace renderer {
 		glGenTextures( 1, &_handle );
 		glBindTexture( GL_TEXTURE_2D, _handle );
 
+#if defined(EMSCRIPTEN) || defined(ANDROID)
+		glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+#else
 		switch(bpp) {
 			case 8:
 				glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
@@ -75,8 +78,7 @@ namespace renderer {
 			default:
 				FAIL("Unsupported bits-per-pixel: "<<bpp);
 		}
-
-
+#endif
 
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );

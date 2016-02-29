@@ -93,7 +93,7 @@ float my_smoothstep(float edge0, float edge1, float x) {
 }
 
 float sample_shadow_ray(vec2 tc, float r) {
-	float d = texture2D(shadowmap_1_tex, tc).r;
+	float d = texture2D(shadowmap_1_tex, tc).r*50.0;
 	return my_smoothstep(0.1, 0.2, r-d);
 }
 
@@ -117,7 +117,7 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 	sum += sample_shadow_ray(vec2(tc.x - 2.0*blur, tc.y), r) * 0.12;
 	sum += sample_shadow_ray(vec2(tc.x - 1.0*blur, tc.y), r) * 0.15;
 
-	sum += center * 0.16;
+	sum += center * 0.18;
 
 	sum += sample_shadow_ray(vec2(tc.x + 1.0*blur, tc.y), r) * 0.15;
 	sum += sample_shadow_ray(vec2(tc.x + 2.0*blur, tc.y), r) * 0.12;
@@ -139,6 +139,13 @@ vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, flo
 
 	// TODO: integrate angle and direction attenuation
 	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir), 1.0, shadow_resistence_frag*0.9);
+
+	const float PI = 3.141;
+	float theta = atan(light_dir.y, -light_dir.x)-light.dir;
+	theta = ((theta/(2.0*PI)) - floor(theta/(2.0*PI))) * 2.0*PI - PI;
+
+	float max_angle = (light.angle + my_smoothstep(1.8*PI, 2.0*PI, light.angle)*0.2) / 2.0;
+	attenuation *= my_smoothstep(0.0, 0.1, clamp(max_angle-abs(theta), -1.0, 1.0));
 
 	return calc_light(light_dir, light.color, pos, normal, albedo, roughness, metalness, reflectance) * attenuation;
 }
@@ -171,7 +178,7 @@ void main() {
 	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 
 
-	for(int i=0; i<4; i++) {
+	for(int i=0; i<1; i++) {
 		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance, float(i));
 	}
 
