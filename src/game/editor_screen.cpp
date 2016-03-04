@@ -32,7 +32,7 @@ namespace mo {
 	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
 	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, -5_m, 20_m),
 	      _debug_Text(engine.assets().load<Font>("font:menu_font"_aid)),
-	      _selection(engine, _camera_world, _commands),
+	      _selection(engine, _systems.entity_manager, _camera_world, _commands),
 	      _last_pointer_pos(util::nothing())
 	{
 
@@ -57,7 +57,7 @@ namespace mo {
 		{
 			_selected_entity = _systems.entity_manager.emplace("blueprint:test"_aid);
 			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
-			transform.position(Position{0_m, 0_m, 0_m});
+			transform.position(Position{0_m, -3_m, 0_m});
 		}
 		{
 			auto& transform = _systems.entity_manager.emplace("blueprint:test_light"_aid)->get<sys::physics::Transform_comp>().get_or_throw();
@@ -94,8 +94,9 @@ namespace mo {
 		return blueprint.is_some();
 	}
 	auto Editor_screen::_handle_pointer_cam(util::maybe<glm::vec2> mp1,
-	                                        util::maybe<glm::vec2> mp2) -> bool {
-		process(mp1,mp2) >> [&](auto last, auto curr) {
+	                                        util::maybe<glm::vec2>) -> bool {
+		process(_last_pointer_pos,mp1) >> [&](auto last, auto curr) {
+			INFO("cam movement");
 			auto wsrc = this->_camera_world.screen_to_world(last, glm::vec3(0,0,0));
 			auto wtarget = this->_camera_world.screen_to_world(curr, glm::vec3(0,0,0));
 
@@ -108,6 +109,7 @@ namespace mo {
 		_mailbox.update_subscriptions();
 
 		_systems.update(dt, Update::movements);
+		_selection.update();
 
 		auto p1 = _engine.input().pointer_screen_position(0).get_or_other({0,0});
 		auto p2 = _engine.input().pointer_screen_position(1).get_or_other({0,0});
@@ -118,7 +120,7 @@ namespace mo {
 		auto mp2 = _input_manager.pointer_screen_position(1);
 
 		bool unhandled = !_handle_pointer_menu(mp1,mp2)
-		                 && !_selection.update(mp1,mp2);
+		                 && !_selection.handle_pointer(mp1,mp2);
 
 		if(unhandled) {
 			_handle_pointer_cam(mp1,mp2);

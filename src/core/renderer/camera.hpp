@@ -53,6 +53,7 @@ namespace renderer {
 				return glm::vec3(_inv_view * glm::vec4(0,0,0,1));
 			}
 
+			auto screen_to_world(glm::vec2 screen_pos, glm::vec3 expected_pos) const noexcept -> glm::vec3;
 			auto screen_to_world(glm::vec2 screen_pos, float depth=0.99f) const noexcept -> glm::vec3;
 			auto world_to_screen(glm::vec3 world_pos) const noexcept -> glm::vec2;
 
@@ -148,7 +149,6 @@ namespace renderer {
 				return remove_units(_pos);
 			}
 
-			auto screen_to_world(glm::vec2 screen_pos, glm::vec3 expected_pos) const noexcept -> glm::vec3;
 			using Camera::screen_to_world;
 
 		private:

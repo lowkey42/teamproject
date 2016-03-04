@@ -18,9 +18,33 @@ namespace editor {
 	using namespace renderer;
 	using namespace glm;
 
-	Selection::Selection(Engine& engine, renderer::Camera& world_cam, util::Command_manager& commands)
+	namespace {
+		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam) {
+			bool inside = false;
+
+			// TODO: check for smart_texture
+
+			process(e.get<physics::Transform_comp>(), e.get<Editor_comp>())
+			        >> [&](auto& transform, auto& editor) {
+				auto center = remove_units(transform.position());
+				auto half_bounds = remove_units(editor.bounds()) / 2.f;
+
+				auto world_p = cam.screen_to_world(p, center).xy();
+				auto obb_p = rotate(world_p - center.xy(), -transform.rotation());
+
+				inside = obb_p.x > -half_bounds.x && obb_p.x < half_bounds.x &&
+				         obb_p.y > -half_bounds.y && obb_p.y < half_bounds.y;
+			};
+
+			return inside;
+		}
+	}
+
+	Selection::Selection(Engine& engine, ecs::Entity_manager& entity_manager,
+	                     renderer::Camera& world_cam, util::Command_manager& commands)
 	    : _mailbox(engine.bus()), _world_cam(world_cam), _commands(commands),
 	      _input_manager(engine.input()),
+	      _editor_comps(entity_manager.list<Editor_comp>()),
 	      _last_primary_pointer_pos(util::nothing()),
 	      _last_secondary_pointer_pos(util::nothing()) {
 
@@ -43,6 +67,7 @@ namespace editor {
 		_mailbox.subscribe_to([&](input::Once_action& e) {
 			switch(e.id) {
 				case "mouse_click"_strid: {
+					INFO("mouse_click");
 					auto mp = _input_manager.last_pointer_screen_position();
 					_change_selection(mp);
 					break;
@@ -97,10 +122,14 @@ namespace editor {
 			}
 		}
 	}
-	auto Selection::update(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool {
+	void Selection::update() {
+		_mailbox.update_subscriptions();
+	}
+
+	auto Selection::handle_pointer(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool {
 		bool input_used = false;
 
-		if(mp1.is_some() && true /* TODO: check if prev is inside entity */) {
+		if(mp1.is_some() && _selected_entity && is_inside(*_selected_entity, mp1.get_or_throw(), _world_cam)) {
 			input_used = true;
 
 			if(mp2.is_nothing()) {
@@ -162,7 +191,22 @@ namespace editor {
 	}
 
 	void Selection::_change_selection(glm::vec2 point) {
-		// TODO
+		INFO("Selection change");
+
+		ecs::Entity_ptr entity;
+		float max_z = -1000.f;
+
+		for(auto& comp : _editor_comps) {
+			if(is_inside(comp.owner(), point, _world_cam)) {
+				auto z = comp.owner().get<physics::Transform_comp>().get_or_throw().position().z.value();
+				if(z>=max_z) {
+					max_z = z;
+					entity = comp.owner_ptr();
+				}
+			}
+		}
+
+		_selected_entity = entity;
 	}
 
 	void Selection::_move(glm::vec2 offset) {

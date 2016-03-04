@@ -66,6 +66,11 @@ namespace renderer {
 		return sp;
 	}
 
+	auto Camera::screen_to_world(glm::vec2 screen_pos, glm::vec3 expected_pos) const noexcept -> glm::vec3 {
+		auto depth = glm::project(expected_pos, glm::mat4(1), vp(), viewport()).z;
+		return screen_to_world(screen_pos, depth);
+	}
+
 
 	Camera_2d::Camera_2d(const glm::vec4& viewport,
 	                     glm::vec2 size, float world_scale,
@@ -162,11 +167,6 @@ namespace renderer {
 		view[3].z = -_pos.z.value();
 
 		return sidescrol_look_mat() * view;
-	}
-
-	auto Camera_sidescroller::screen_to_world(glm::vec2 screen_pos, glm::vec3 expected_pos) const noexcept -> glm::vec3 {
-		auto depth = glm::project(expected_pos, glm::mat4(1), vp(), viewport()).z;
-		return screen_to_world(screen_pos, depth);
 	}
 }
 }

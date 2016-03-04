@@ -158,7 +158,6 @@ namespace input {
 
 				_pointer_screen_pos[idx] = screen_pos;
 				_pointer_world_pos[idx]  = world_pos;
-				_pointer_active[idx]     = true;
 
 				_mapper->on_mouse_pos_change(world_diff, world_pos);
 				break;
@@ -166,10 +165,12 @@ namespace input {
 
 			case SDL_MOUSEBUTTONDOWN:
 				_mapper->on_mouse_button_pressed(event.button.button);
+				_pointer_active[0] = true;
 				break;
 
 			case SDL_MOUSEBUTTONUP:
 				_mapper->on_mouse_button_released(event.button.button, event.button.clicks);
+				_pointer_active[0] = false;
 				break;
 
 			case SDL_FINGERMOTION:

@@ -81,9 +81,9 @@ namespace input {
 			std::function<glm::vec2(glm::vec2)> _screen_to_world_coords;
 			std::vector<std::unique_ptr<Gamepad>> _gamepads;
 
-			std::array<glm::vec2, _max_pointers> _pointer_screen_pos;
-			std::array<glm::vec2, _max_pointers> _pointer_world_pos;
-			std::array<bool,      _max_pointers> _pointer_active;
+			std::array<glm::vec2, _max_pointers> _pointer_screen_pos{};
+			std::array<glm::vec2, _max_pointers> _pointer_world_pos{};
+			std::array<bool,      _max_pointers> _pointer_active{};
 
 			std::unique_ptr<Input_mapper> _mapper;
 	};

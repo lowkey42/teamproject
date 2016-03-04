@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "editor_comp.hpp"
+
 #include <core/ecs/ecs.hpp>
 
 #include <core/renderer/camera.hpp>
@@ -34,11 +36,13 @@ namespace editor {
 
 	class Selection {
 		public:
-			Selection(Engine& engine, renderer::Camera& world_cam, util::Command_manager&);
+			Selection(Engine& engine, ecs::Entity_manager& entity_manager,
+			          renderer::Camera& world_cam, util::Command_manager&);
 
 			void draw(renderer::Command_queue& queue, renderer::Camera&);
-			auto update(util::maybe<glm::vec2> mp1,
-			            util::maybe<glm::vec2> mp2) -> bool; //< true = mouse-input has been used
+			void update();
+			auto handle_pointer(util::maybe<glm::vec2> mp1,
+			                    util::maybe<glm::vec2> mp2) -> bool; //< true = mouse-input has been used
 
 			auto copy_content()const -> std::string;
 
@@ -47,6 +51,7 @@ namespace editor {
 			renderer::Camera& _world_cam;
 			util::Command_manager& _commands;
 			input::Input_manager& _input_manager;
+			Editor_comp::Pool& _editor_comps;
 
 			renderer::Texture_batch _batch;
 

@@ -5,5 +5,8 @@
         "material": "mat:test",
         "size": {"x":20, "y":20},
         "shadowcaster": false
+    },
+    "Editor": {
+        "bounds": {"x":20, "y":20, "z":1}
     }
 }
