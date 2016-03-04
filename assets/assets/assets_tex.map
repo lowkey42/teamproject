@@ -15,3 +15,9 @@ tex:atlas_example_tex = textures/ui_intro_circle.png
 mat:test = materials/test.mat
 
 tex_cube:default_env = textures/default_env.png
+
+
+tex:selection_icon_layer = textures/selection_icon_layer.png
+tex:selection_icon_move = textures/selection_icon_move.png
+tex:selection_icon_rotate = textures/selection_icon_rotate.png
+tex:selection_icon_scale = textures/selection_icon_scale.png

@@ -18,8 +18,8 @@
 #include "meta_system.hpp"
 
 #include "sys/editor/editor_system.hpp"
+#include "sys/editor/selection.hpp"
 
-#include <core/engine.hpp>
 #include <core/renderer/camera.hpp>
 #include <core/renderer/texture.hpp>
 #include <core/renderer/shader.hpp>
@@ -27,6 +27,8 @@
 #include <core/renderer/primitives.hpp>
 #include <core/renderer/text.hpp>
 #include <core/renderer/command_queue.hpp>
+#include <core/utils/command.hpp>
+#include <core/engine.hpp>
 
 
 namespace mo {
@@ -49,6 +51,8 @@ namespace mo {
 
 		private:
 			util::Mailbox_collection _mailbox;
+			util::Command_manager _commands;
+			input::Input_manager& _input_manager;
 
 			Meta_system _systems;
 			sys::editor::Editor_system _editor_sys;
@@ -74,9 +78,13 @@ namespace mo {
 
 			renderer::Command_queue _render_queue;
 
+			sys::editor::Selection _selection;
+			util::maybe<glm::vec2> _last_pointer_pos;
+
 			ecs::Entity_ptr _selected_entity;
 
-			void _on_drag(glm::vec2 src, glm::vec2 target);
+			auto _handle_pointer_menu(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
+			auto _handle_pointer_cam(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
 	};
 
 }

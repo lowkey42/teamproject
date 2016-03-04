@@ -37,6 +37,7 @@ namespace editor {
 			Editor_comp(ecs::Entity& owner)noexcept
 			  : Component(owner) {}
 
+			auto bounds()const noexcept {return _bounds;}
 
 		private:
 			friend class Editor_system;

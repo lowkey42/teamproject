@@ -48,7 +48,6 @@ namespace renderer {
 		           .uniforms(make_uniform_map(
 		               "texture", int(Texture_unit::color),
 		               "model", glm::mat4(),
-		               "layer", 0,
 		               "clip", glm::vec4{0,0,1,1},
 		               "color", glm::vec4{1,1,1,1}
 		           ));
@@ -134,6 +133,8 @@ namespace renderer {
 		        .require_not(Gl_option::depth_write)
 		        .texture(Texture_unit::color, *begin->tex)
 		        .object(_objects.at(obj_idx));
+
+		cmd.uniforms().emplace("layer", _layer);
 
 		return cmd;
 	}

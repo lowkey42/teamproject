@@ -75,7 +75,7 @@ namespace mo {
 		renderer.draw_shadowcaster(lights.shadowcaster_batch(), cam);
 		lights.prepare_draw(_render_queue, cam);
 
-		uniforms->emplace("VP", cam.vp());
+		uniforms->emplace("vp", cam.vp());
 		uniforms->emplace("eye", cam.eye_position());
 
 		renderer.draw(_render_queue, cam);

@@ -324,6 +324,7 @@ namespace format {
 					auto str_c = _get();
 					while(str_c!='"') {
 						if(str_c=='\\') _get();
+						str_c = _get();
 					}
 					break;
 				}

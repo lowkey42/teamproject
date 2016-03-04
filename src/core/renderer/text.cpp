@@ -65,13 +65,13 @@ namespace renderer {
 		                float u, float v,
 		                float w, float h,
 		                float tw,float th) {
-			vertices.push_back({{x  ,y  },   mod_clip({u    /tw, 1-(v  )/th})});
-			vertices.push_back({{x  ,(y+h)}, mod_clip({u    /tw, 1-(v+h)/th})});
-			vertices.push_back({{x+w,y  },   mod_clip({(u+w)/tw, 1-(v  )/th})});
+			vertices.push_back({{x  ,y  },   mod_clip({u    /tw, (v  )/th})});
+			vertices.push_back({{x  ,(y+h)}, mod_clip({u    /tw, (v+h)/th})});
+			vertices.push_back({{x+w,y  },   mod_clip({(u+w)/tw, (v  )/th})});
 
-			vertices.push_back({{x+w,(y+h)}, mod_clip({(u+w)/tw, 1-(v+h)/th})});
-			vertices.push_back({{x+w,y  },   mod_clip({(u+w)/tw, 1-(v  )/th})});
-			vertices.push_back({{x  ,(y+h)}, mod_clip({u    /tw, 1-(v+h)/th})});
+			vertices.push_back({{x+w,(y+h)}, mod_clip({(u+w)/tw, (v+h)/th})});
+			vertices.push_back({{x+w,y  },   mod_clip({(u+w)/tw, (v  )/th})});
+			vertices.push_back({{x  ,(y+h)}, mod_clip({u    /tw, (v+h)/th})});
 		}
 
 		template<typename Func>
@@ -286,7 +286,7 @@ namespace renderer {
 		           .bind_all_attribute_locations(simple_vertex_layout)
 		           .build()
 		           .uniforms(make_uniform_map(
-		                "texture", 0,
+		                "texture", int(Texture_unit::color),
 		                "clip", glm::vec4(0,0,1,1),
 		                "layer", 1.0f
 		           ));

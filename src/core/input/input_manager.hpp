@@ -53,6 +53,13 @@ namespace input {
 				_screen_to_world_coords = func;
 			}
 
+			auto last_pointer_world_position(int idx=0)const noexcept {
+				return _pointer_world_pos[idx];
+			}
+			auto last_pointer_screen_position(int idx=0)const noexcept {
+				return _pointer_screen_pos[idx];
+			}
+
 			auto pointer_world_position(int idx=0)const noexcept {
 				return _pointer_active[idx] ? util::justCopy(_pointer_world_pos[idx]) : util::nothing();
 			}

@@ -4,5 +4,8 @@
     "Sprite": {
         "material": "mat:test",
         "size": {"x":2, "y":2}
+    },
+    "Editor": {
+        "bounds": {"x":2, "y":2, "z":1}
     }
 }

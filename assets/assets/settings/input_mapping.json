@@ -8,7 +8,11 @@
                 "A": {"type":"once", "action":"test_ff_a"},
                 "S": {"type":"continuous", "action":"test_ff_b"}
             },
-            "mouse_drag": {"type":"range", "action":"drag"}
+            "mouse_drag": {"type":"range", "action":"drag"},
+            "mouse_buttons": {
+                {"button":0, "clicks":0}: {"type":"continuous", "action":"mouse_down"},
+                {"button":0, "clicks":1}: {"type":"once", "action":"mouse_click"}
+            }
 		}
 	}
 }

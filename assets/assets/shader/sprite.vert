@@ -9,10 +9,10 @@ varying vec2 uv_frag;
 varying vec3 pos_frag;
 varying float shadow_resistence_frag;
 
-uniform mat4 VP;
+uniform mat4 vp;
 
 void main() {
-	gl_Position = VP * vec4(position, 1);
+	gl_Position = vp * vec4(position, 1);
 
 	uv_frag = uv;
 	pos_frag = position;

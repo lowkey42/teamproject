@@ -113,7 +113,7 @@ namespace light {
 		auto vp = glm::ortho(-50.f, 50.f, -50.f, 50.f, -10.f, 10.f)
 		          * glm::translate(glm::vec3(camp.x,camp.y,0.f));
 
-		uniforms->emplace("VP", vp);
+		uniforms->emplace("vp", vp);
 
 		_draw_occlusion_map(uniforms);
 

@@ -23,6 +23,7 @@
 namespace mo {
 namespace renderer {
 
+	class Command_queue;
 	class Texture;
 
 	struct Simple_vertex {
@@ -31,6 +32,11 @@ namespace renderer {
 		Simple_vertex(glm::vec2 xy, glm::vec2 uv) : xy(xy), uv(uv) {}
 	};
 	extern Vertex_layout simple_vertex_layout;
+
+	extern void draw_dashed_line(renderer::Command_queue& queue,
+	                             glm::vec2 p1, glm::vec2 p2, float dash_len, Rgba color);
+
+	extern void init_primitives(asset::Asset_manager& asset_manager);
 
 }
 }

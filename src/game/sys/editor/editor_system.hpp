@@ -42,7 +42,7 @@ namespace editor {
 
 	class Editor_system {
 		public:
-			Editor_system(asset::Asset_manager& assets);
+			Editor_system(ecs::Entity_manager& entity_manager, asset::Asset_manager& assets);
 
 			void draw_blueprint_list(renderer::Command_queue& queue, glm::vec2 offset);
 			auto find_blueprint(glm::vec2 click_position,

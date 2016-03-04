@@ -204,7 +204,7 @@ namespace input {
 	}
 
 	void Input_mapper::on_mouse_button_pressed (Mouse_button b, float pressure) {
-		find_maybe(_active_context->mouse_buttons, {b,1}).process([&](auto& action) {
+		find_maybe(_active_context->mouse_buttons, {b,0}).process([&](auto& action) {
 			process_pressed(_bus, action, Input_source{0}, pressure);
 		});
 

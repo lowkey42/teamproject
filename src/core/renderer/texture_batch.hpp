@@ -56,13 +56,16 @@ namespace renderer {
 			void insert(const Texture& texture, glm::vec2 pos, glm::vec2 size);
 			void flush(Command_queue&);
 
-		private:
+			void layer(float layer) {_layer = layer;}
 
+		private:
 			using Vertex_citer = std::vector<Texture_Vertex>::const_iterator;
 
 			std::vector<Texture_Vertex>   _vertices;
 			std::vector<renderer::Object> _objects;
 			std::size_t                   _free_obj = 0;
+
+			float _layer = 0.f;
 
 			void _draw(Command_queue&);
 			auto _draw_part(Vertex_citer begin, Vertex_citer end) -> Command;

@@ -11,6 +11,7 @@
 #include "sprite_batch.hpp"
 #include "texture_batch.hpp"
 #include "material.hpp"
+#include "primitives.hpp"
 
 #include "../utils/log.hpp"
 #include "../asset/asset_manager.hpp"
@@ -145,6 +146,7 @@ namespace renderer {
 	#endif
 #endif
 
+		glLineWidth(2.0f);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEPTH_TEST);
@@ -154,6 +156,7 @@ namespace renderer {
 		init_sprite_renderer(assets);
 		init_texture_renderer(assets);
 		init_materials(assets);
+		init_primitives(assets);
 	}
 
 	Graphics_ctx::~Graphics_ctx() {

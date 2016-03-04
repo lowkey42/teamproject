@@ -39,8 +39,10 @@ namespace editor {
 	sf2_structDef(Entity_blueprint_info, id, icon)
 	sf2_structDef(Editor_conf, columns, icon_size, default_category, blueprints)
 
-	Editor_system::Editor_system(asset::Asset_manager& assets)
+	Editor_system::Editor_system(ecs::Entity_manager& entity_manager, asset::Asset_manager& assets)
 	    : _conf(assets.load<Editor_conf>("cfg:editor"_aid)) {
+
+		entity_manager.register_component_type<Editor_comp>();
 
 		_current_category = _conf->default_category;
 	}

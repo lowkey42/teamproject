@@ -2,8 +2,10 @@
 
 #include "editor_screen.hpp"
 
-#include "../core/units.hpp"
-#include "../core/renderer/graphics_ctx.hpp"
+#include <core/units.hpp>
+#include <core/renderer/graphics_ctx.hpp>
+#include <core/renderer/command_queue.hpp>
+#include <core/renderer/uniform_map.hpp>
 
 #include <core/audio/music.hpp>
 #include <core/audio/audio_ctx.hpp>
@@ -19,21 +21,19 @@ namespace mo {
 	using namespace unit_literals;
 	using namespace renderer;
 
-	namespace {
-		auto is_inside(const ecs::Entity& entity, glm::vec3 p) {
-			return true; // TODO
-		}
-	}
 
-	Editor_screen::Editor_screen(Engine& engine) :
-		Screen(engine),
-	    _mailbox(engine.bus()),
-	    _systems(engine),
-	    _editor_sys(engine.assets()),
-	    _camera_menu(engine.graphics_ctx().viewport(),
-	                  {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
-	    _camera_world(engine.graphics_ctx().viewport(), 80_deg, -5_m, 20_m),
-	    _debug_Text(engine.assets().load<Font>("font:menu_font"_aid))
+	Editor_screen::Editor_screen(Engine& engine)
+	    : Screen(engine),
+	      _mailbox(engine.bus()),
+	      _input_manager(engine.input()),
+	      _systems(engine),
+	      _editor_sys(_systems.entity_manager, engine.assets()),
+	      _camera_menu(engine.graphics_ctx().viewport(),
+	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
+	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, -5_m, 20_m),
+	      _debug_Text(engine.assets().load<Font>("font:menu_font"_aid)),
+	      _selection(engine, _camera_world, _commands),
+	      _last_pointer_pos(util::nothing())
 	{
 
 		_mailbox.subscribe_to([&](input::Once_action& e){
@@ -51,18 +51,8 @@ namespace mo {
 			}
 		});
 
-		_mailbox.subscribe_to([&](input::Range_action& e){
-			switch(e.id) {
-				case "drag"_strid:
-					_on_drag(e.abs - e.rel, e.abs);
-					break;
 
-				case "mouse_down"_strid:
-					break;
-			}
-		});
-
-		_render_queue.shared_uniforms(renderer::make_uniform_map("VP", _camera_menu.vp()));
+		_render_queue.shared_uniforms(renderer::make_uniform_map("vp", _camera_menu.vp()));
 
 		{
 			_selected_entity = _systems.entity_manager.emplace("blueprint:test"_aid);
@@ -77,6 +67,7 @@ namespace mo {
 			auto& transform = _systems.entity_manager.emplace("blueprint:test_bg"_aid)->get<sys::physics::Transform_comp>().get_or_throw();
 			transform.position(Position{0_m, 0_m, -2.0_m});
 		}
+		_selection._selected_entity = _selected_entity;
 	}
 
 	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {
@@ -87,28 +78,30 @@ namespace mo {
 
 	}
 
-	void Editor_screen::_on_drag(glm::vec2 src, glm::vec2 target) {
-		auto wsrc = _camera_world.screen_to_world(src, glm::vec3(0,0,0));
-		auto wtarget = _camera_world.screen_to_world(target, glm::vec3(0,0,0));
+	auto Editor_screen::_handle_pointer_menu(util::maybe<glm::vec2> mp1,
+	                                         util::maybe<glm::vec2> mp2) -> bool {
+		if(mp1.is_nothing())
+			return false;
 
-		auto msrc = _camera_menu.screen_to_world(src).xy();
+		auto msrc = _camera_menu.screen_to_world(mp1.get_or_throw()).xy();
 
 		auto blueprint_offset = glm::vec2 {
 			_camera_menu.area().z, _camera_menu.area().x
 		};
 		auto blueprint = _editor_sys.find_blueprint(msrc, blueprint_offset);
 
-		if(blueprint.is_some()) {
-			DEBUG("Blueprint drag");
+		// TODO
+		return blueprint.is_some();
+	}
+	auto Editor_screen::_handle_pointer_cam(util::maybe<glm::vec2> mp1,
+	                                        util::maybe<glm::vec2> mp2) -> bool {
+		process(mp1,mp2) >> [&](auto last, auto curr) {
+			auto wsrc = this->_camera_world.screen_to_world(last, glm::vec3(0,0,0));
+			auto wtarget = this->_camera_world.screen_to_world(curr, glm::vec3(0,0,0));
 
-		} else if(_selected_entity && is_inside(*_selected_entity, wsrc)) {
-			auto diff = wtarget-wsrc;
-			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
-			transform.move(1_m * glm::vec3(diff.x, diff.y, 0.f));
-			// TODO
-		} else {
-			_camera_world.move((wsrc-wtarget)* 1_m);
-		}
+			this->_camera_world.move((wsrc-wtarget)* 1_m);
+		};
+		return true;
 	}
 
 	void Editor_screen::_update(Time dt) {
@@ -120,22 +113,35 @@ namespace mo {
 		auto p2 = _engine.input().pointer_screen_position(1).get_or_other({0,0});
 		_debug_Text.set("P1: "+util::to_string(p1.x)+" / "+util::to_string(p1.y)+"\n"+
 						"P2: "+util::to_string(p2.x)+" / "+util::to_string(p2.y) );
+
+		auto mp1 = _input_manager.pointer_screen_position(0);
+		auto mp2 = _input_manager.pointer_screen_position(1);
+
+		bool unhandled = !_handle_pointer_menu(mp1,mp2)
+		                 && !_selection.update(mp1,mp2);
+
+		if(unhandled) {
+			_handle_pointer_cam(mp1,mp2);
+		}
+
+		_last_pointer_pos = mp1;
 	}
 
 
 	void Editor_screen::_draw() {
+		//_render_queue.shared_uniforms()->emplace("vp", _camera_world.vp());
 
 		_systems.draw(_camera_world);
-/*
+		_selection.draw(_render_queue, _camera_menu);
+
 		auto blueprint_offset = glm::vec2 {
 			_camera_menu.area().z, _camera_menu.area().x
 		};
 
 		_editor_sys.draw_blueprint_list(_render_queue, blueprint_offset);
 
-		_debug_Text.draw(_render_queue,  glm::vec2(0,0), glm::vec4(1,1,1,1), 0.1f);
+		_debug_Text.draw(_render_queue,  glm::vec2(0,0), glm::vec4(1,1,1,1), 1.0f);
 
 		_render_queue.flush();
-		*/
 	}
 }
