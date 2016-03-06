@@ -5,21 +5,50 @@
 #include "editor_comp.hpp"
 
 #include "../physics/transform_comp.hpp"
+#include "../graphic/graphic_system.hpp"
 
 #include <core/input/input_manager.hpp>
 #include <core/renderer/primitives.hpp>
 #include <core/renderer/command_queue.hpp>
+
+#include <glm/gtx/vector_angle.hpp>
 
 
 namespace mo {
 namespace sys {
 namespace editor {
 
+	using namespace unit_literals;
 	using namespace renderer;
 	using namespace glm;
 
 	namespace {
-		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam) {
+		struct Selection_change_cmd : util::Command {
+			public:
+				Selection_change_cmd(Selection& mgr, ecs::Entity_ptr e)
+				    : _selection_mgr(mgr), _selection(e) {}
+
+				void execute()override {
+					_prev_selection = _selection_mgr.selection();
+					_selection_mgr.select(_selection);
+				}
+				void undo()override {
+					_selection_mgr.select(_prev_selection);
+				}
+				auto name()const -> const std::string& override{
+					return _name;
+				}
+
+			private:
+				static const std::string _name;
+				Selection& _selection_mgr;
+
+				ecs::Entity_ptr _selection;
+				ecs::Entity_ptr _prev_selection;
+		};
+		const std::string Selection_change_cmd::_name = "Selection changed";
+
+		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam, bool forgiving=false) {
 			bool inside = false;
 
 			// TODO: check for smart_texture
@@ -27,7 +56,9 @@ namespace editor {
 			process(e.get<physics::Transform_comp>(), e.get<Editor_comp>())
 			        >> [&](auto& transform, auto& editor) {
 				auto center = remove_units(transform.position());
-				auto half_bounds = remove_units(editor.bounds()) / 2.f;
+				auto half_bounds = remove_units(editor.bounds()).xy() / 2.f;
+				if(forgiving)
+					half_bounds = glm::max(half_bounds, vec2{0.5f,0.5f}) + 0.5f;
 
 				auto world_p = cam.screen_to_world(p, center).xy();
 				auto obb_p = rotate(world_p - center.xy(), -transform.rotation());
@@ -57,8 +88,12 @@ namespace editor {
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
 			switch(e.id) {
 				case "mouse_down"_strid:
+					DEBUG("mouse_down: "<<(e.begin ? "begin":"end"));
 					if(e.begin) {
 						// TODO: begin action
+					} else {
+						// End of interaction: reset action_type and commit changes
+						_current_action = Action_type::none;
 					}
 					break;
 			}
@@ -86,7 +121,8 @@ namespace editor {
 
 			} else if(editor.is_some()) {
 				auto center = remove_units(transform.position());
-				auto bounds = remove_units(editor.get_or_throw().bounds());
+				auto bounds = remove_units(editor.get_or_throw().bounds()).xy();
+				bounds = glm::max(bounds, vec2{1,1});
 
 				auto top_left     = vec2{-bounds.x/2.f,  bounds.y/2.f};
 				auto bottom_right = top_left*-1.f;
@@ -126,63 +162,119 @@ namespace editor {
 		_mailbox.update_subscriptions();
 	}
 
-	auto Selection::handle_pointer(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool {
-		bool input_used = false;
+	auto Selection::handle_pointer(const util::maybe<glm::vec2> mp1,
+	                               const util::maybe<glm::vec2> mp2) -> bool {
+		ON_EXIT {
+			_last_primary_pointer_pos = mp1;
+			_last_secondary_pointer_pos = mp2;
+		};
 
-		if(mp1.is_some() && _selected_entity && is_inside(*_selected_entity, mp1.get_or_throw(), _world_cam)) {
-			input_used = true;
+		if(mp1.is_nothing() || _last_primary_pointer_pos.is_nothing() || !_selected_entity)
+			return false;
 
-			if(mp2.is_nothing()) {
-				// single-touch
-				util::process(_last_primary_pointer_pos, mp1) >> [&](auto prev, auto curr) {
-					if(false /* TODO: check if this is a smart_texture */) {
-						if(false /* TODO: check if prev is inside of a marker or near a border */) {
-							// ...
-							return;
-						} else {
-							this->_move(curr - prev);
-						}
+		if(_current_action==Action_type::none && !is_inside(*_selected_entity, _last_primary_pointer_pos.get_or_throw(), _world_cam, true))
+			return false;
 
-					} else if(false /* TODO: check if prev is inside of one of the icons */) {
-						// ...
-						return;
-					}
 
-					this->_move(curr - prev);
-				};
+		if(mp2.is_some())
+			return _handle_multitouch(mp1.get_or_throw(), mp2.get_or_throw());
+		else
+			return _handle_singletouch(_last_primary_pointer_pos.get_or_throw(), mp1.get_or_throw());
+	}
 
+	auto Selection::_handle_multitouch(glm::vec2 mp1_curr, glm::vec2 mp2_curr) -> bool {
+		auto mp1_prev = _last_primary_pointer_pos.get_or_other(mp1_curr);
+		auto mp2_prev = _last_secondary_pointer_pos.get_or_other(mp2_curr);
+
+		auto mp1_delta = mp1_curr - mp1_prev;
+		_move(mp1_delta);
+
+
+		auto offset_curr = mp2_curr - mp1_curr;
+		auto offset_prev = mp2_prev - mp1_prev;
+
+		auto offset_curr_len = glm::length(offset_curr);
+		auto offset_prev_len = glm::length(offset_prev);
+
+		if(offset_prev_len>0.f && offset_curr_len>0.f) {
+			_scale(offset_curr_len / offset_prev_len);
+
+			auto angle_curr = Angle{glm::atan(offset_curr.y, offset_curr.x)};
+			auto angle_prev = Angle{glm::atan(offset_prev.y, offset_prev.x)};
+			_rotate(mp1_curr, angle_curr - angle_prev);
+		}
+
+		return true;
+	}
+	auto Selection::_handle_singletouch(glm::vec2 prev, glm::vec2 curr) -> bool {
+		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+		auto& editor    = _selected_entity->get<Editor_comp>().get_or_throw();
+
+
+		if(false /* TODO: check if this is a smart_texture */) {
+			if(false /* TODO: check if prev is inside of a marker or near a border */) {
+				// ...
+				return true;
+			}
+			_move(curr - prev);
+			return true;
+
+		}
+
+		auto center      = remove_units(transform.position());
+		auto half_bounds = glm::max(remove_units(editor.bounds()).xy(), vec2{1,1}) / 2.f;
+
+		auto icon_layer_pos = vec2{-half_bounds.x,  half_bounds.y};
+		auto icon_rotate_pos = vec2{half_bounds.x, -half_bounds.y};
+		auto icon_scale_pos = vec2{half_bounds.x, half_bounds.y};
+
+		auto world_prev = _world_cam.screen_to_world(prev, center).xy();
+		auto obb_prev = rotate(world_prev - center.xy(), -transform.rotation());
+
+		auto world_curr = _world_cam.screen_to_world(curr, center).xy();
+		auto obb_curr = rotate(world_curr - center.xy(), -transform.rotation());
+
+		auto icon_radius = glm::length(_world_cam.screen_to_world(vec2{16.f, 16.f}, center).xy() - _world_cam.screen_to_world(vec2{0.f, 0.f}, center).xy());
+		auto icon_size2 = icon_radius*icon_radius;
+
+		if(_current_action==Action_type::none) {
+			if(glm::length2(obb_prev-icon_layer_pos)<icon_size2) {
+				_current_action = Action_type::layer;
+			} else if(glm::length2(obb_prev-icon_rotate_pos)<icon_size2) {
+				_current_action = Action_type::rotate;
+			} else if(glm::length2(obb_prev-icon_scale_pos)<icon_size2) {
+				_current_action = Action_type::scale;
 			} else {
-				// mutli-touch
-				auto mp1_curr = mp1.get_or_throw();
-				auto mp1_prev = _last_primary_pointer_pos.get_or_other(mp1_curr);
-
-				auto mp2_curr = mp2.get_or_throw();
-				auto mp2_prev = _last_secondary_pointer_pos.get_or_other(mp2_curr);
-
-				auto mp1_delta = mp1_curr - mp1_prev;
-				_move(mp1_delta);
-
-
-				auto offset_curr = mp2_curr - mp1_curr;
-				auto offset_prev = mp2_prev - mp1_prev;
-
-				auto offset_curr_len = glm::length(offset_curr);
-				auto offset_prev_len = glm::length(offset_prev);
-
-				if(offset_prev_len>0.f && offset_curr_len>0.f) {
-					_scale(offset_curr_len / offset_prev_len);
-
-					auto angle_curr = Angle{glm::atan(offset_curr.y, offset_curr.x)};
-					auto angle_prev = Angle{glm::atan(offset_prev.y, offset_prev.x)};
-					_rotate(mp1_curr, angle_curr - angle_prev);
-				}
+				_current_action = Action_type::move;
 			}
 		}
 
-		_last_primary_pointer_pos = mp1;
-		_last_secondary_pointer_pos = mp2;
+		switch(_current_action) {
+			case Action_type::move:
+				_move(curr - prev);
+				break;
 
-		return input_used;
+			case Action_type::scale:
+				_scale(glm::length(obb_curr) / glm::length(obb_prev));
+				break;
+
+			case Action_type::rotate: {
+				auto angle_curr = Angle{glm::atan(obb_curr.y, obb_curr.x)};
+				auto angle_prev = Angle{glm::atan(obb_prev.y, obb_prev.x)};
+				_rotate(angle_curr - angle_prev);
+				break;
+			}
+
+			case Action_type::layer:
+				_move_layer((curr.y - prev.y) * 0.01);
+				break;
+
+			case Action_type::none:
+				FAIL("UNREACHABLE: Couldn't determine action_type");
+				break;
+		}
+
+		return true;
 	}
 
 	auto Selection::copy_content()const -> std::string {
@@ -206,20 +298,51 @@ namespace editor {
 			}
 		}
 
-		_selected_entity = entity;
+		_commands.execute<Selection_change_cmd>(*this, entity);
 	}
 
 	void Selection::_move(glm::vec2 offset) {
-		// TODO
+		if(!_selected_entity || glm::length2(offset)<1.f)
+			return;
+
+		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+		auto world_offset = _world_cam.screen_to_world(offset, remove_units(transform.position()))
+		                    - _world_cam.screen_to_world(vec2{0,0}, remove_units(transform.position()));
+
+		world_offset.z = 0.0f;
+		transform.move(world_offset * 1_m);
+		// TODO: use commands
 	}
 	void Selection::_move_layer(float offset) {
-		// TODO
+		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+
+		transform.move(Position(0_m,0_m, offset*1_m));
+		// TODO: use commands
+	}
+	void Selection::_rotate(Angle offset) {
+		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+
+		transform.rotation(transform.rotation() + offset);
+		// TODO: use commands
 	}
 	void Selection::_rotate(glm::vec2 pivot, Angle offset) {
-		// TODO
+		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+		auto world_pivot = _world_cam.screen_to_world(pivot, remove_units(transform.position())).xy();
+
+		transform.rotation(transform.rotation() + offset);
+		transform.move(vec3(rotate(world_pivot, offset), 0.f) * 1_m);
+		// TODO: use commands
 	}
 	void Selection::_scale(float factor) {
-		// TODO
+		graphic::scale_entity(*_selected_entity, factor);
+
+		auto& editor = _selected_entity->get<Editor_comp>().get_or_throw();
+
+		auto bounds = editor.bounds();
+		bounds.x *= factor;
+		bounds.y *= factor;
+		editor.bounds(bounds);
+		// TODO: use commands
 	}
 
 }

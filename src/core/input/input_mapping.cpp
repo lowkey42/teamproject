@@ -220,6 +220,11 @@ namespace input {
 			});
 		}
 
+		// call end listerners for continue_click_handlers (clicks==0)
+		find_maybe(_active_context->mouse_buttons, {b,0}).process([&](auto& action) {
+			process_release(_bus, action);
+		});
+
 		if(b==1) {
 			_primary_mouse_button_down = false;
 			_is_mouse_drag = false;

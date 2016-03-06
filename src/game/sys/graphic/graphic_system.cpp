@@ -62,6 +62,12 @@ namespace graphic {
 	void Graphic_system::_on_state_change(const State_change& s) {
 	}
 
+
+	void scale_entity(ecs::Entity& e, float factor) {
+		e.get<Sprite_comp>().process([factor](Sprite_comp& sprite) {
+			sprite.size(sprite.size() * factor);
+		});
+	}
 }
 }
 }

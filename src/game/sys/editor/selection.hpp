@@ -39,6 +39,9 @@ namespace editor {
 			Selection(Engine& engine, ecs::Entity_manager& entity_manager,
 			          renderer::Camera& world_cam, util::Command_manager&);
 
+			void select(ecs::Entity_ptr e) {_selected_entity = std::move(e);}
+			auto selection() {return _selected_entity;}
+
 			void draw(renderer::Command_queue& queue, renderer::Camera&);
 			void update();
 			auto handle_pointer(util::maybe<glm::vec2> mp1,
@@ -46,7 +49,11 @@ namespace editor {
 
 			auto copy_content()const -> std::string;
 
-		public:
+		private:
+			enum class Action_type {
+				none, move, scale, rotate, layer
+			};
+
 			util::Mailbox_collection _mailbox;
 			renderer::Camera& _world_cam;
 			util::Command_manager& _commands;
@@ -65,10 +72,16 @@ namespace editor {
 			util::maybe<glm::vec2> _last_primary_pointer_pos;
 			util::maybe<glm::vec2> _last_secondary_pointer_pos;
 
+			Action_type _current_action = Action_type::none;
+
 			// all coordinates in screen space
+			auto _handle_multitouch(glm::vec2 mp1, glm::vec2 mp2) -> bool;
+			auto _handle_singletouch(glm::vec2 mp1_prev, glm::vec2 mp2_curr) -> bool;
+
 			void _change_selection(glm::vec2 point);
 			void _move(glm::vec2 offset);
 			void _move_layer(float offset);
+			void _rotate(Angle offset);
 			void _rotate(glm::vec2 pivot, Angle offset);
 			void _scale(float factor);
 	};

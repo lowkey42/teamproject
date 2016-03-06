@@ -53,9 +53,24 @@ namespace util {
 		Func f;
 	};
 	template<class Func>
-	inline auto cleanup_later(Func f)noexcept {
-		return cleanup<Func>{f};
+	inline auto cleanup_later(Func&& f)noexcept {
+		return cleanup<Func>{std::forward<Func>(f)};
 	}
+
+	namespace detail {
+		enum class cleanup_scope_guard {};
+		template<class Func>
+		auto operator+(cleanup_scope_guard, Func&& f) {
+			return cleanup<Func>{std::forward<Func>(f)};
+		}
+	}
+
+#define CLEANUP_CONCATENATE_DIRECT(s1, s2) s1##s2
+#define CLEANUP_CONCATENATE(s1, s2) CLEANUP_CONCATENATE_DIRECT(s1, s2)
+#define CLEANUP_ANONYMOUS_VARIABLE(str) CLEANUP_CONCATENATE(str, __LINE__)
+
+#define ON_EXIT auto CLEANUP_ANONYMOUS_VARIABLE(_on_scope_exit) = ::mo::util::detail::cleanup_scope_guard() + [&]
+
 
 	template<typename T>
 	constexpr bool dependent_false() {

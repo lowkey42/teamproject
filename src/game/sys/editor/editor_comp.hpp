@@ -38,6 +38,7 @@ namespace editor {
 			  : Component(owner) {}
 
 			auto bounds()const noexcept {return _bounds;}
+			auto bounds(Position bounds) {_bounds = bounds;}
 
 		private:
 			friend class Editor_system;

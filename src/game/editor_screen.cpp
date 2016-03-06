@@ -67,7 +67,7 @@ namespace mo {
 			auto& transform = _systems.entity_manager.emplace("blueprint:test_bg"_aid)->get<sys::physics::Transform_comp>().get_or_throw();
 			transform.position(Position{0_m, 0_m, -2.0_m});
 		}
-		_selection._selected_entity = _selected_entity;
+		_selection.select(_selected_entity);
 	}
 
 	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {
@@ -111,10 +111,12 @@ namespace mo {
 		_systems.update(dt, Update::movements);
 		_selection.update();
 
-		auto p1 = _engine.input().pointer_screen_position(0).get_or_other({0,0});
-		auto p2 = _engine.input().pointer_screen_position(1).get_or_other({0,0});
-		_debug_Text.set("P1: "+util::to_string(p1.x)+" / "+util::to_string(p1.y)+"\n"+
-						"P2: "+util::to_string(p2.x)+" / "+util::to_string(p2.y) );
+		if(_selection.selection()) {
+			auto& transform = _selection.selection()->get<sys::physics::Transform_comp>().get_or_throw();
+			auto pos = remove_units(transform.position());
+
+			_debug_Text.set("Position: " + util::to_string(pos.x) + "/" +util::to_string(pos.y) +"/"+util::to_string(pos.z) );
+		}
 
 		auto mp1 = _input_manager.pointer_screen_position(0);
 		auto mp2 = _input_manager.pointer_screen_position(1);

@@ -16,34 +16,25 @@
 #pragma once
 
 #include "log.hpp"
-#include <range/v3/all.hpp>
 
 #include <string>
-#include <stdexcept>
-#include <iosfwd>
-#include <cmath>
-#include <algorithm>
+#include <vector>
+#include <memory>
+
 
 namespace mo {
 namespace util {
 
 	struct Command {
+		Command() = default;
 		virtual ~Command() = default;
 
 		virtual void execute() = 0;
 		virtual void undo() = 0;
-		virtual auto name()const -> const std::string&;
+		virtual auto name()const -> const std::string& = 0;
 	};
 
 	class Command_manager {
-		private:
-			std::vector<std::unique_ptr<Command>> _commands;
-			std::size_t _history_size;
-
-			auto _command_names()const {
-				return _commands | ranges::view::transform([](auto& cmd){return cmd->name();});
-			}
-
 		public:
 			void execute(std::unique_ptr<Command> cmd);
 
@@ -55,15 +46,15 @@ namespace util {
 			void undo();
 			void redo();
 
-			auto history()const {
-				return _command_names() | ranges::view::take(_history_size);
-			}
-			auto future()const {
-				return _command_names() | ranges::view::drop(_history_size);
-			}
+			auto history()const -> std::vector<std::string>;
+			auto future()const -> std::vector<std::string>;
 
-			auto undo_available()const -> bool;
-			auto redo_available()const -> bool;
+			auto undo_available()const -> bool {return _history_size>0;}
+			auto redo_available()const -> bool {return _history_size<_commands.size();}
+
+		private:
+			std::vector<std::unique_ptr<Command>> _commands;
+			std::size_t _history_size;
 	};
 
 

@@ -33,6 +33,9 @@ namespace graphic {
 			Sprite_comp(ecs::Entity& owner, renderer::Material_ptr material = {}) :
 				Component(owner), _material(material) {}
 
+			auto size()const noexcept {return _size;}
+			void size(glm::vec2 size) {_size = size;}
+
 		private:
 			friend class Graphic_system;
 
