@@ -201,7 +201,7 @@ namespace editor {
 
 			auto angle_curr = Angle{glm::atan(offset_curr.y, offset_curr.x)};
 			auto angle_prev = Angle{glm::atan(offset_prev.y, offset_prev.x)};
-			_rotate(mp1_curr, angle_curr - angle_prev);
+			_rotate(mp1_curr, angle_prev - angle_curr);
 		}
 
 		return true;
@@ -330,7 +330,7 @@ namespace editor {
 		auto world_pivot = _world_cam.screen_to_world(pivot, remove_units(transform.position())).xy();
 
 		transform.rotation(transform.rotation() + offset);
-		transform.move(vec3(rotate(world_pivot, offset), 0.f) * 1_m);
+		transform.move(vec3(rotate(world_pivot, offset), 0.f) * 0_m); // TODO
 		// TODO: use commands
 	}
 	void Selection::_scale(float factor) {

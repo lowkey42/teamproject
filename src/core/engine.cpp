@@ -55,6 +55,8 @@ namespace {
 	    _audio_ctx(std::make_unique<audio::Audio_ctx>(*_asset_manager)),
 	    _input_manager(std::make_unique<input::Input_manager>(_bus, *_asset_manager)),
 	    _current_time(SDL_GetTicks() / 1000.0f) {
+
+		_input_manager->viewport(_graphics_ctx->viewport());
 	}
 
 	Engine::~Engine() noexcept {

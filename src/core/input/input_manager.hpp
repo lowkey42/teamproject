@@ -52,6 +52,9 @@ namespace input {
 			void screen_to_world_coords(std::function<glm::vec2(glm::vec2)> func) {
 				_screen_to_world_coords = func;
 			}
+			void viewport(glm::vec4 v) {
+				_viewport = v;
+			}
 
 			auto last_pointer_world_position(int idx=0)const noexcept {
 				return _pointer_world_pos[idx];
@@ -78,6 +81,7 @@ namespace input {
 
 			util::Mailbox_collection _mailbox;
 
+			glm::vec4 _viewport;
 			std::function<glm::vec2(glm::vec2)> _screen_to_world_coords;
 			std::vector<std::unique_ptr<Gamepad>> _gamepads;
 

@@ -179,6 +179,9 @@ namespace input {
 				if(event.tfinger.fingerId<_max_pointers) {
 					auto idx        = event.tfinger.fingerId;
 					auto screen_pos = glm::vec2{event.tfinger.x, event.tfinger.y};
+					screen_pos *= glm::vec2{_viewport.z,_viewport.w};
+					screen_pos += glm::vec2{_viewport.x,_viewport.y};
+
 					auto world_pos  = _screen_to_world_coords(screen_pos);
 					auto world_diff = world_pos - _pointer_world_pos[idx];
 
@@ -191,7 +194,7 @@ namespace input {
 
 						if(event.tfinger.type==SDL_FINGERDOWN)
 							_mapper->on_mouse_button_pressed(1, event.tfinger.pressure);
-						else
+						else if(event.tfinger.type==SDL_FINGERUP)
 							_mapper->on_mouse_button_released(1, 1);
 					}
 				}
