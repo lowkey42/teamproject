@@ -327,10 +327,11 @@ namespace editor {
 	}
 	void Selection::_rotate(glm::vec2 pivot, Angle offset) {
 		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-		auto world_pivot = _world_cam.screen_to_world(pivot, remove_units(transform.position())).xy();
+		auto pos = remove_units(transform.position());
+		auto obj_pivot = pos.xy() - _world_cam.screen_to_world(pivot, pos).xy();
 
 		transform.rotation(transform.rotation() + offset);
-		transform.move(vec3(rotate(world_pivot, offset), 0.f) * 0_m); // TODO
+		transform.move(vec3(rotate(obj_pivot, offset)-obj_pivot, 0.f) * 1_m);
 		// TODO: use commands
 	}
 	void Selection::_scale(float factor) {
