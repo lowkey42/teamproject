@@ -88,6 +88,7 @@ namespace input {
 			std::array<glm::vec2, _max_pointers> _pointer_screen_pos{};
 			std::array<glm::vec2, _max_pointers> _pointer_world_pos{};
 			std::array<bool,      _max_pointers> _pointer_active{};
+			std::array<int64_t,   _max_pointers> _pointer_finger_id{};
 
 			std::unique_ptr<Input_mapper> _mapper;
 	};

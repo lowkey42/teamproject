@@ -175,16 +175,30 @@ namespace input {
 
 			case SDL_FINGERMOTION:
 			case SDL_FINGERUP:
-			case SDL_FINGERDOWN:
-				if(event.tfinger.fingerId<_max_pointers) {
-					auto idx        = event.tfinger.fingerId;
+			case SDL_FINGERDOWN: {
+				int idx = 0;
+				for(;idx<_max_pointers; idx++) {
+					if(_pointer_finger_id[idx] == event.tfinger.fingerId)
+						break;
+				}
+				if(idx>=_max_pointers) {
+					for(idx=0; idx<_max_pointers; idx++) {
+						if(!_pointer_active[idx])
+							break;
+					}
+				}
+
+				if(idx<_max_pointers) {
 					auto screen_pos = glm::vec2{event.tfinger.x, event.tfinger.y};
-					screen_pos *= glm::vec2{_viewport.z,_viewport.w};
-					screen_pos += glm::vec2{_viewport.x,_viewport.y};
+					if(screen_pos.x<=1.0f && screen_pos.y<=1.0f) {
+						screen_pos *= glm::vec2{_viewport.z,_viewport.w};
+						screen_pos += glm::vec2{_viewport.x,_viewport.y};
+					}
 
 					auto world_pos  = _screen_to_world_coords(screen_pos);
 					auto world_diff = world_pos - _pointer_world_pos[idx];
 
+					_pointer_finger_id[idx]  = event.tfinger.fingerId;
 					_pointer_screen_pos[idx] = screen_pos;
 					_pointer_world_pos[idx]  = world_pos;
 					_pointer_active[idx]     = event.type!=SDL_FINGERUP;
@@ -199,6 +213,7 @@ namespace input {
 					}
 				}
 				break;
+			}
 
 			case SDL_MOUSEWHEEL:
 				_mapper->on_mouse_wheel_change({event.wheel.x,event.wheel.y});
