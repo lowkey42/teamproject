@@ -197,7 +197,7 @@ namespace editor {
 		auto offset_prev_len = glm::length(offset_prev);
 
 		if(offset_prev_len>0.f && offset_curr_len>0.f) {
-			_scale(offset_curr_len / offset_prev_len);
+			_scale(mp1_curr, offset_curr_len / offset_prev_len);
 
 			auto angle_curr = Angle{glm::atan(offset_curr.y, offset_curr.x)};
 			auto angle_prev = Angle{glm::atan(offset_prev.y, offset_prev.x)};
@@ -343,6 +343,23 @@ namespace editor {
 		bounds.x *= factor;
 		bounds.y *= factor;
 		editor.bounds(bounds);
+		// TODO: use commands
+	}
+	void Selection::_scale(glm::vec2 pivot, float factor) {
+		graphic::scale_entity(*_selected_entity, factor);
+
+		auto& editor = _selected_entity->get<Editor_comp>().get_or_throw();
+
+		auto bounds = editor.bounds();
+		bounds.x *= factor;
+		bounds.y *= factor;
+		editor.bounds(bounds);
+
+
+		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+		auto pos = remove_units(transform.position());
+		auto obj_pivot = pos.xy() - _world_cam.screen_to_world(pivot, pos).xy();
+		transform.move(vec3((obj_pivot*factor)-obj_pivot, 0.f) * 1_m);
 		// TODO: use commands
 	}
 

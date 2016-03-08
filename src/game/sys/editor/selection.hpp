@@ -84,6 +84,7 @@ namespace editor {
 			void _rotate(Angle offset);
 			void _rotate(glm::vec2 pivot, Angle offset);
 			void _scale(float factor);
+			void _scale(glm::vec2 pivot, float factor);
 	};
 
 }
