@@ -45,7 +45,51 @@ namespace renderer {
 		GLAPIENTRY
 	#endif
 		gl_debug_callback(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar* message,const void*) {
-			WARN(std::string(message,length)<<" (source: "<<source<<", type: "<<type<<", id: "<<id<<", severity: "<<severity<<")");
+			if(severity!=GL_DEBUG_SEVERITY_LOW
+			   && severity!=GL_DEBUG_SEVERITY_MEDIUM
+			   && severity!=GL_DEBUG_SEVERITY_HIGH)
+				return;
+
+			auto& log = [&]() -> auto& {
+				switch (severity){
+					case GL_DEBUG_SEVERITY_LOW:
+					case GL_DEBUG_SEVERITY_MEDIUM:
+						return util::warn("", "", 0);
+
+					case GL_DEBUG_SEVERITY_HIGH:
+						return util::error("", "", 0);
+					default:
+						return util::info("", "", 0);
+				}
+			}();
+			log<<"[GL] ";
+			// TODO: source
+
+
+			switch (type) {
+				case GL_DEBUG_TYPE_ERROR:
+					log << "ERROR";
+					break;
+				case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+					log << "DEPRECATED_BEHAVIOR";
+					break;
+				case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+					log << "UNDEFINED_BEHAVIOR";
+					break;
+				case GL_DEBUG_TYPE_PORTABILITY:
+					log << "PORTABILITY";
+					break;
+				case GL_DEBUG_TYPE_PERFORMANCE:
+					log << "PERFORMANCE";
+					break;
+				case GL_DEBUG_TYPE_OTHER:
+					log << "OTHER";
+					break;
+			}
+
+			log<<"("<<id<<"): "<<message;
+
+			log<<std::endl;
 		}
 	#endif
 #endif
@@ -99,6 +143,7 @@ namespace renderer {
 		}
 
 #ifndef EMSCRIPTEN
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -138,6 +183,7 @@ namespace renderer {
 
 	#ifndef EMSCRIPTEN
 		if(GLEW_KHR_debug){
+			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 			glDebugMessageCallback((GLDEBUGPROC)gl_debug_callback, stderr);
 		}
 		else{

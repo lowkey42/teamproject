@@ -43,6 +43,19 @@ namespace renderer {
 			return util::nothing();
 		}
 
+		util::maybe<const std::string> read_gl_prog_info_log(unsigned int handle) {
+			auto info_log_length=0;
+			glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &info_log_length);
+			if( info_log_length>1 ) {
+				auto info_log_buffer = std::string(info_log_length, ' ');
+
+				glGetProgramInfoLog(handle, info_log_length, NULL, &info_log_buffer[0]);
+				return std::move(info_log_buffer);
+			};
+
+			return util::nothing();
+		}
+
 		bool get_gl_proc_status(unsigned int handle, GLenum status_type) {
 			GLint success = 0;
 			glGetProgramiv(handle, status_type, &success);
@@ -132,7 +145,7 @@ namespace renderer {
 
 		glLinkProgram(_handle);
 
-		auto log = read_gl_info_log(_handle);
+		auto log = read_gl_prog_info_log(_handle);
 		bool success = get_gl_proc_status(_handle, GL_LINK_STATUS);
 
 		log.process([](const auto& _){
@@ -143,7 +156,7 @@ namespace renderer {
 			throw Shader_compiler_error("Shader linker failed: "+log.get_or_other("NO LOG"));
 
 		glValidateProgram(_handle);
-		read_gl_info_log(_handle).process([](const auto& _){
+		read_gl_prog_info_log(_handle).process([](const auto& _){
 			DEBUG("Shader validation log: \n"<<_);
 		});
 

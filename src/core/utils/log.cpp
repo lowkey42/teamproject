@@ -78,7 +78,7 @@ namespace util {
 		return l;
 	}
 	log_target& warn (const char* func, const char* file, int32_t line)noexcept {
-		static stacktrace_log_target l{&std::cerr, &get_logfile()};
+		static log_target l{&std::cerr, &get_logfile()};
 		l.on_start("WARN", func, file, line);
 		return l;
 	}
