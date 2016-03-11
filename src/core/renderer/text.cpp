@@ -240,7 +240,8 @@ namespace renderer {
 		_font->calculate_vertices(str, _data, monospace);
 		_obj.buffer().set(_data);
 
-		glm::vec2 top_left, bottom_right;
+		auto top_left     = glm::vec2{9999,9999};
+		auto bottom_right = glm::vec2{0,0};
 		for(auto& v : _data) {
 			if(v.xy.x<top_left.x) top_left.x=v.xy.x;
 			if(v.xy.y<top_left.y) top_left.y=v.xy.y;

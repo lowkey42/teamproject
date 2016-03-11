@@ -1,14 +1,22 @@
 {
-	"initial": "debug",
+	"initial": "editor",
 	"contexts": {
-		"debug": {
+		"editor": {
 			"keys": {
                 "Escape": {"type":"once", "action":"back"},
 
                 "Z": {"type":"once", "action":"undo"},
-                "Y": {"type":"once", "action":"redo"}
+                "Y": {"type":"once", "action":"redo"},
+                "G": {"type":"once", "action":"toggle_grid"},
+                "Delete": {"type":"once", "action":"delete"},
+                "Left": {"type":"continuous", "action":"scroll_l"},
+                "Right": {"type":"continuous", "action":"scroll_r"},
+                "Down": {"type":"continuous", "action":"scroll_d"},
+                "Up": {"type":"continuous", "action":"scroll_u"}
             },
-            "mouse_drag": {"type":"range", "action":"drag"},
+            "mouse_wheel_up": {"type":"once", "action": "zoom_in"},
+            "mouse_wheel_down": {"type":"once", "action": "zoom_out"},
+
             "mouse_buttons": {
                 {"button":1, "clicks":0}: {"type":"continuous", "action":"mouse_down"},
                 {"button":1, "clicks":1}: {"type":"once", "action":"mouse_click"}

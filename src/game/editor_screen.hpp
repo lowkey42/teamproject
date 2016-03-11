@@ -83,6 +83,8 @@ namespace mo {
 
 			ecs::Entity_ptr _selected_entity;
 
+			glm::vec2 _cam_speed;
+
 			auto _handle_pointer_menu(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
 			auto _handle_pointer_cam(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
 	};

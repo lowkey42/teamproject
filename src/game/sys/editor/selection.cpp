@@ -144,9 +144,8 @@ namespace editor {
 							_curr_entity_scale    = _prev_entity_scale;
 						}
 					} else {
-						_current_action = Action_type::none;
-
-						if(_selected_entity) {
+						if(_selected_entity && _current_action!=Action_type::none) {
+							DEBUG("Commit entity transformations");
 							auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
 							_commands.execute<Transform_cmd>(_selected_entity,
 							                                 transform.position(),
@@ -156,6 +155,8 @@ namespace editor {
 							                                 _prev_entity_rotation,
 							                                 _prev_entity_scale);
 						}
+
+						_current_action = Action_type::none;
 					}
 					break;
 			}
@@ -409,7 +410,7 @@ namespace editor {
 				rp.z = glm::round(_curr_entity_position.z*10.f)/10.f;
 				transform.position(rp*1_m);
 				transform.rotation(glm::round(_curr_entity_rotation/15_deg) * 15_deg);
-				transform.scale(glm::round(_curr_entity_scale*2.f)/2.f);
+				transform.scale(glm::ceil(_curr_entity_scale*4.f)/4.f);
 
 			} else {
 				transform.position(_curr_entity_position*1_m);

@@ -162,7 +162,7 @@ namespace input {
 	}
 
 	void Input_mapper::on_mouse_wheel_change(glm::vec2 rel) {
-		auto& action = rel.x<0 ? _active_context->mouse_wheel_up
+		auto& action = rel.y>0 ? _active_context->mouse_wheel_up
 		                       : _active_context->mouse_wheel_down;
 
 		switch(action.type) {

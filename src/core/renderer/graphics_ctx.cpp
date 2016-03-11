@@ -196,6 +196,7 @@ namespace renderer {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
 		set_clear_color(0.0f,0.0f,0.0f);
 
 		init_font_renderer(assets);

@@ -9,7 +9,7 @@ uniform vec3 eye;
 
 void main() {
 	vec3 p = position;
-	vec4 pos = vp * vec4(p*20.0 + eye, 1.0);
-	gl_Position = pos.xyzw;
+	vec4 pos = vp * vec4(p*15.0 + eye, 1.0);
+	gl_Position = pos.xyww;
 	position_frag = position;
 }

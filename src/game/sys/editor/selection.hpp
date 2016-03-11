@@ -49,6 +49,9 @@ namespace editor {
 
 			auto copy_content()const -> std::string;
 
+			void snap_to_grid(bool s)noexcept {_snap_to_grid = s;}
+			auto snap_to_grid()const noexcept {return _snap_to_grid;}
+
 		private:
 			enum class Action_type {
 				none, move, scale, rotate, layer
