@@ -29,6 +29,8 @@ void main() {
 		light_pos = light_positions[2];
 	} else if(uv_frag.y < 4.0/4.0) {
 		light_pos = light_positions[3];
+	} else {
+		light_pos = vec2(99999, 99999);
 	}
 
 	float distance = 1000.0;

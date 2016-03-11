@@ -70,7 +70,8 @@ namespace renderer {
 		}
 	}
 
-	Shader::Shader(Shader_type type, const std::string& source, const std::string name)throw(Shader_compiler_error) {
+	Shader::Shader(Shader_type type, const std::string& source, const std::string& name)throw(Shader_compiler_error)
+	    : _name(name) {
 		char const * source_pointer = source.c_str();
 		int len = source.length();
 
@@ -79,16 +80,18 @@ namespace renderer {
 		glCompileShader(_handle);
 
 
-		auto log = read_gl_info_log(_handle);
 		bool success = get_gl_shader_status(_handle, GL_COMPILE_STATUS);
+		auto& log = success ? util::info(__func__, __FILE__, __LINE__)
+		                    : util::warn(__func__, __FILE__, __LINE__);
 
-		INFO("Compiling shader:"<<name);
-		read_gl_info_log(_handle).process([](const auto& _){
-			DEBUG("Shader compiler log: \n"<<_);
+		log<<"Compiling shader "<<_handle<<":"<<name;
+		read_gl_info_log(_handle).process([&](const auto& _){
+			log<<"\n"<<_;
 		});
+		log<<std::endl;
 
 		if(!success)
-			throw Shader_compiler_error("Shader compiler failed for \""+name+"\": "+log.get_or_other("NO LOG"));
+			throw Shader_compiler_error("Shader compiler failed for \""+name+"\"");
 	}
 	Shader::~Shader()noexcept {
 		if(_handle!=0)
@@ -145,20 +148,27 @@ namespace renderer {
 
 		glLinkProgram(_handle);
 
-		auto log = read_gl_prog_info_log(_handle);
 		bool success = get_gl_proc_status(_handle, GL_LINK_STATUS);
 
-		log.process([](const auto& _){
-			INFO("Linking shader: "<<_);
-		});
+		auto& log = success ? util::info(__func__, __FILE__, __LINE__)
+		                    : util::warn(__func__, __FILE__, __LINE__);
 
-		if(!success)
-			throw Shader_compiler_error("Shader linker failed: "+log.get_or_other("NO LOG"));
+		log<<"Linking shaders "<<_handle<<": ";
+		for(auto& s : _attached_shaders)
+			log<<s->_name<<" ";
+
+		read_gl_prog_info_log(_handle).process([&](const auto& _){
+			log<<"\n"<<_;
+		});
 
 		glValidateProgram(_handle);
-		read_gl_prog_info_log(_handle).process([](const auto& _){
-			DEBUG("Shader validation log: \n"<<_);
+		read_gl_prog_info_log(_handle).process([&](const auto& _){
+			log<<"\nValidation log: "<<_;
 		});
+		log<<std::endl;
+
+		if(!success)
+			throw Shader_compiler_error("Shader linker failed");
 
 		for(auto& s : _attached_shaders)
 			glDetachShader(_handle, s->_handle);

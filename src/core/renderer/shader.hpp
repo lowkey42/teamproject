@@ -44,7 +44,7 @@ namespace renderer {
 
 	class Shader {
 		public:
-			Shader(Shader_type type, const std::string& source, const std::string name="unnamed")throw(Shader_compiler_error);
+			Shader(Shader_type type, const std::string& source, const std::string& name)throw(Shader_compiler_error);
 			~Shader()noexcept;
 
 			Shader& operator=(Shader&&);
