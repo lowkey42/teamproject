@@ -48,6 +48,48 @@ namespace editor {
 		};
 		const std::string Selection_change_cmd::_name = "Selection changed";
 
+		struct Transform_cmd : util::Command {
+			public:
+				Transform_cmd(ecs::Entity_ptr e, Position new_pos, Angle new_rot, float new_scale,
+				              Position prev_pos, Angle prev_rot, float prev_scale)
+				    : _entity(e),
+				      _new_position(new_pos), _new_rotation(new_rot), _new_scale(new_scale),
+				      _prev_position(prev_pos), _prev_rotation(prev_rot), _prev_scale(prev_scale) {}
+
+				void execute()override {
+					auto& transform = _entity->get<physics::Transform_comp>().get_or_throw();
+
+					transform.position(_new_position);
+					transform.rotation(_new_rotation);
+					transform.scale(_new_scale);
+				}
+				void undo()override {
+					auto& transform = _entity->get<physics::Transform_comp>().get_or_throw();
+
+					transform.position(_prev_position);
+					transform.rotation(_prev_rotation);
+					transform.scale(_prev_scale);
+				}
+				auto name()const -> const std::string& override{
+					return _name;
+				}
+
+			private:
+				static const std::string _name;
+
+				ecs::Entity_ptr _entity;
+
+				Position  _new_position;
+				Angle     _new_rotation;
+				float     _new_scale;
+
+				Position  _prev_position;
+				Angle     _prev_rotation;
+				float     _prev_scale;
+		};
+		const std::string Transform_cmd::_name = "Entity transformed";
+
+
 		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam, bool forgiving=false) {
 			bool inside = false;
 
@@ -56,7 +98,7 @@ namespace editor {
 			process(e.get<physics::Transform_comp>(), e.get<Editor_comp>())
 			        >> [&](auto& transform, auto& editor) {
 				auto center = remove_units(transform.position());
-				auto half_bounds = remove_units(editor.bounds()).xy() / 2.f;
+				auto half_bounds = remove_units(editor.bounds()).xy() * transform.scale() / 2.f;
 				if(forgiving)
 					half_bounds = glm::max(half_bounds, vec2{0.5f,0.5f}) + 0.5f;
 
@@ -88,12 +130,32 @@ namespace editor {
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
 			switch(e.id) {
 				case "mouse_down"_strid:
-					DEBUG("mouse_down: "<<(e.begin ? "begin":"end"));
 					if(e.begin) {
-						// TODO: begin action
+						if(_selected_entity) {
+							_current_action = Action_type::none;
+							auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+
+							_prev_entity_position = remove_units(transform.position());
+							_prev_entity_rotation = transform.rotation();
+							_prev_entity_scale = transform.scale();
+
+							_curr_entity_position = _prev_entity_position;
+							_curr_entity_rotation = _prev_entity_rotation;
+							_curr_entity_scale    = _prev_entity_scale;
+						}
 					} else {
-						// End of interaction: reset action_type and commit changes
 						_current_action = Action_type::none;
+
+						if(_selected_entity) {
+							auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+							_commands.execute<Transform_cmd>(_selected_entity,
+							                                 transform.position(),
+							                                 transform.rotation(),
+							                                 transform.scale(),
+							                                 _prev_entity_position*1_m,
+							                                 _prev_entity_rotation,
+							                                 _prev_entity_scale);
+						}
 					}
 					break;
 			}
@@ -102,7 +164,6 @@ namespace editor {
 		_mailbox.subscribe_to([&](input::Once_action& e) {
 			switch(e.id) {
 				case "mouse_click"_strid: {
-					INFO("mouse_click");
 					auto mp = _input_manager.last_pointer_screen_position();
 					_change_selection(mp);
 					break;
@@ -121,7 +182,7 @@ namespace editor {
 
 			} else if(editor.is_some()) {
 				auto center = remove_units(transform.position());
-				auto bounds = remove_units(editor.get_or_throw().bounds()).xy();
+				auto bounds = remove_units(editor.get_or_throw().bounds()).xy() * transform.scale();
 				bounds = glm::max(bounds, vec2{1,1});
 
 				auto top_left     = vec2{-bounds.x/2.f,  bounds.y/2.f};
@@ -222,7 +283,7 @@ namespace editor {
 		}
 
 		auto center      = remove_units(transform.position());
-		auto half_bounds = glm::max(remove_units(editor.bounds()).xy(), vec2{1,1}) / 2.f;
+		auto half_bounds = glm::max(remove_units(editor.bounds()).xy() * transform.scale(), vec2{1,1}) / 2.f;
 
 		auto icon_layer_pos = vec2{-half_bounds.x,  half_bounds.y};
 		auto icon_rotate_pos = vec2{half_bounds.x, -half_bounds.y};
@@ -283,8 +344,6 @@ namespace editor {
 	}
 
 	void Selection::_change_selection(glm::vec2 point) {
-		INFO("Selection change");
-
 		ecs::Entity_ptr entity;
 		float max_z = -1000.f;
 
@@ -305,62 +364,59 @@ namespace editor {
 		if(!_selected_entity || glm::length2(offset)<1.f)
 			return;
 
-		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-		auto world_offset = _world_cam.screen_to_world(offset, remove_units(transform.position()))
-		                    - _world_cam.screen_to_world(vec2{0,0}, remove_units(transform.position()));
+		auto world_offset = _world_cam.screen_to_world(offset, _curr_entity_position)
+		                    - _world_cam.screen_to_world(vec2{0,0}, _curr_entity_position);
 
-		world_offset.z = 0.0f;
-		transform.move(world_offset * 1_m);
-		// TODO: use commands
+		_curr_entity_position += vec3(world_offset.xy(), 0.0f);
+		_update_entity_transform();
 	}
 	void Selection::_move_layer(float offset) {
-		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-
-		transform.move(Position(0_m,0_m, offset*1_m));
-		// TODO: use commands
+		_curr_entity_position.z += offset;
+		_update_entity_transform();
 	}
 	void Selection::_rotate(Angle offset) {
-		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-
-		transform.rotation(transform.rotation() + offset);
-		// TODO: use commands
+		_curr_entity_rotation += offset;
+		_update_entity_transform();
 	}
 	void Selection::_rotate(glm::vec2 pivot, Angle offset) {
-		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-		auto pos = remove_units(transform.position());
+		auto pos = _curr_entity_position;
 		auto obj_pivot = pos.xy() - _world_cam.screen_to_world(pivot, pos).xy();
 
-		transform.rotation(transform.rotation() + offset);
-		transform.move(vec3(rotate(obj_pivot, offset)-obj_pivot, 0.f) * 1_m);
-		// TODO: use commands
+		_curr_entity_position += vec3(rotate(obj_pivot, offset)-obj_pivot, 0.f);
+		_curr_entity_rotation += offset;
+		_update_entity_transform();
 	}
 	void Selection::_scale(float factor) {
-		graphic::scale_entity(*_selected_entity, factor);
-
-		auto& editor = _selected_entity->get<Editor_comp>().get_or_throw();
-
-		auto bounds = editor.bounds();
-		bounds.x *= factor;
-		bounds.y *= factor;
-		editor.bounds(bounds);
-		// TODO: use commands
+		_curr_entity_scale *= factor;
+		_update_entity_transform();
 	}
 	void Selection::_scale(glm::vec2 pivot, float factor) {
-		graphic::scale_entity(*_selected_entity, factor);
-
-		auto& editor = _selected_entity->get<Editor_comp>().get_or_throw();
-
-		auto bounds = editor.bounds();
-		bounds.x *= factor;
-		bounds.y *= factor;
-		editor.bounds(bounds);
-
-
-		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-		auto pos = remove_units(transform.position());
+		auto pos = _curr_entity_position;
 		auto obj_pivot = pos.xy() - _world_cam.screen_to_world(pivot, pos).xy();
-		transform.move(vec3((obj_pivot*factor)-obj_pivot, 0.f) * 1_m);
-		// TODO: use commands
+		_curr_entity_position += vec3((obj_pivot*factor)-obj_pivot, 0.f);
+
+		_curr_entity_scale *= factor;
+		_update_entity_transform();
+	}
+
+	void Selection::_update_entity_transform() {
+		if(_selected_entity) {
+			auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+
+			// TODO: snap to grid
+			if(_snap_to_grid) {
+				auto rp = glm::round(_curr_entity_position*2.f)/2.f;
+				rp.z = glm::round(_curr_entity_position.z*10.f)/10.f;
+				transform.position(rp*1_m);
+				transform.rotation(glm::round(_curr_entity_rotation/15_deg) * 15_deg);
+				transform.scale(glm::round(_curr_entity_scale*2.f)/2.f);
+
+			} else {
+				transform.position(_curr_entity_position*1_m);
+				transform.rotation(_curr_entity_rotation);
+				transform.scale(_curr_entity_scale);
+			}
+		}
 	}
 
 }

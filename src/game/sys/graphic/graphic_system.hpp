@@ -48,8 +48,6 @@ namespace graphic {
 			mutable renderer::Sprite_batch _sprite_batch;
 	};
 
-	extern void scale_entity(ecs::Entity&, float factor);
-
 }
 }
 }

@@ -51,6 +51,10 @@ namespace physics {
 			auto position()const noexcept {return _position;}
 			void position(Position pos)noexcept;
 			void move(Position o)noexcept {position(position() + o);}
+
+			auto scale()const noexcept {return _scale;}
+			void scale(float s)noexcept {_scale = s;}
+
 			auto rotation()const noexcept {return _rotation;}
 			void rotation(Angle a)noexcept;
 
@@ -64,7 +68,7 @@ namespace physics {
 			};
 
 			Position _position;
-
+			float _scale = 1.f;
 			Angle _rotation;
 			bool _rotation_fixed = false;
 

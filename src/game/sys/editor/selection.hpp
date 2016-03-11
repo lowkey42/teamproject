@@ -68,11 +68,20 @@ namespace editor {
 			renderer::Texture_ptr _icon_scale;
 
 			ecs::Entity_ptr _selected_entity;
+			glm::vec3 _curr_entity_position;
+			Angle     _curr_entity_rotation;
+			float     _curr_entity_scale;
+
+			glm::vec3 _prev_entity_position;
+			Angle     _prev_entity_rotation;
+			float     _prev_entity_scale;
 
 			util::maybe<glm::vec2> _last_primary_pointer_pos;
 			util::maybe<glm::vec2> _last_secondary_pointer_pos;
 
 			Action_type _current_action = Action_type::none;
+			bool _snap_to_grid = true;
+
 
 			// all coordinates in screen space
 			auto _handle_multitouch(glm::vec2 mp1, glm::vec2 mp2) -> bool;
@@ -85,6 +94,7 @@ namespace editor {
 			void _rotate(glm::vec2 pivot, Angle offset);
 			void _scale(float factor);
 			void _scale(glm::vec2 pivot, float factor);
+			void _update_entity_transform();
 	};
 
 }

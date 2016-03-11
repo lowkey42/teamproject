@@ -5,8 +5,8 @@
 			"keys": {
                 "Escape": {"type":"once", "action":"back"},
 
-                "A": {"type":"once", "action":"test_ff_a"},
-                "S": {"type":"continuous", "action":"test_ff_b"}
+                "Z": {"type":"once", "action":"undo"},
+                "Y": {"type":"once", "action":"redo"}
             },
             "mouse_drag": {"type":"range", "action":"drag"},
             "mouse_buttons": {

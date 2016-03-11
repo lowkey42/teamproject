@@ -35,7 +35,7 @@ namespace graphic {
 			auto position = remove_units(trans.position());
 
 			_sprite_batch.insert(renderer::Sprite{position, trans.rotation(),
-			                     sprite._size, glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
+			                     sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
 			                     *sprite._material});
 		}
 
@@ -50,7 +50,7 @@ namespace graphic {
 
 			if(sprite._shadowcaster && std::abs(position.z) < 1.0f) {
 				batch.insert(renderer::Sprite{position, trans.rotation(),
-				             sprite._size, glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
+				             sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
 				             *sprite._material});
 			}
 		}
@@ -62,12 +62,6 @@ namespace graphic {
 	void Graphic_system::_on_state_change(const State_change& s) {
 	}
 
-
-	void scale_entity(ecs::Entity& e, float factor) {
-		e.get<Sprite_comp>().process([factor](Sprite_comp& sprite) {
-			sprite.size(sprite.size() * factor);
-		});
-	}
 }
 }
 }

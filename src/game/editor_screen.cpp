@@ -42,11 +42,13 @@ namespace mo {
 					_engine.exit();
 					break;
 
-				case "test_ff_a"_strid:
-					_mailbox.send<input::Force_feedback>(input::Input_source{1}, 1.f);
+				case "undo"_strid:
+					if(_commands.undo_available())
+						_commands.undo();
 					break;
-				case "test_ff_b"_strid:
-					_mailbox.send<input::Force_feedback>(input::Input_source{1}, 0.2f);
+				case "redo"_strid:
+					if(_commands.redo_available())
+					_commands.redo();
 					break;
 			}
 		});
