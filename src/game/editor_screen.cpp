@@ -21,6 +21,42 @@ namespace mo {
 	using namespace unit_literals;
 	using namespace renderer;
 
+	namespace {
+		struct Delete_cmd : util::Command {
+			public:
+				Delete_cmd(sys::editor::Selection& selection)
+				    : _name("Entity deleted "+ecs::entity_name(selection.selection())),
+				      _selection(selection) {}
+
+				void execute()override {
+					if(!_entity) {
+						_entity = _selection.selection();
+						INVARIANT(_entity, "No selected entity on execution of Delete_cmd");
+						_saved_state = _entity->manager().backup(_entity);
+					}
+
+					_entity->manager().erase(_entity);
+					_selection.select({});
+				}
+				void undo()override {
+					INVARIANT(_entity, "No stored entity in Delete_cmd");
+					_entity->manager().restore(_entity, _saved_state);
+					_selection.select(_entity);
+				}
+				auto name()const -> const std::string& override{
+					return _name;
+				}
+
+			private:
+				const std::string _name;
+
+				sys::editor::Selection& _selection;
+				ecs::Entity_ptr _entity;
+				std::string _saved_state;
+		};
+
+	}
+
 
 	Editor_screen::Editor_screen(Engine& engine)
 	    : Screen(engine),
@@ -36,6 +72,7 @@ namespace mo {
 	      _last_pointer_pos(util::nothing())
 	{
 
+		// TODO: move to method
 		_mailbox.subscribe_to([&](input::Once_action& e){
 			switch(e.id) {
 				case "back"_strid:
@@ -75,14 +112,13 @@ namespace mo {
 
 				case "delete"_strid:
 					if(_selection.selection()) {
-						// TODO: use commands
-						_systems.entity_manager.erase(_selection.selection());
-						_selection.select({});
+						_commands.execute<Delete_cmd>(_selection);
 					}
 					break;
 			}
 		});
 
+		// TODO: move to method
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
 			switch(e.id) {
 				case "scroll_l"_strid:

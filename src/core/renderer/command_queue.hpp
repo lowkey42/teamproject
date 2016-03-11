@@ -94,16 +94,16 @@ namespace renderer {
 		private:
 			friend class Command_queue;
 
-			std::array<const Texture*, texture_units> _textures;
-			Shader_program* _shader;
+			std::array<const Texture*, texture_units> _textures {};
+			Shader_program* _shader = nullptr;
 			Cmd_uniform_map _private_uniforms;
-			const IUniform_map* _ext_uniforms;
-			const Object* _obj;
+			const IUniform_map* _ext_uniforms = nullptr;
+			const Object* _obj = nullptr;
 			Gl_options _gl_options = default_gl_options;
 
 			int _order_dependent = false;
 
-			int _textures_hash;
+			int _textures_hash = 0;
 
 			void _update_hashes()noexcept;
 	};

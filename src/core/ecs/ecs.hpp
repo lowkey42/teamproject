@@ -96,6 +96,8 @@ namespace ecs {
 			details::Component_base* _components[details::max_comp_type] = {nullptr};
 	};
 
+	extern auto entity_name(Entity_ptr) -> std::string;
+
 
 	// entity transfer object
 	using ETO = std::string;
@@ -120,6 +122,9 @@ namespace ecs {
 			void process_queued_actions();
 			void shrink_to_fit();
 
+			auto backup(Entity_ptr source) -> std::string;
+			void restore(Entity_ptr target, const std::string& data);
+			auto restore(const std::string& data) -> Entity_ptr;
 
 			void write(std::ostream&, Component_filter filter={});
 			void write(std::ostream&, const std::vector<Entity_ptr>&, Component_filter filter={});
@@ -138,9 +143,6 @@ namespace ecs {
 			std::unique_ptr<Component_pool_base> _pools[details::max_comp_type];
 			std::unordered_map<std::string, details::Component_type_info> _types;
 	};
-
-	extern auto save_entity(Entity_manager& manager, const Entity& entity) -> ETO;
-	extern auto load_entity(Entity_manager& manager, const ETO& eto) -> Entity_ptr;
 
 } /* namespace ecs */
 }

@@ -155,7 +155,7 @@ namespace sf2 {
 		Serializer(Writer&& w) : writer(std::move(w)) {}
 
 		template<class T>
-		std::enable_if_t<is_annotated_struct<T>::value>
+		std::enable_if_t<is_annotated_struct<T>::value && not details::has_save<Writer,T>::value>
 		  write(const T& inst) {
 			writer.begin_obj();
 
@@ -164,6 +164,11 @@ namespace sf2 {
 			});
 
 			writer.end_current();
+		}
+		template<class T>
+		std::enable_if_t<details::has_save<Writer,T>::value>
+		  write(const T& inst) {
+			save(*this, inst);
 		}
 
 		template<typename... Members>
@@ -319,7 +324,7 @@ namespace sf2 {
 		}
 
 		template<class T>
-		std::enable_if_t<is_annotated_struct<T>::value>
+		std::enable_if_t<is_annotated_struct<T>::value && not details::has_load<Reader,T>::value>
 		  read(T& inst) {
 
 			while(reader.in_obj()) {
@@ -339,6 +344,15 @@ namespace sf2 {
 					on_error("Unexpected key "+buffer);
 				}
 			}
+
+			details::call_post_load(inst);
+		}
+
+		// manual load-function
+		template<class T>
+		std::enable_if_t<details::has_load<Reader,T>::value>
+		  read(T& inst) {
+			load(*this, inst);
 
 			details::call_post_load(inst);
 		}

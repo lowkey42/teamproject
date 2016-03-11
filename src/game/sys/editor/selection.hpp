@@ -54,7 +54,7 @@ namespace editor {
 
 		private:
 			enum class Action_type {
-				none, move, scale, rotate, layer
+				inactive, none, move, scale, rotate, layer
 			};
 
 			util::Mailbox_collection _mailbox;
@@ -73,16 +73,16 @@ namespace editor {
 			ecs::Entity_ptr _selected_entity;
 			glm::vec3 _curr_entity_position;
 			Angle     _curr_entity_rotation;
-			float     _curr_entity_scale;
+			float     _curr_entity_scale = 1.f;
 
 			glm::vec3 _prev_entity_position;
 			Angle     _prev_entity_rotation;
-			float     _prev_entity_scale;
+			float     _prev_entity_scale = 1.f;
 
 			util::maybe<glm::vec2> _last_primary_pointer_pos;
 			util::maybe<glm::vec2> _last_secondary_pointer_pos;
 
-			Action_type _current_action = Action_type::none;
+			Action_type _current_action = Action_type::inactive;
 			bool _snap_to_grid = true;
 
 

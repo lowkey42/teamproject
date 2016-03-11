@@ -17,6 +17,7 @@ namespace physics {
 
 		state.read_virtual(
 			sf2::vmember("position", position_f),
+			sf2::vmember("scale", _scale),
 			sf2::vmember("rotation", rotation_f),
 			sf2::vmember("rotation_fixed", _rotation_fixed)
 		);
@@ -28,6 +29,7 @@ namespace physics {
 	void Transform_comp::save(sf2::JsonSerializer& state)const {
 		state.write_virtual(
 			sf2::vmember("position", remove_units(_position)),
+			sf2::vmember("scale", _scale),
 			sf2::vmember("rotation", _rotation / 1_deg),
 			sf2::vmember("rotation_fixed", _rotation_fixed)
 		);

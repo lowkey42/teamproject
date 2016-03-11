@@ -26,7 +26,8 @@ namespace editor {
 		struct Selection_change_cmd : util::Command {
 			public:
 				Selection_change_cmd(Selection& mgr, ecs::Entity_ptr e)
-				    : _selection_mgr(mgr), _selection(e) {}
+				    : _name("Selection changed "+ecs::entity_name(e)),
+				      _selection_mgr(mgr), _selection(e) {}
 
 				void execute()override {
 					_prev_selection = _selection_mgr.selection();
@@ -40,19 +41,19 @@ namespace editor {
 				}
 
 			private:
-				static const std::string _name;
+				const std::string _name;
 				Selection& _selection_mgr;
 
 				ecs::Entity_ptr _selection;
 				ecs::Entity_ptr _prev_selection;
 		};
-		const std::string Selection_change_cmd::_name = "Selection changed";
 
 		struct Transform_cmd : util::Command {
 			public:
 				Transform_cmd(ecs::Entity_ptr e, Position new_pos, Angle new_rot, float new_scale,
 				              Position prev_pos, Angle prev_rot, float prev_scale)
-				    : _entity(e),
+				    : _name("Entity Transformed "+ecs::entity_name(e)+" "+util::to_string(prev_scale)+" => "+util::to_string(new_scale)),
+				      _entity(e),
 				      _new_position(new_pos), _new_rotation(new_rot), _new_scale(new_scale),
 				      _prev_position(prev_pos), _prev_rotation(prev_rot), _prev_scale(prev_scale) {}
 
@@ -75,7 +76,7 @@ namespace editor {
 				}
 
 			private:
-				static const std::string _name;
+				const std::string _name;
 
 				ecs::Entity_ptr _entity;
 
@@ -87,7 +88,6 @@ namespace editor {
 				Angle     _prev_rotation;
 				float     _prev_scale;
 		};
-		const std::string Transform_cmd::_name = "Entity transformed";
 
 
 		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam, bool forgiving=false) {
@@ -127,6 +127,7 @@ namespace editor {
 		_icon_scale  = engine.assets().load<Texture>("tex:selection_icon_scale"_aid);
 
 
+		// TODO: move to method
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
 			switch(e.id) {
 				case "mouse_down"_strid:
@@ -144,8 +145,7 @@ namespace editor {
 							_curr_entity_scale    = _prev_entity_scale;
 						}
 					} else {
-						if(_selected_entity && _current_action!=Action_type::none) {
-							DEBUG("Commit entity transformations");
+						if(_selected_entity && _current_action!=Action_type::none && _current_action!=Action_type::inactive) {
 							auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
 							_commands.execute<Transform_cmd>(_selected_entity,
 							                                 transform.position(),
@@ -154,14 +154,16 @@ namespace editor {
 							                                 _prev_entity_position*1_m,
 							                                 _prev_entity_rotation,
 							                                 _prev_entity_scale);
+							DEBUG("Done: "<<_commands.history().back());
 						}
 
-						_current_action = Action_type::none;
+						_current_action = Action_type::inactive;
 					}
 					break;
 			}
 
 		});
+		// TODO: move to method
 		_mailbox.subscribe_to([&](input::Once_action& e) {
 			switch(e.id) {
 				case "mouse_click"_strid: {
@@ -233,6 +235,8 @@ namespace editor {
 
 		if(mp1.is_nothing() || _last_primary_pointer_pos.is_nothing() || !_selected_entity)
 			return false;
+
+		INVARIANT(_current_action!=Action_type::inactive, "Listener not called!!!");
 
 		if(_current_action==Action_type::none && !is_inside(*_selected_entity, _last_primary_pointer_pos.get_or_throw(), _world_cam, true))
 			return false;
@@ -331,6 +335,7 @@ namespace editor {
 				_move_layer((curr.y - prev.y) * 0.01);
 				break;
 
+			case Action_type::inactive:
 			case Action_type::none:
 				FAIL("UNREACHABLE: Couldn't determine action_type");
 				break;
@@ -358,7 +363,9 @@ namespace editor {
 			}
 		}
 
-		_commands.execute<Selection_change_cmd>(*this, entity);
+		if(_selected_entity!=entity) {
+			_commands.execute<Selection_change_cmd>(*this, entity);
+		}
 	}
 
 	void Selection::_move(glm::vec2 offset) {

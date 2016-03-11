@@ -54,7 +54,7 @@ namespace util {
 
 		private:
 			std::vector<std::unique_ptr<Command>> _commands;
-			std::size_t _history_size;
+			std::size_t _history_size = 0;
 	};
 
 

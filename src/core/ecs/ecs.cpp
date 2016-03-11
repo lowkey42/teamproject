@@ -15,6 +15,9 @@
 namespace mo {
 namespace ecs {
 
+	auto entity_name(Entity_ptr e) -> std::string {
+		return e ? util::to_string((void*) e.get()) : "0x0";
+	}
 
 	struct Entity_constructor : Entity {
 		Entity_constructor(Entity_manager& e) : Entity(e){}
@@ -103,6 +106,31 @@ namespace ecs {
 		return info.get_or_throw();
 	}
 
+	auto Entity_manager::backup(Entity_ptr source) -> std::string {
+		std::stringstream stream;
+		auto serializer = EcsSerializer{stream, *this, _asset_mgr, {}};
+		serializer.write(*source);
+		stream.flush();
+
+		return stream.str();
+	}
+	void Entity_manager::restore(Entity_ptr target, const std::string& data) {
+		_entities.push_back(target);
+
+		std::istringstream stream{data};
+		auto deserializer = EcsDeserializer{"$EntityRestore", stream, *this, _asset_mgr, {}};
+		deserializer.read(*target);
+	}
+	auto Entity_manager::restore(const std::string& data) -> Entity_ptr {
+		auto target = emplace();
+
+		std::istringstream stream{data};
+		auto deserializer = EcsDeserializer{"$EntityRestore", stream, *this, _asset_mgr, {}};
+		deserializer.read(*target);
+
+		return target;
+	}
+
 	void Entity_manager::write(std::ostream& stream, Component_filter filter) {
 		write(stream, _entities, filter);
 	}
@@ -128,30 +156,10 @@ namespace ecs {
 			_delete_queue.clear();
 		}
 
-		auto entities = _entities;
-
 		auto deserializer = EcsDeserializer{"$EntityDump", stream, *this, _asset_mgr, filter};
 		deserializer.read_virtual(
-			sf2::vmember("entities", entities)
+			sf2::vmember("entities", _entities)
 		);
-
-
-		if(clear)
-			_entities = std::move(entities);
-		else
-			_entities.push_back(entities.back());
-	}
-
-	auto save_entity(Entity_manager& manager, const Entity& entity) -> ETO {
-		Entity& mutable_entity = const_cast<Entity&>(entity);
-		std::stringstream stream;
-		manager.write(stream, {mutable_entity.shared_from_this()});
-		return stream.str();
-	}
-	auto load_entity(Entity_manager& manager, const ETO& eto) -> Entity_ptr {
-		std::istringstream stream{eto};
-		manager.read(stream, false);
-		return manager._entities.back();
 	}
 
 } /* namespace ecs */
