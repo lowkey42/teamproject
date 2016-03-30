@@ -27,7 +27,7 @@
 
 #include "happyhttp.h"
 
-#ifndef WIN32
+#ifndef _WIN32
 //	#include <sys/types.h>
 	#include <sys/socket.h>
 	#include <netinet/in.h>
@@ -36,7 +36,7 @@
 	#include <errno.h>
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 	#include <winsock2.h>
 	#define vsnprintf _vsnprintf
 #endif
@@ -62,7 +62,7 @@ using namespace std;
 namespace happyhttp
 {
 
-#ifdef WIN32
+#ifdef _WIN32
 const char* GetWinsockErrorString( int err );
 #endif
 
@@ -75,7 +75,7 @@ const char* GetWinsockErrorString( int err );
 
 void BailOnSocketError( const char* context )
 {
-#ifdef WIN32
+#ifdef _WIN32
 
 	int e = WSAGetLastError();
 	const char* msg = GetWinsockErrorString( e );
@@ -86,7 +86,7 @@ void BailOnSocketError( const char* context )
 }
 
 
-#ifdef WIN32
+#ifdef _WIN32
 
 const char* GetWinsockErrorString( int err )
 {
@@ -147,7 +147,7 @@ const char* GetWinsockErrorString( int err )
 	return "unknown";
 };
 
-#endif // WIN32
+#endif // _WIN32
 
 
 // return true if socket has data waiting to be read
@@ -236,7 +236,7 @@ Connection::Connection( const char* host, int port ) :
 	m_Port( port ),
 	m_Sock(-1)
 {
-#ifdef WIN32
+#ifdef _WIN32
 	WSADATA tmp;
 	WSAStartup(0x202,&tmp);
 #endif
@@ -281,7 +281,7 @@ void Connection::connect()
 
 void Connection::close()
 {
-#ifdef WIN32
+#ifdef _WIN32
 	if( m_Sock >= 0 )
 		::closesocket( m_Sock );
 #else
@@ -421,7 +421,7 @@ void Connection::send( const unsigned char* buf, int numbytes )
 
 	while( numbytes > 0 )
 	{
-#ifdef WIN32
+#ifdef _WIN32
 		int n = ::send( m_Sock, (const char*)buf, numbytes, 0 );
 #else
 		int n = ::send( m_Sock, buf, numbytes, 0 );
