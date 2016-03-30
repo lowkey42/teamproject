@@ -117,12 +117,16 @@ namespace renderer {
 		constexpr auto sum_even(ArgA, ArgB b, Args... args) -> std::size_t {
 			return b + sum_even(args...);
 		}
+		template<class T>
+		constexpr auto my_sizeof() -> std::size_t {
+			return sizeof(T);
+		}
 	}
 
 	template<class... Args>
 	auto make_uniform_map(Args&&... args) -> std::unique_ptr<IUniform_map> {
 		constexpr auto max_slots = sizeof...(args)/2;
-		constexpr auto sum_size = detail::sum_even(sizeof(args)...);
+		constexpr auto sum_size = detail::sum_even(detail::my_sizeof<Args>()...);
 		constexpr auto average_size = static_cast<std::size_t>(sum_size*1.f / max_slots + 0.5f);
 		auto m = std::unique_ptr<IUniform_map>(new Uniform_map<max_slots, average_size>);
 
