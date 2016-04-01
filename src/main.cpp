@@ -16,6 +16,8 @@
 
 #include "game/editor_screen.hpp"
 
+#include "info.hpp"
+
 #include <iostream>
 #include <exception>
 #include <SDL2/SDL.h>
@@ -58,7 +60,11 @@ int main(int argc, char** argv, char** env) {
 
 void init(int argc, char** argv, char** env) {
 	INFO("Game started from: "<<argv[0]<<"\n"
-	     <<"Working dir: "<<asset::pwd());
+	     <<"Working dir: "<<asset::pwd()<<"\n"
+	     <<"Version: "<<version_info::name<<"\n"
+	     <<"Version-Hash: "<<version_info::hash<<"\n"
+	     <<"Version-Date: "<<version_info::date<<"\n"
+	     <<"Version-Subject: "<<version_info::subject<<"\n");
 	// TODO: print system information
 
 	try {
