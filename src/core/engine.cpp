@@ -4,6 +4,7 @@
 #include "audio/audio_ctx.hpp"
 #include "audio/sound.hpp"
 #include "utils/log.hpp"
+#include "utils/rest.hpp"
 #include "input/input_manager.hpp"
 #include "renderer/graphics_ctx.hpp"
 
@@ -77,6 +78,7 @@ namespace {
 
 		_graphics_ctx->start_frame();
 
+		util::rest::update();
 		_bus.update();
 
 		if(_audio_ctx) {
