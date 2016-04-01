@@ -11,7 +11,7 @@
 
 #include "shader.hpp"
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	namespace {

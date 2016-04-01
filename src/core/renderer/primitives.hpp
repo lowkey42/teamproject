@@ -1,14 +1,6 @@
-/*****************************************************************************\
- * basic structures and types                                                *
- *        ______   ______   __  __   ______                                  *
- *       /_____/\ /_____/\ /_/\/_/\ /_____/\                                 *
- *       \:::_ \ \\:::_ \ \\:\ \:\ \\::::_\/_                                *
- *        \:\ \ \ \\:(_) \ \\:\ \:\ \\:\/___/\                               *
- *         \:\ \ \ \\: ___\/ \:\ \:\ \\_::._\:\                              *
- *          \:\_\ \ \\ \ \    \:\_\:\ \ /____\:\                             *
- *           \_____\/ \_\/     \_____\/ \_____\/                             *
+/** basic data structures and functions **************************************
  *                                                                           *
- * Copyright (c) 2014 Florian Oetke                                          *
+ * Copyright (c) 2015 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
  *  See LICENSE file for details.                                            *
 \*****************************************************************************/
@@ -20,7 +12,7 @@
 #include "vertex_object.hpp"
 #include "texture.hpp"
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	class Command_queue;

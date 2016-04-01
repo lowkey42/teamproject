@@ -4,7 +4,7 @@
 	#include "messagebus.hpp"
 #endif
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	template<class T>

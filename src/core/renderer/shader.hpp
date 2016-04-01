@@ -1,19 +1,9 @@
-/**************************************************************************\
- * simple wrapper for OpenGL shader/programs	                          *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *  Based on code of GDW-SS2014 project by Stefan Bodenschatz             *
- *  which was distributed under the MIT license.                          *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** simple wrapper for OpenGL shader/programs ********************************
+ *                                                                           *
+ * Copyright (c) 2014 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
@@ -28,7 +18,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	class Shader_program;

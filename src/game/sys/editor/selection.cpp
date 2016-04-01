@@ -14,7 +14,7 @@
 #include <glm/gtx/vector_angle.hpp>
 
 
-namespace mo {
+namespace lux {
 namespace sys {
 namespace editor {
 

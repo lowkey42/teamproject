@@ -15,7 +15,7 @@
 #endif
 
 
-namespace mo {
+namespace lux {
 namespace input {
 
 	using namespace unit_literals;

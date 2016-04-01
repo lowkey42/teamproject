@@ -1,17 +1,9 @@
-/**************************************************************************\
- * fire and forget storage for a fixed number of uniforms                 *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2015 Florian Oetke & Sebastian Schalow                   *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** fire and forget storage for a fixed number of uniforms *******************
+ *                                                                           *
+ * Copyright (c) 2016 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
@@ -26,7 +18,7 @@
 #include <array>
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	enum class Uniform_type : unsigned int {

@@ -1,24 +1,16 @@
-/**************************************************************************\
- * provides the transform-data (position, rotation)                       *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** The transformation of an entity in the scene *****************************
+ *                                                                           *
+ * Copyright (c) 2014 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
 #include "../../../core/ecs/ecs.hpp"
 #include "../../../core/units.hpp"
 
-namespace mo {
+namespace lux {
 namespace sys {
 namespace physics {
 
@@ -81,8 +73,8 @@ namespace physics {
 }
 
 namespace std {
-	template <> struct hash<mo::sys::physics::Cell_key> {
-		auto operator()(mo::sys::physics::Cell_key key)const noexcept -> size_t {
+	template <> struct hash<lux::sys::physics::Cell_key> {
+		auto operator()(lux::sys::physics::Cell_key key)const noexcept -> size_t {
 			return static_cast<size_t>(key.x)*31 + key.y;
 		}
 	};

@@ -4,7 +4,7 @@
 #include "component.hpp"
 #endif
 
-namespace mo {
+namespace lux {
 namespace ecs {
 
 	template<typename T>

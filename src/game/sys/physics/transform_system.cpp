@@ -2,7 +2,7 @@
 
 #include<glm/gtc/constants.hpp>
 
-namespace mo {
+namespace lux {
 namespace sys {
 namespace physics {
 

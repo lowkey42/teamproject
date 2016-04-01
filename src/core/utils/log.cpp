@@ -7,7 +7,7 @@
 #include <sstream>
 #include <cstring>
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	namespace {
@@ -33,7 +33,7 @@ namespace util {
 		}
 
 		std::ostream& get_logfile() {
-			static std::ofstream file("mo_"+get_now_short()+".log", std::ofstream::app);
+			static std::ofstream file("all_"+get_now_short()+".log", std::ofstream::app);
 			static bool first = true;
 			if(first) {
 				file<<std::endl<<std::endl<<"================"<<std::endl;

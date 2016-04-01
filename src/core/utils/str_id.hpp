@@ -1,17 +1,9 @@
-/**************************************************************************\
- * encodes strings as unique integers                                     *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** encodes strings as unique integers ***************************************
+ *                                                                           *
+ * Copyright (c) 2014 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
@@ -21,7 +13,7 @@
 #include <cmath>
 #include <algorithm>
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	class Str_id {
@@ -93,13 +85,13 @@ namespace util {
 }
 }
 
-inline constexpr mo::util::Str_id operator "" _strid(const char* str, std::size_t) {
-	return mo::util::Str_id(str);
+inline constexpr lux::util::Str_id operator "" _strid(const char* str, std::size_t) {
+	return lux::util::Str_id(str);
 }
 
 namespace std {
-	template <> struct hash<mo::util::Str_id> {
-		constexpr size_t operator()(mo::util::Str_id id)const noexcept {
+	template <> struct hash<lux::util::Str_id> {
+		constexpr size_t operator()(lux::util::Str_id id)const noexcept {
 			return id;
 		}
 	};
@@ -108,7 +100,7 @@ namespace std {
 #ifdef BUILD_SERIALIZER
 #include <sf2/sf2.hpp>
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	inline void load(sf2::JsonDeserializer& s, Str_id& v) {

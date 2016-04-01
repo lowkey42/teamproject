@@ -13,7 +13,7 @@
 #include <happyhttp/happyhttp.h>
 #endif
 
-namespace mo {
+namespace lux {
 
 	sf2_structDef(Score,
 		name,

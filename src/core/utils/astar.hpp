@@ -1,17 +1,9 @@
-/**************************************************************************\
- * simple (weighted) pathfinding                                          *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** simple (weighted) pathfinding ********************************************
+ *                                                                           *
+ * Copyright (c) 2014 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
@@ -22,7 +14,7 @@
 #include <iostream>
 #include "log.hpp"
 
-namespace mo {
+namespace lux {
 namespace util {
 	struct position {
 		int x, y;
@@ -44,14 +36,14 @@ namespace util {
 }
 
 namespace std {
-	template <> struct hash<mo::util::position> {
-		size_t operator()(const mo::util::position& p)const noexcept {
+	template <> struct hash<lux::util::position> {
+		size_t operator()(const lux::util::position& p)const noexcept {
 			return p.x + p.y*71;
 		}
 	};
 }
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	template<class CostCalculatorType>

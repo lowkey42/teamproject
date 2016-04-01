@@ -12,7 +12,7 @@
 
 #include <sf2/sf2.hpp>
 
-namespace mo {
+namespace lux {
 namespace ecs {
 
 	auto entity_name(Entity_ptr e) -> std::string {

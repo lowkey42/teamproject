@@ -5,7 +5,7 @@
 #endif
 
 
-namespace mo {
+namespace lux {
 namespace asset {
 
 	template<class T>

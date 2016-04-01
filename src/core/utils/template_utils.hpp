@@ -1,17 +1,9 @@
-/**************************************************************************\
- * small helpers for template programming                                 *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** small helpers for template programming ***********************************
+ *                                                                           *
+ * Copyright (c) 2014 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
@@ -19,7 +11,7 @@
 #include <algorithm>
 #include <functional>
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	struct no_move {
@@ -69,7 +61,7 @@ namespace util {
 #define CLEANUP_CONCATENATE(s1, s2) CLEANUP_CONCATENATE_DIRECT(s1, s2)
 #define CLEANUP_ANONYMOUS_VARIABLE(str) CLEANUP_CONCATENATE(str, __LINE__)
 
-#define ON_EXIT auto CLEANUP_ANONYMOUS_VARIABLE(_on_scope_exit) = ::mo::util::detail::cleanup_scope_guard() + [&]
+#define ON_EXIT auto CLEANUP_ANONYMOUS_VARIABLE(_on_scope_exit) = ::lux::util::detail::cleanup_scope_guard() + [&]
 
 
 	template<typename T>

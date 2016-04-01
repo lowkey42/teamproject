@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace mo {
+namespace lux {
 namespace sys {
 namespace graphic {
 

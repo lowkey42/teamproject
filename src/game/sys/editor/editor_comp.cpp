@@ -2,7 +2,7 @@
 
 #include <core/utils/sf2_glm.hpp>
 
-namespace mo {
+namespace lux {
 namespace sys {
 namespace editor {
 

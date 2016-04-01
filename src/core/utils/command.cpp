@@ -1,7 +1,7 @@
 #include "command.hpp"
 
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	void Command_manager::execute(std::unique_ptr<Command> cmd) {

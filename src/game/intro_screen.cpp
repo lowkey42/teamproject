@@ -13,7 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 
-namespace mo {
+namespace lux {
 	using namespace unit_literals;
 	using namespace renderer;
 

@@ -10,7 +10,7 @@
 #include "../utils/log.hpp"
 #include "../utils/string_utils.hpp"
 
-namespace mo {
+namespace lux {
 namespace asset {
 
 

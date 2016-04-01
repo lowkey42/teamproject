@@ -17,7 +17,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	namespace {

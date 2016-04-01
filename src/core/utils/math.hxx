@@ -3,7 +3,7 @@
 #endif
 
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	namespace {

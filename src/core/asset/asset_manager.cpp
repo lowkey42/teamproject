@@ -21,17 +21,6 @@
 #endif
 
 namespace {
-	std::string pwd() {
-		char cCurrentPath[FILENAME_MAX];
-
-		#ifdef WINDOWS
-			_getcwd(cCurrentPath, sizeof(cCurrentPath));
-		#else
-			getcwd(cCurrentPath, sizeof(cCurrentPath));
-		#endif
-
-		return cCurrentPath;
-	}
 
 	std::string append_file(const std::string& folder, const std::string file) {
 		return folder+PHYSFS_getDirSeparator()+file;
@@ -88,8 +77,20 @@ namespace {
 	constexpr auto default_source = {std::make_tuple("assets", false), std::make_tuple("assets.zip", true)};
 }
 
-namespace mo {
+namespace lux {
 namespace asset {
+
+	std::string pwd() {
+		char cCurrentPath[FILENAME_MAX];
+
+		#ifdef WINDOWS
+			_getcwd(cCurrentPath, sizeof(cCurrentPath));
+		#else
+			getcwd(cCurrentPath, sizeof(cCurrentPath));
+		#endif
+
+		return cCurrentPath;
+	}
 
 	static Asset_manager* current_instance = nullptr;
 	auto get_asset_manager() -> Asset_manager& {
@@ -171,7 +172,7 @@ namespace asset {
 			}
 
 			if(lost) {
-				auto& log = ::mo::util::fail (__func__, __FILE__, __LINE__);
+				auto& log = util::fail (__func__, __FILE__, __LINE__);
 				log<<"No archives.lst found. printing search-path...\n";
 				print_dir_recursiv("/", 0, log);
 

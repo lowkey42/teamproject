@@ -1,3 +1,9 @@
+/** A generic bus that redirects messages to all subscribers *****************
+ *                                                                           *
+ * Copyright (c) 2015 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 #pragma once
 
 #include "func_traits.hpp"
@@ -15,7 +21,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	class Message_bus;

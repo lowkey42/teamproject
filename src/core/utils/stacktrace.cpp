@@ -21,7 +21,7 @@
 		#include <execinfo.h>
 	#endif
 
-	namespace mo {
+	namespace lux {
 	namespace util {
 
 		namespace {
@@ -270,7 +270,6 @@
 		void init_stacktrace(std::string exeName) {
 			EXE_NAME = exeName;
 			set_signal_handler();
-			INFO("Startet from "<<exeName);
 		}
 
 		namespace {
@@ -423,7 +422,7 @@
 	}
 
 #else
-	namespace mo {
+	namespace lux {
 	namespace util {
 		void init_stacktrace(std::string exeName) {
 		}

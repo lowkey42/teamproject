@@ -6,7 +6,7 @@
 #include "primitives.hpp"
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	using namespace glm;

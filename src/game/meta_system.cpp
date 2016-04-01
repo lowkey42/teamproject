@@ -8,7 +8,7 @@
 #include <core/renderer/primitives.hpp>
 
 
-namespace mo {
+namespace lux {
 
 	using namespace renderer;
 	using namespace unit_literals;

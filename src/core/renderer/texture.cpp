@@ -12,7 +12,7 @@
 #include <glm/glm.hpp>
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	using namespace glm;

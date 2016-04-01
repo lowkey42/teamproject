@@ -3,7 +3,7 @@
 #include "vertex_object.hpp"
 #include "command_queue.hpp"
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	Vertex_layout simple_vertex_layout {

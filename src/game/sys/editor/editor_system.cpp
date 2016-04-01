@@ -1,7 +1,7 @@
 #include "editor_system.hpp"
 
 
-namespace mo {
+namespace lux {
 namespace sys {
 namespace editor {
 

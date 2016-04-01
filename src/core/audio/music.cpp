@@ -6,7 +6,7 @@
 #	include <SDL/SDL_mixer.h>
 #endif
 
-namespace mo {
+namespace lux {
 namespace audio {
 
 #ifndef EMSCRIPTEN
@@ -79,5 +79,5 @@ namespace audio {
 
 	}
 
-} /* namespace sound */
+}
 }

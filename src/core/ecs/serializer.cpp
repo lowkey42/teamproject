@@ -10,7 +10,7 @@
 #include <iostream>
 
 
-namespace mo {
+namespace lux {
 namespace ecs {
 	using namespace asset;
 	using namespace sf2;

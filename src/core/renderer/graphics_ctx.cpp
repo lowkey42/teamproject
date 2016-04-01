@@ -23,7 +23,7 @@
 #include <cstdio>
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	using namespace unit_literals;

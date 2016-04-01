@@ -4,7 +4,7 @@
 #include "ecs.hpp"
 #endif
 
-namespace mo {
+namespace lux {
 namespace ecs {
 
 	template<typename Comp>

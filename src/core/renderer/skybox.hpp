@@ -1,11 +1,9 @@
-/**************************************************************************\
- * Renders a simple skybox                                                *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** Renders a simple skybox **************************************************
+ *                                                                           *
+ * Copyright (c) 2015 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
@@ -15,7 +13,7 @@
 
 #include "command_queue.hpp"
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	class Skybox {

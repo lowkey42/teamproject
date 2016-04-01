@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 # include core
 add_subdirectory(core)
 
-project(MagnumOpus)
+project(teamproject)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
 
@@ -103,12 +103,12 @@ file(GLOB_RECURSE MAGNUM_SRCS
 		 game/*.cpp
 		 game/*.h*)
 
-add_executable(MagnumOpus main.cpp ${MAGNUM_SRCS})
+add_executable(Teamproject main.cpp ${MAGNUM_SRCS})
 
 if(EMSCRIPTEN)
-	target_link_libraries(MagnumOpus ${SDL2_LIBRARY} core)
+	target_link_libraries(Teamproject ${SDL2_LIBRARY} core)
 else()
-	target_link_libraries(MagnumOpus ${SDL2_LIBRARY} core happyhttp)
+	target_link_libraries(Teamproject ${SDL2_LIBRARY} core happyhttp)
 endif()
 
 

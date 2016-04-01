@@ -1,7 +1,7 @@
 #include "input.hpp"
 
 
-namespace mo {
+namespace lux {
 namespace gui {
 
 	using namespace glm;

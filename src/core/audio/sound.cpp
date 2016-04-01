@@ -6,7 +6,7 @@
 #	include <SDL/SDL_mixer.h>
 #endif
 
-namespace mo {
+namespace lux {
 namespace audio {
 
 	Sound::Sound(asset::istream stream) throw(Sound_loading_failed) : _handle(nullptr, Mix_FreeChunk){
@@ -39,5 +39,5 @@ namespace audio {
 
 	}
 
-} /* namespace sound */
+}
 }

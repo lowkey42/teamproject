@@ -1,8 +1,9 @@
-teamproject
+Unnamed teamproject
 ==========
 
-Fork des Medienprojektes in Vorbereitung vom Teamprojekt.
+Ein 2D Puzzle-Plattformer, bei dem der Spieler sich in einen Lichtstrahl verwandeln kann um auf unterschiedliche Weise mit seiner Umgebung zu Interagieren (Reflexion, Transparenz, Prismen, Sensoren) um zum Ausgng des Levels zu gelangen.
 
-Proof of Concept für Editor und Physik.
 
-Vorbereitung der Portierung auf Mobile-Plattformen (evtl. mittels Cocoon+Emscripten)
+Live Snapshot: TODO
+
+GDD: https://docs.google.com/document/d/1Khx-zaGejP4JmmYAphxrLZqYSuMd7NxxiCfm1i35h40/edit?usp=sharing

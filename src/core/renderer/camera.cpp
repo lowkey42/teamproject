@@ -21,7 +21,7 @@
 #include <iostream>
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	using namespace unit_literals;

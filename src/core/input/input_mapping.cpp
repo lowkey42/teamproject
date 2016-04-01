@@ -8,7 +8,7 @@
 #include <sf2/sf2.hpp>
 #include <glm/gtx/norm.hpp>
 
-namespace mo {
+namespace lux {
 namespace input {
 
 	sf2_structDef(Reaction, action, type)

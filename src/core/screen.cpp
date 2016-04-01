@@ -3,7 +3,7 @@
 #include "engine.hpp"
 
 
-namespace mo {
+namespace lux {
 
 	Screen_manager::Screen_manager(Engine& engine)
 	  : _engine(engine) {

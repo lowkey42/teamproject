@@ -1,12 +1,4 @@
-/*****************************************************************************\
- * batching texture renderer                                                 *
- *        ______   ______   __  __   ______                                  *
- *       /_____/\ /_____/\ /_/\/_/\ /_____/\                                 *
- *       \:::_ \ \\:::_ \ \\:\ \:\ \\::::_\/_                                *
- *        \:\ \ \ \\:(_) \ \\:\ \:\ \\:\/___/\                               *
- *         \:\ \ \ \\: ___\/ \:\ \:\ \\_::._\:\                              *
- *          \:\_\ \ \\ \ \    \:\_\:\ \ /____\:\                             *
- *           \_____\/ \_\/     \_____\/ \_____\/                             *
+/** batching texture renderer ************************************************
  *                                                                           *
  * Copyright (c) 2014 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
@@ -26,7 +18,7 @@
 #include <vector>
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	class Command;

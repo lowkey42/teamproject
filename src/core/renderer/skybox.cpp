@@ -1,7 +1,7 @@
 #include "skybox.hpp"
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	using namespace glm;

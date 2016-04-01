@@ -1,24 +1,16 @@
-/**************************************************************************\
- * logging helper                                                         *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** logging helper ***********************************************************
+ *                                                                           *
+ * Copyright (c) 2014 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
 #include <iostream>
 #include <vector>
 
-namespace mo {
+namespace lux {
 namespace util {
 
 	struct log_target {
@@ -64,10 +56,10 @@ namespace util {
 }
 }
 
-#define DEBUG(M) do{::mo::util::debug(__func__, __FILE__, __LINE__)<<M<<std::endl;}while(false)
-#define INFO(M)  do{::mo::util::info (__func__, __FILE__, __LINE__)<<M<<std::endl;}while(false)
-#define WARN(M)  do{::mo::util::warn (__func__, __FILE__, __LINE__)<<M<<std::endl;}while(false)
-#define ERROR(M) do{::mo::util::error(__func__, __FILE__, __LINE__)<<M<<std::endl;}while(false)
-#define FAIL(M)  do{::mo::util::fail (__func__, __FILE__, __LINE__)<<M<<std::endl; __builtin_unreachable();}while(false)
-#define CRASH_REPORT(M) do{::mo::util::crash_report()<<M<<std::endl;}while(false)
+#define DEBUG(M) do{::lux::util::debug(__func__, __FILE__, __LINE__)<<M<<std::endl;}while(false)
+#define INFO(M)  do{::lux::util::info (__func__, __FILE__, __LINE__)<<M<<std::endl;}while(false)
+#define WARN(M)  do{::lux::util::warn (__func__, __FILE__, __LINE__)<<M<<std::endl;}while(false)
+#define ERROR(M) do{::lux::util::error(__func__, __FILE__, __LINE__)<<M<<std::endl;}while(false)
+#define FAIL(M)  do{::lux::util::fail (__func__, __FILE__, __LINE__)<<M<<std::endl; __builtin_unreachable();}while(false)
+#define CRASH_REPORT(M) do{::lux::util::crash_report()<<M<<std::endl;}while(false)
 #define INVARIANT(C, M) do{if(__builtin_expect(!(C), false)) FAIL(M);}while(false)

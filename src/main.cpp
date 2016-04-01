@@ -1,12 +1,4 @@
-/*****************************************************************************\
- * application's entry point                                                 *
- *        ______   ______   __  __   ______                                  *
- *       /_____/\ /_____/\ /_/\/_/\ /_____/\                                 *
- *       \:::_ \ \\:::_ \ \\:\ \:\ \\::::_\/_                                *
- *        \:\ \ \ \\:(_) \ \\:\ \:\ \\:\/___/\                               *
- *         \:\ \ \ \\: ___\/ \:\ \:\ \\_::._\:\                              *
- *          \:\_\ \ \\ \ \    \:\_\:\ \ /____\:\                             *
- *           \_____\/ \_\/     \_____\/ \_____\/                             *
+/** application's entry point ************************************************
  *                                                                           *
  * Copyright (c) 2014 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
@@ -28,9 +20,9 @@
 #include <exception>
 #include <SDL2/SDL.h>
 
-using namespace mo; // import game namespace
+using namespace lux; // import game namespace
 
-std::unique_ptr<mo::Engine> engine;
+std::unique_ptr<Engine> engine;
 
 void init(int argc, char** argv, char** env);
 void onFrame();
@@ -65,10 +57,13 @@ int main(int argc, char** argv, char** env) {
 }
 
 void init(int argc, char** argv, char** env) {
-	INFO("Nothing to see here!");
+	INFO("Game started from: "<<argv[0]<<"\n"
+	     <<"Working dir: "<<asset::pwd());
+	// TODO: print system information
+
 	try {
 		util::init_stacktrace(argv[0]);
-		engine.reset(new mo::Engine("MagnumOpus", argc, argv, env));
+		engine.reset(new Engine("Teamproject", argc, argv, env));
 		engine->screens().enter<Editor_screen>();
 
 	} catch (const util::Error& ex) {

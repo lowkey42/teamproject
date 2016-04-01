@@ -3,7 +3,7 @@
 #include "command_queue.hpp"
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	namespace {

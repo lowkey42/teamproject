@@ -4,7 +4,7 @@
 #include "vertex_object.hpp"
 #endif
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	template<class T>

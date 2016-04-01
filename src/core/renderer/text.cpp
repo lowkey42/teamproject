@@ -12,7 +12,7 @@
 #include <glm/gtx/rotate_vector.hpp>
 
 
-namespace mo {
+namespace lux {
 namespace renderer {
 
 	Font::Font(asset::Asset_manager& assets, std::istream& stream) {

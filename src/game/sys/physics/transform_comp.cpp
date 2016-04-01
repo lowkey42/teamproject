@@ -4,7 +4,7 @@
 #include <core/units.hpp>
 #include <sf2/sf2.hpp>
 
-namespace mo {
+namespace lux {
 namespace sys {
 namespace physics {
 

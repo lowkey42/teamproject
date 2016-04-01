@@ -9,11 +9,11 @@
 #include <core/renderer/texture_batch.hpp>
 
 
-namespace mo {
+namespace lux {
 namespace sys {
 namespace light {
 
-	using namespace mo::renderer;
+	using namespace renderer;
 
 	namespace {
 		constexpr auto shadowmap_size = 1024.f;

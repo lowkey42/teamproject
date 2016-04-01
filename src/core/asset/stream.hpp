@@ -1,17 +1,9 @@
-/**************************************************************************\
- * iostreams for assets                                                   *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** iostreams for assets *****************************************************
+ *                                                                           *
+ * Copyright (c) 2014 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
@@ -26,7 +18,7 @@
 #include "aid.hpp"
 
 
-namespace mo {
+namespace lux {
 namespace asset {
 	struct File_handle;
 	class Asset_manager;
@@ -86,7 +78,7 @@ namespace asset {
 #ifdef ENABLE_SF2_ASSETS
 #include <sf2/sf2.hpp>
 
-namespace mo {
+namespace lux {
 namespace asset {
 	/**
 	 * Specialize this template for each asset-type
@@ -123,7 +115,7 @@ namespace asset {
 }
 #else
 
-namespace mo {
+namespace lux {
 namespace asset {
 	/**
 	 * Specialize this template for each asset-type

@@ -3,7 +3,7 @@
 #include "ecs.hpp"
 #include "serializer.hpp"
 
-namespace mo {
+namespace lux {
 namespace ecs {
 namespace details {
 

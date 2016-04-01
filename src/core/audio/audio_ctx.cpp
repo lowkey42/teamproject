@@ -13,7 +13,7 @@
 #endif
 
 
-namespace mo {
+namespace lux {
 	namespace audio {
 		namespace {
 

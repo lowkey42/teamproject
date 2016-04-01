@@ -1,17 +1,9 @@
-/**************************************************************************\
- * basic types and enumerations used by the Input_manager                 *
- *                                               ___                      *
- *    /\/\   __ _  __ _ _ __  _   _ _ __ ___     /___\_ __  _   _ ___     *
- *   /    \ / _` |/ _` | '_ \| | | | '_ ` _ \   //  // '_ \| | | / __|    *
- *  / /\/\ \ (_| | (_| | | | | |_| | | | | | | / \_//| |_) | |_| \__ \    *
- *  \/    \/\__,_|\__, |_| |_|\__,_|_| |_| |_| \___/ | .__/ \__,_|___/    *
- *                |___/                              |_|                  *
- *                                                                        *
- * Copyright (c) 2014 Florian Oetke                                       *
- *                                                                        *
- *  This file is part of MagnumOpus and distributed under the MIT License *
- *  See LICENSE file for details.                                         *
-\**************************************************************************/
+/** basic types and enumerations used by the Input_manager *******************
+ *                                                                           *
+ * Copyright (c) 2016 Florian Oetke                                          *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
 
 #pragma once
 
@@ -22,7 +14,7 @@
 #include <SDL2/SDL.h>
 
 
-namespace mo {
+namespace lux {
 namespace input {
 
 	enum class Key : int32_t {
@@ -202,23 +194,23 @@ namespace input {
 }
 
 namespace std {
-	template <> struct hash<mo::input::Key> {
-		size_t operator()(mo::input::Key ac)const noexcept {
+	template <> struct hash<lux::input::Key> {
+		size_t operator()(lux::input::Key ac)const noexcept {
 			return static_cast<size_t>(ac);
 		}
 	};
-	template <> struct hash<mo::input::Pad_button> {
-		size_t operator()(mo::input::Pad_button ac)const noexcept {
+	template <> struct hash<lux::input::Pad_button> {
+		size_t operator()(lux::input::Pad_button ac)const noexcept {
 			return static_cast<size_t>(ac);
 		}
 	};
-	template <> struct hash<mo::input::Pad_stick> {
-		size_t operator()(mo::input::Pad_stick ac)const noexcept {
+	template <> struct hash<lux::input::Pad_stick> {
+		size_t operator()(lux::input::Pad_stick ac)const noexcept {
 			return static_cast<size_t>(ac);
 		}
 	};
-	template <> struct hash<mo::input::Mouse_click> {
-		size_t operator()(mo::input::Mouse_click b)const noexcept {
+	template <> struct hash<lux::input::Mouse_click> {
+		size_t operator()(lux::input::Mouse_click b)const noexcept {
 			return static_cast<size_t>(b.button) + 101 * b.clicks;
 		}
 	};
@@ -227,7 +219,7 @@ namespace std {
 #ifdef BUILD_SERIALIZER
 #include <sf2/sf2.hpp>
 
-namespace mo {
+namespace lux {
 namespace input {
 
 
