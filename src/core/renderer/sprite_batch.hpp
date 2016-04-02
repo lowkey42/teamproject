@@ -63,6 +63,8 @@ namespace renderer {
 			Sprite_batch(Shader_program& shader, std::size_t expected_size=64);
 
 			void insert(const Sprite& sprite);
+			void insert(glm::vec3 position,
+			            const std::vector<Sprite_vertex>& vertices);
 			void flush(Command_queue&);
 
 		private:

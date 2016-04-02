@@ -104,6 +104,15 @@ namespace renderer {
 			                       sprite.rotation.value(), sprite.shadow_resistence, sprite.material);
 		}
 	}
+	void Sprite_batch::insert(glm::vec3 position,
+	                          const std::vector<Sprite_vertex>& vertices) {
+		_vertices.reserve(_vertices.size() + vertices.size());
+
+		for(auto& v : vertices) {
+			_vertices.emplace(v.position + position,
+			                  v.uv, v.rotation, v.shadow_resistence, v.material);
+		}
+	}
 
 	void Sprite_batch::flush(Command_queue& queue) {
 		_draw(queue);
