@@ -19,6 +19,7 @@ namespace graphic {
 	        asset::Asset_manager& asset_manager)
 	    : _mailbox(bus),
 	      _sprites(entity_manager.list<Sprite_comp>()),
+	      _terrains(entity_manager.list<Terrain_comp>()),
 	      _sprite_batch()
 	{
 		entity_manager.register_component_type<Sprite_comp>();
@@ -39,6 +40,13 @@ namespace graphic {
 			                     *sprite._material});
 		}
 
+		for(Terrain_comp& terrain : _terrains) {
+			auto& trans = terrain.owner().get<physics::Transform_comp>().get_or_throw();
+			auto position = remove_units(trans.position());
+
+			terrain._smart_texture.draw(position, _sprite_batch);
+		}
+
 		_sprite_batch.flush(queue);
 	}
 	void Graphic_system::draw_shadowcaster(renderer::Sprite_batch& batch,
@@ -52,6 +60,15 @@ namespace graphic {
 				batch.insert(renderer::Sprite{position, trans.rotation(),
 				             sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
 				             *sprite._material});
+			}
+		}
+
+		for(Terrain_comp& terrain : _terrains) {
+			auto& trans = terrain.owner().get<physics::Transform_comp>().get_or_throw();
+			auto position = remove_units(trans.position());
+
+			if(terrain._shadowcaster && std::abs(position.z) < 1.0f) {
+				terrain._smart_texture.draw(position, batch);
 			}
 		}
 	}

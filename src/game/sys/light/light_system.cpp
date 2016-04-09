@@ -134,7 +134,7 @@ namespace light {
 
 		renderer::draw_fullscreen_quad(_occlusion_map);
 
-		_shadow_map.bind((int) Texture_unit::shadowmap_1);
+		_shadow_map.bind((int) Texture_unit::shadowmaps);
 	}
 
 	void Light_system::update(Time) {

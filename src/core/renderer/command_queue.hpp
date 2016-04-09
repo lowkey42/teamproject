@@ -30,15 +30,10 @@ namespace renderer {
 
 		color     = 1,
 		normal    = 2,
-		emission  = 3,
-		roughness = 4,
-		metallic  = 5,
-		height    = 6,
+		material  = 3, //< R:emmision, G:metallc, B:roughness
+		height    = 4,
 
-		shadowmap_1=7,
-		shadowmap_2=8,
-		shadowmap_3=9,
-		shadowmap_4=10,
+		shadowmaps=7,
 
 		environment = 11, //< used for reflections
 		last_frame = 12 //< used for reflections

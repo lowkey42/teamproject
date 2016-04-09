@@ -1,6 +1,8 @@
 tex: = textures/
 
 tex:black = textures/default_black.png
+tex:white = textures/default_white.png
+tex:normal = textures/default_normal.png
 
 tex:x_font = textures/x.template_regular_48.tga
 tex:satisfy_font = textures/satisfy_regular_20.tga
@@ -13,6 +15,7 @@ tex_atlas:example = textures/atlas_example.json
 tex:atlas_example_tex = textures/ui_intro_circle.png
 
 mat:test = materials/test.mat
+mat:test_smart_tex = materials/test_smart_tex.mat
 
 tex_cube:default_env = textures/default_env.png
 

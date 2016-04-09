@@ -54,12 +54,9 @@ namespace renderer {
 		              .uniforms(make_uniform_map(
 		                  "albedo_tex", int(Texture_unit::color),
 		                  "normal_tex", int(Texture_unit::normal),
-		                  "emission_tex", int(Texture_unit::emission),
-		                  "roughness_tex", int(Texture_unit::roughness),
-		                  "metallic_tex", int(Texture_unit::metallic),
+		                  "material_tex", int(Texture_unit::material),
 		                  "height_tex", int(Texture_unit::height),
-		                  "shadowmap_1_tex", int(Texture_unit::shadowmap_1),
-		                  "shadowmap_2_tex", int(Texture_unit::shadowmap_2),
+		                  "shadowmaps_tex", int(Texture_unit::shadowmaps),
 		                  "environment_tex", int(Texture_unit::environment),
 		                  "last_frame_tex", int(Texture_unit::last_frame)
 		              ));
@@ -109,8 +106,8 @@ namespace renderer {
 		_vertices.reserve(_vertices.size() + vertices.size());
 
 		for(auto& v : vertices) {
-			_vertices.emplace(v.position + position,
-			                  v.uv, v.rotation, v.shadow_resistence, v.material);
+			_vertices.emplace_back(v.position + position,
+			                       v.uv, v.rotation, v.shadow_resistence, v.material);
 		}
 	}
 

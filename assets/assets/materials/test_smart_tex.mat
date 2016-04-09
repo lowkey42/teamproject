@@ -1,0 +1,5 @@
+{
+	"albedo": "tex:textures/test_smart_texture_albedo.tga",
+	"normal": "tex:textures/test_smart_texture_normal.tga",
+	"material": "tex:textures/test_smart_texture_emr.tga"
+}

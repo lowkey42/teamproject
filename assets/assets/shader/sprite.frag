@@ -19,12 +19,10 @@ varying float shadow_resistence_frag;
 
 uniform sampler2D albedo_tex;
 uniform sampler2D normal_tex;
-uniform sampler2D emission_tex;
-uniform sampler2D roughness_tex;
-uniform sampler2D metallic_tex;
+uniform sampler2D material_tex;
 uniform sampler2D height_tex;
 
-uniform sampler2D shadowmap_1_tex;
+uniform sampler2D shadowmaps_tex;
 
 uniform samplerCube environment_tex;
 uniform sampler2D last_frame_tex;
@@ -77,7 +75,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 al
 	vec3 diffuse = (albedo * invPi);
 
 
-	// TODO: reflection and abient radiance
+	// TODO: reflection and ambient radiance
 	diffuse*=1.0-metalness;
 	vec3 refl = textureCube(environment_tex, reflect(view_dir,N), 6.0*roughness).rgb * 0.5;
 	diffuse = mix(diffuse, refl, reflectance);
@@ -93,7 +91,7 @@ float my_smoothstep(float edge0, float edge1, float x) {
 }
 
 float sample_shadow_ray(vec2 tc, float r) {
-	float d = texture2D(shadowmap_1_tex, tc).r*50.0;
+	float d = texture2D(shadowmaps_tex, tc).r*50.0;
 	return my_smoothstep(0.1, 0.2, r-d);
 }
 
@@ -163,8 +161,10 @@ void main() {
 	}
 
 
-	float smoothness = 1.0-texture2D(roughness_tex, uv_frag).r;
-	float metalness = texture2D(metallic_tex, uv_frag).r;
+	vec3 material = texture2D(material_tex, uv_frag).xyz;
+	float emmision = material.r;
+	float metalness = material.g;
+	float smoothness = 1.0-material.b;
 
 	float roughness = 1.0 - smoothness*smoothness;
 	float reflectance = clamp((smoothness-0.1)*1.1 + metalness*0.2, 0.0, 1.0);
@@ -182,6 +182,6 @@ void main() {
 		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance, float(i));
 	}
 
-	gl_FragColor = vec4(color, albedo.a);
+	gl_FragColor = vec4(color + albedo.rgb*emmision, albedo.a);
 }
 
