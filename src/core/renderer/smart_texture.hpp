@@ -45,6 +45,11 @@ namespace renderer {
 				_material = std::move(material);
 				_dirty = true;
 			}
+			auto shadowcaster()const {return _shadowcaster;}
+			void shadowcaster(bool b) {
+				_shadowcaster = b;
+				_dirty = true;
+			}
 
 			auto points()const -> auto& {return _points;}
 			void points(std::vector<glm::vec2> p) {_points=p; _dirty=true;}
@@ -62,6 +67,7 @@ namespace renderer {
 
 		private:
 			Material_ptr _material;
+			bool _shadowcaster=true;
 			std::vector<glm::vec2> _points;
 			std::vector<Sprite_vertex> _vertices;
 			bool _dirty;

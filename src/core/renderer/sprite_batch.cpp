@@ -11,14 +11,15 @@ namespace renderer {
 
 	namespace {
 		std::unique_ptr<Shader_program> sprite_shader;
+		const auto def_uv_clip = glm::vec4{0,0,1,1};
 		const Sprite_vertex single_sprite_vert[] {
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, 0,0, nullptr},
-			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, 0,0, nullptr},
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, 0,0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, 0,0, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, 0,0, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, 0,0, nullptr},
 
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, 0,0, nullptr},
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, 0,0, nullptr},
-			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, 0,0, nullptr}
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, 0,0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, 0,0, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, 0,0, nullptr}
 		};
 	}
 
@@ -26,6 +27,7 @@ namespace renderer {
 		Vertex_layout::Mode::triangles,
 		vertex("position",  &Sprite_vertex::position),
 		vertex("uv",        &Sprite_vertex::uv),
+		vertex("uv_clip",   &Sprite_vertex::uv_clip),
 		vertex("rotation",  &Sprite_vertex::rotation),
 		vertex("shadow_resistence", &Sprite_vertex::shadow_resistence)
 	};
@@ -37,10 +39,10 @@ namespace renderer {
 	      uv(uv), shadow_resistence(shadow_resistence), material(&material) {
 	}
 
-	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords,
+	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
 	                             float rotation, float shadow_resistence,
 	                             const renderer::Material* material)
-	    : position(pos), uv(uv_coords), rotation(rotation),
+	    : position(pos), uv(uv_coords), uv_clip(uv_clip), rotation(rotation),
 	      shadow_resistence(shadow_resistence), material(material) {
 	}
 
@@ -97,7 +99,7 @@ namespace renderer {
 
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
-			_vertices.emplace_back(transform(vert.position), uv,
+			_vertices.emplace_back(transform(vert.position), uv, vert.uv_clip,
 			                       sprite.rotation.value(), sprite.shadow_resistence, sprite.material);
 		}
 	}
@@ -107,7 +109,7 @@ namespace renderer {
 
 		for(auto& v : vertices) {
 			_vertices.emplace_back(v.position + position,
-			                       v.uv, v.rotation, v.shadow_resistence, v.material);
+			                       v.uv, v.uv_clip, v.rotation, v.shadow_resistence, v.material);
 		}
 	}
 

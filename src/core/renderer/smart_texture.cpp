@@ -96,9 +96,79 @@ namespace renderer {
 	}
 
 	namespace {
-		void triangulate_background(const std::vector<glm::vec2>& points,
-		                            std::vector<Sprite_vertex>& vertices) {
-			// TODO: add polygon for the area inside the polygon
+		using namespace glm;
+
+		auto is_convex(vec2 a, vec2 b, vec2 c) {
+			return ( ( a.x * ( c.y - b.y ) ) + ( b.x * ( a.y - c.y ) ) + ( c.x * ( b.y - a.y ) ) ) < 0.f;
+		}
+		auto sign(vec2 p1, vec2 p2, vec2 p3){
+			return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+		}
+
+		auto is_in_triangle(vec2 pt, vec2 v1, vec2 v2, vec2 v3){
+			auto b1 = sign(pt, v1, v2) < 0.0f;
+			auto b2 = sign(pt, v2, v3) < 0.0f;
+			auto b3 = sign(pt, v3, v1) < 0.0f;
+
+			return b1 == b2 && b2 == b3;
+		}
+		auto is_ear(std::size_t a, std::size_t b, std::size_t c, const std::vector<vec2>& points) {
+			auto prev = points[a];
+			auto curr = points[b];
+			auto next = points[c];
+
+			for(auto i=0u; i<points.size(); i++) {
+				if(i!=a && i!=b && i!=c && is_in_triangle(points[i], prev, curr, next)) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		void triangulate_background(std::vector<glm::vec2> points,
+		                            std::vector<Sprite_vertex>& vertices,
+		                            bool shadowcaster, const renderer::Material& mat) {
+
+			auto add_vertex = [&](auto v) {
+				auto uv_clip = vec4{0.f, 0.25f, 0.75f, 1.f};
+				vertices.emplace_back(vec3(v,0.f), v, uv_clip, 0.f, shadowcaster ? 1.f : 0.f, &mat);
+			};
+
+			int triangles_produced = 0;
+			do {
+				triangles_produced = 0;
+
+				for(auto i=0u; i<points.size() && points.size()>3; i++) {
+					auto pi = i>0 ? i-1 : points.size()-1;
+					auto ni = (i+1) % points.size();
+
+					auto prev = points[pi];
+					auto curr = points[i];
+					auto next = points[ni];
+
+					if(is_convex(prev, curr, next) && is_ear(pi,i,ni,points)) {
+						points.erase(points.begin()+i);
+						triangles_produced++;
+
+						// create triangle (prev, curr, next)
+						add_vertex(prev);
+						add_vertex(curr);
+						add_vertex(next);
+					}
+				}
+
+			} while(points.size()>3 && triangles_produced>0);
+
+			if(points.size()==3) {
+				add_vertex(points[0]);
+				add_vertex(points[1]);
+				add_vertex(points[2]);
+
+			} else {
+				INFO("Polygon is not valid. "<<points.size()<<" vertices left");
+				vertices.clear();
+			}
 		}
 		void triangulate_border(const std::vector<glm::vec2>& points,
 		                        std::vector<Sprite_vertex>& vertices) {
@@ -109,7 +179,7 @@ namespace renderer {
 		_vertices.clear();
 
 		triangulate_border(_points, _vertices);
-		triangulate_background(_points, _vertices);
+		triangulate_background(_points, _vertices, _shadowcaster, *_material);
 	}
 
 }

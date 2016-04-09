@@ -14,6 +14,7 @@ struct Point_light {
 };
 
 varying vec2 uv_frag;
+varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
 varying float shadow_resistence_frag;
 
@@ -152,8 +153,10 @@ vec3 calc_dir_light(Dir_light light, vec3 pos, vec3 normal, vec3 albedo, float r
 }
 
 void main() {
-	vec4 albedo = pow(texture2D(albedo_tex, uv_frag), vec4(2.2));
-	vec3 normal = texture2D(normal_tex, uv_frag).xyz;
+	vec2 uv = mod(uv_frag, 1.0) * (uv_clip_frag.zw-uv_clip_frag.xy) + uv_clip_frag.xy;
+
+	vec4 albedo = pow(texture2D(albedo_tex, uv), vec4(2.2));
+	vec3 normal = texture2D(normal_tex, uv).xyz;
 	if(length(normal)<0.00001)
 		normal = vec3(0,0,1);
 	else {
@@ -161,7 +164,7 @@ void main() {
 	}
 
 
-	vec3 material = texture2D(material_tex, uv_frag).xyz;
+	vec3 material = texture2D(material_tex, uv).xyz;
 	float emmision = material.r;
 	float metalness = material.g;
 	float smoothness = 1.0-material.b;

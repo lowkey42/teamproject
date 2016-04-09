@@ -41,12 +41,13 @@ namespace renderer {
 	struct Sprite_vertex {
 		glm::vec3 position;
 		glm::vec2 uv;
+		glm::vec4 uv_clip;
 		float rotation;
 		float shadow_resistence;
 		const renderer::Material* material;
 
-		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, float rotation, float shadow_resistence,
-		              const renderer::Material*);
+		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
+		              float rotation, float shadow_resistence, const renderer::Material*);
 
 		bool operator<(const Sprite_vertex& rhs)const noexcept {
 			return material < rhs.material;

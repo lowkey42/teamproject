@@ -32,7 +32,6 @@ namespace graphic {
 			friend class Graphic_system;
 
 			renderer::Smart_texture _smart_texture;
-			bool _shadowcaster = true;
 	};
 
 }

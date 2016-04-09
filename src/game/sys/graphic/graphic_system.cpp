@@ -67,7 +67,7 @@ namespace graphic {
 			auto& trans = terrain.owner().get<physics::Transform_comp>().get_or_throw();
 			auto position = remove_units(trans.position());
 
-			if(terrain._shadowcaster && std::abs(position.z) < 1.0f) {
+			if(terrain._smart_texture.shadowcaster() && std::abs(position.z) < 1.0f) {
 				terrain._smart_texture.draw(position, batch);
 			}
 		}
