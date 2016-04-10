@@ -24,6 +24,7 @@ namespace renderer {
 
 	void Smart_texture::erase_point(std::size_t i) {
 		_points.erase(_points.begin() + i);
+		_dirty = true;
 	}
 
 	void Smart_texture::draw(glm::vec3 position, Sprite_batch& batch) {
