@@ -17,6 +17,7 @@ varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
 varying float shadow_resistence_frag;
+varying mat3 TBN;
 
 uniform sampler2D albedo_tex;
 uniform sampler2D normal_tex;
@@ -162,7 +163,7 @@ void main() {
 	else {
 		normal = normalize(normal*2.0 - 1.0);	//TODO: transform by rotation
 	}
-
+	normal = TBN * normal;
 
 	vec3 material = texture2D(material_tex, uv).xyz;
 	float emmision = material.r;

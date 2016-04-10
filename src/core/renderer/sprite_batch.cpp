@@ -13,13 +13,13 @@ namespace renderer {
 		std::unique_ptr<Shader_program> sprite_shader;
 		const auto def_uv_clip = glm::vec4{0,0,1,1};
 		const Sprite_vertex single_sprite_vert[] {
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, 0,0, nullptr},
-			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, 0,0, nullptr},
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, 0,0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0},0, nullptr},
 
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, 0,0, nullptr},
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, 0,0, nullptr},
-			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, 0,0, nullptr}
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, {1,0},0, nullptr}
 		};
 	}
 
@@ -28,7 +28,7 @@ namespace renderer {
 		vertex("position",  &Sprite_vertex::position),
 		vertex("uv",        &Sprite_vertex::uv),
 		vertex("uv_clip",   &Sprite_vertex::uv_clip),
-		vertex("rotation",  &Sprite_vertex::rotation),
+		vertex("tangent",   &Sprite_vertex::tangent),
 		vertex("shadow_resistence", &Sprite_vertex::shadow_resistence)
 	};
 
@@ -40,9 +40,9 @@ namespace renderer {
 	}
 
 	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
-	                             float rotation, float shadow_resistence,
+	                             glm::vec2 tangent, float shadow_resistence,
 	                             const renderer::Material* material)
-	    : position(pos), uv(uv_coords), uv_clip(uv_clip), rotation(rotation),
+	    : position(pos), uv(uv_coords), uv_clip(uv_clip), tangent(tangent),
 	      shadow_resistence(shadow_resistence), material(material) {
 	}
 
@@ -85,6 +85,8 @@ namespace renderer {
 			return sprite.position + rotate(p, sprite.rotation, vec3{0,0,1})*scale;
 		};
 
+		auto tangent = rotate(vec3(1,0,0), sprite.rotation, vec3{0,0,1}).xy();
+
 		auto tex_clip = sprite.material->albedo().clip_rect();
 		auto sprite_clip = sprite.uv;
 
@@ -100,7 +102,7 @@ namespace renderer {
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
 			_vertices.emplace_back(transform(vert.position), uv, vert.uv_clip,
-			                       sprite.rotation.value(), sprite.shadow_resistence, sprite.material);
+			                       tangent, sprite.shadow_resistence, sprite.material);
 		}
 	}
 	void Sprite_batch::insert(glm::vec3 position,
@@ -109,7 +111,7 @@ namespace renderer {
 
 		for(auto& v : vertices) {
 			_vertices.emplace_back(v.position + position,
-			                       v.uv, v.uv_clip, v.rotation, v.shadow_resistence, v.material);
+			                       v.uv, v.uv_clip, v.tangent, v.shadow_resistence, v.material);
 		}
 	}
 

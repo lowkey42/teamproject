@@ -131,9 +131,12 @@ namespace renderer {
 		                            std::vector<Sprite_vertex>& vertices,
 		                            bool shadowcaster, const renderer::Material& mat) {
 
+			const auto pc = 0.5f / mat.albedo().width();
+
 			auto add_vertex = [&](auto v) {
-				auto uv_clip = vec4{0.f, 0.25f, 0.75f, 1.f};
-				vertices.emplace_back(vec3(v,0.f), v, uv_clip, 0.f, shadowcaster ? 1.f : 0.f, &mat);
+				auto uv_clip = vec4{0.f, 0.f, 0.75f-pc, 0.75f-pc};
+				auto uv = vec2{v.x,-v.y}*0.1f;
+				vertices.emplace_back(vec3(v,0.f), uv, uv_clip, vec2{1.f,0.f}, shadowcaster ? 1.f : 0.f, &mat);
 			};
 
 			int triangles_produced = 0;
@@ -172,15 +175,81 @@ namespace renderer {
 			}
 		}
 		void triangulate_border(const std::vector<glm::vec2>& points,
-		                        std::vector<Sprite_vertex>& vertices) {
-			// TODO: add rotated quad for each line segment
+		                        std::vector<Sprite_vertex>& vertices,
+		                        bool shadowcaster, const renderer::Material& mat) {
+
+			const auto pc = 0.5f / mat.albedo().width();
+
+			constexpr auto h = 0.5f;
+
+			auto shadow_res = shadowcaster ? 1.f : 0.f;
+
+			auto prev_i = [&](auto i) {
+				return i>0 ? i-1 : points.size()-1;
+			};
+
+			auto add_sprite = [&](float d, vec2 left, vec2 right, vec2 normal, vec4 uv_clip,
+			                      vec2 uv_tl, vec2 uv_tr, vec2 uv_bl, vec2 uv_br) {
+
+				auto tangent = glm::normalize(right - left);
+
+				auto top_left = left + normal*h;
+				auto bottom_left = left - normal*h;
+
+				auto top_right = right + normal*h;
+				auto bottom_right = right - normal*h;
+
+				vertices.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, shadow_res, &mat);
+				vertices.emplace_back(vec3(top_left,     d), uv_tl, uv_clip, tangent, shadow_res, &mat);
+				vertices.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, shadow_res, &mat);
+
+				vertices.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, shadow_res, &mat);
+				vertices.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, shadow_res, &mat);
+				vertices.emplace_back(vec3(bottom_right, d), uv_br, uv_clip, tangent, shadow_res, &mat);
+			};
+
+			for(auto i=0u; i<points.size(); i++) {
+				auto pi = prev_i(i);
+
+				auto prev = points[pi];
+				auto curr = points[i];
+
+				auto diff = curr - prev;
+
+				auto normal = glm::normalize(vec2{-diff.y, diff.x});
+
+				auto w = glm::length(curr - prev)*0.1f;
+
+				// TODO: edges
+				// TODO: smooth connection between lines if angle<X
+
+				if(glm::abs(normal.x) >= glm::abs(normal.y)) { // vertical
+					if(normal.x>0) { // left facing
+						add_sprite(0.0001f, prev, curr, normal, vec4{0.75f+pc,0.f, 0.875f-pc, 0.75f-pc},
+						           {1,0}, {1,w}, {0,0}, {0,w});
+
+					} else { // right facing
+						add_sprite(0.0001f, prev, curr, normal, vec4{0.875f+pc,0.f, 1.f, 0.75f-pc},
+						           {0,0}, {0,-w}, {1,0}, {1,-w});
+					}
+				} else { // horizontal
+					if(normal.y>0) { // down facing
+						add_sprite(0.0002f, prev, curr, normal, vec4{0.125f+pc,0.875f+pc, 0.875f-pc, 1.f},
+						           {0,0}, {w,0}, {0,1}, {w,1});
+
+					} else { // up facing
+						add_sprite(0.0002f, prev, curr, normal, vec4{0.125f+pc,0.75f+pc, 0.875f-pc, 0.875f-pc},
+						           {0,1}, {-w,1}, {0,0}, {-w,0});
+					}
+				}
+			}
 		}
 	}
 	void Smart_texture::_update_vertices() {
 		_vertices.clear();
 
-		triangulate_border(_points, _vertices);
 		triangulate_background(_points, _vertices, _shadowcaster, *_material);
+		triangulate_border(_points, _vertices, _shadowcaster, *_material);
 	}
 
 }
