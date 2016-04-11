@@ -161,7 +161,7 @@ void main() {
 	if(length(normal)<0.00001)
 		normal = vec3(0,0,1);
 	else {
-		normal = normalize(normal*2.0 - 1.0);	//TODO: transform by rotation
+		normal = normalize(normal*2.0 - 1.0);
 	}
 	normal = TBN * normal;
 
