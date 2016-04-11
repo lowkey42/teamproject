@@ -151,6 +151,11 @@ namespace lux {
 			auto& transform = _systems.entity_manager.emplace("blueprint:test_bg"_aid)->get<sys::physics::Transform_comp>().get_or_throw();
 			transform.position(Position{0_m, 0_m, -2.0_m});
 		}
+		{
+			_selected_entity = _systems.entity_manager.emplace("blueprint:player"_aid);
+			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
+			transform.position(Position{0_m, -1_m, 0.1_m});
+		}
 		_selection.select(_selected_entity);
 	}
 
