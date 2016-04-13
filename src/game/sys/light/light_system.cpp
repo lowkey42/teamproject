@@ -158,7 +158,7 @@ namespace light {
 
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
-			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position()));\
+	uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
 \
 			uniforms.emplace("light["#N"].dir", lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\

@@ -135,7 +135,7 @@ vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, flo
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
 
-	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z), 0.0, 1.0);
+	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist_linear*light.factors.z), 0.0, 1.0);
 
 	// TODO: integrate angle and direction attenuation
 	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir), 1.0, shadow_resistence_frag*0.9);

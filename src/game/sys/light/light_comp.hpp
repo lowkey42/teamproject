@@ -27,6 +27,8 @@ namespace light {
 			auto color()const noexcept {return _color;}
 			auto radius()const noexcept {return _radius;}
 
+			auto offset()const noexcept {return _offset;}
+
 		private:
 			friend class Light_system;
 
@@ -37,6 +39,7 @@ namespace light {
 
 			bool _radius_based;
 			Distance _radius;
+			glm::vec3 _offset;
 	};
 
 }

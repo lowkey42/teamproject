@@ -25,7 +25,9 @@ namespace graphic {
 			sf2::vmember("points", points)
 		);
 
-		_smart_texture.points(std::move(points));
+		if(!points.empty()) {
+			_smart_texture.points(std::move(points));
+		}
 		_smart_texture.shadowcaster(shadowcaster);
 		_smart_texture.material(assets.load<renderer::Material>(asset::AID(material)));
 		INVARIANT(_smart_texture.material(), "Material '"<<material<<"' not found");
