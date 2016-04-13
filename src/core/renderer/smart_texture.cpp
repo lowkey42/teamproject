@@ -264,33 +264,33 @@ namespace renderer {
 						auto tangent = glm::normalize(curr-prev);
 						if(glm::length2(normal-normal_prev)>connection_limit || glm::abs(normal_prev.x) >= glm::abs(normal_prev.y)) {
 							// left edge
-							add_sprite(0.0003f, prev-tangent*h, prev, normal_l, normal_l,
+							add_sprite(0.0004f, prev-tangent*h, prev, normal_l, normal_l,
 							           vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
 							           {0,0}, {1,0}, {0,1}, {1,1});
 						}
 						if(glm::length2(normal-normal_next)>connection_limit || glm::abs(normal_next.x) >= glm::abs(normal_next.y)) {
 							// right edge
-							add_sprite(0.0003f, curr, curr+tangent*h, normal_r, normal_r,
+							add_sprite(0.0004f, curr, curr+tangent*h, normal_r, normal_r,
 							           vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
 							           {0,0}, {1,0}, {0,1}, {1,1});
 						}
 
 					} else { // up facing
 						edge_y_offset = 0.0f;
-						add_sprite(0.0004f, prev, curr, normal_l, normal_r,
+						add_sprite(0.0005f, prev, curr, normal_l, normal_r,
 						           vec4{0.125f+pc,0.75f+pc, 0.875f-pc, 0.875f-pc},
 						           {-s,1}, {-w,1}, {-s,0}, {-w,0});
 
 						auto tangent = glm::normalize(curr-prev);
 						if(glm::length2(normal-normal_prev)>connection_limit || glm::abs(normal_prev.x) >= glm::abs(normal_prev.y)) {
 							// left edge
-							add_sprite(0.0003f, prev-tangent*h, prev, normal_l, normal_l,
+							add_sprite(0.0006f, prev-tangent*h, prev, normal_l, normal_l,
 							           vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
 							           {1,1}, {0,1}, {1,0}, {0,0});
 						}
 						if(glm::length2(normal-normal_next)>connection_limit || glm::abs(normal_next.x) >= glm::abs(normal_next.y)) {
 							// right edge
-							add_sprite(0.0003f, curr, curr+tangent*h, normal_r, normal_r,
+							add_sprite(0.0006f, curr, curr+tangent*h, normal_r, normal_r,
 							           vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
 							           {1,1}, {0,1}, {1,0}, {0,0});
 						}

@@ -9,6 +9,6 @@ Die größeren Assets (Grafiken, Sounds, etc.) befinden sich außerhalb des GIT-
 Wenn das Projekt vom Source gebaut werden soll muss der Ordner assets_ext zusätzlich manuell nach /assets/ kopiert oder verlinkt werden.
 
 
-Live Snapshot: TODO
+Live Snapshot: http://lowkey42.github.io/teamproject/
 
 GDD: https://docs.google.com/document/d/1Khx-zaGejP4JmmYAphxrLZqYSuMd7NxxiCfm1i35h40/edit?usp=sharing
