@@ -1,0 +1,6 @@
+tex: = textures/
+
+tex:black = textures/default_black.png
+tex:white = textures/default_white.png
+tex:normal = textures/default_normal.png
+

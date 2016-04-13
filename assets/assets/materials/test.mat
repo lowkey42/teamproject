@@ -1,6 +1,0 @@
-{
-	"albedo": "tex:textures/test_albedo.tga",
-	"normal": "tex:textures/test_normal.tga",
-	"material": "tex:textures/test_emr.tga",
-	"height": "tex:textures/test_height.tga"
-}
