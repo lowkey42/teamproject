@@ -374,5 +374,19 @@ namespace asset {
 		FAIL("Unexpected Location_type: "<<(int)type);
 	}
 
+	auto Asset_manager::load_raw(const AID& id) -> util::maybe<istream> {
+		Location_type type;
+		std::string path;
+		std::tie(type, path) = _locate(id);
+
+		if(type!=Location_type::file)
+			return util::nothing();
+
+		return _open(path, id);
+	}
+	auto Asset_manager::save_raw(const AID& id) -> ostream {
+		return _create(id);
+	}
+
 } /* namespace asset */
 }

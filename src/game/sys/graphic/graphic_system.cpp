@@ -23,6 +23,8 @@ namespace graphic {
 	      _sprite_batch()
 	{
 		entity_manager.register_component_type<Sprite_comp>();
+		entity_manager.register_component_type<Terrain_comp>();
+		entity_manager.register_component_type<Terrain_data_comp>();
 
 		_mailbox.subscribe_to<16, 128>([&](const State_change& e) {
 			this->_on_state_change(e);

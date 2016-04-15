@@ -47,6 +47,8 @@ namespace ecs {
 		Component_filter filter;
 	};
 
+	extern Component_type blueprint_comp_id;
+
 	extern void load(sf2::JsonDeserializer& s, Entity& e);
 	extern void save(sf2::JsonSerializer& s, const Entity& e);
 	extern void load(sf2::JsonDeserializer& s, Entity_ptr& e); // deprecated?

@@ -149,7 +149,7 @@ namespace renderer {
 	                  Distance dist_min, Distance dist_max) noexcept
 	    : Camera(viewport, glm::perspective(fov.value(),
 	                                        aspect_radio(viewport),
-	                                        0.1f,
+	                                        1.0f,
 	                                        -dist_min.value() + dist_max.value() +0.2f)),
 	      _pos(0_m, 0_m, -dist_min + 0.1f) {
 	}

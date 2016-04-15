@@ -12,22 +12,20 @@ namespace graphic {
 
 	using namespace unit_literals;
 
+	Terrain_comp::Terrain_comp(ecs::Entity& owner, renderer::Material_ptr material)
+	    : Component(owner), _smart_texture(material, {{-1,-1}, {1,-1}, {1,1}, {-1,1}}) {
+	}
+
 	void Terrain_comp::load(sf2::JsonDeserializer& state,
 	                       asset::Asset_manager& assets){
 		std::string material = _smart_texture.material() ? _smart_texture.material().aid().str() : "";
-		std::vector<glm::vec2> points;
-		points.reserve(16);
 		auto shadowcaster = _smart_texture.shadowcaster();
 
 		state.read_virtual(
 			sf2::vmember("material", material),
-			sf2::vmember("shadowcaster", shadowcaster),
-			sf2::vmember("points", points)
+			sf2::vmember("shadowcaster", shadowcaster)
 		);
 
-		if(!points.empty()) {
-			_smart_texture.points(std::move(points));
-		}
 		_smart_texture.shadowcaster(shadowcaster);
 		_smart_texture.material(assets.load<renderer::Material>(asset::AID(material)));
 		INVARIANT(_smart_texture.material(), "Material '"<<material<<"' not found");
@@ -38,8 +36,30 @@ namespace graphic {
 
 		state.write_virtual(
 			sf2::vmember("material", material),
-			sf2::vmember("shadowcaster", _smart_texture.shadowcaster()),
-			sf2::vmember("points", _smart_texture.points())
+			sf2::vmember("shadowcaster", _smart_texture.shadowcaster())
+		);
+	}
+
+	void Terrain_data_comp::load(sf2::JsonDeserializer& state,
+	                       asset::Asset_manager&){
+		std::vector<glm::vec2> points;
+		points.reserve(16);
+
+		state.read_virtual(
+			sf2::vmember("points", points)
+		);
+
+		if(!points.empty()) {
+			auto& terrain = owner().get<Terrain_comp>().get_or_throw();
+			terrain.smart_texture().points(std::move(points));
+		}
+	}
+
+	void Terrain_data_comp::save(sf2::JsonSerializer& state)const {
+		auto& terrain = owner().get<Terrain_comp>().get_or_throw();
+
+		state.write_virtual(
+			sf2::vmember("points", terrain.smart_texture().points())
 		);
 	}
 

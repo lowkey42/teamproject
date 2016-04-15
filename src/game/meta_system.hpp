@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "level.hpp"
+
 #include "sys/graphic/graphic_system.hpp"
 #include "sys/light/light_system.hpp"
 #include "sys/physics/transform_system.hpp"
@@ -47,6 +49,8 @@ namespace lux {
 			Meta_system(Engine& engine);
 			~Meta_system();
 
+			auto load_level(const std::string& id) -> Level_data;
+
 			void update(Time dt, Update_mask mask=update_all);
 			void update(Time dt, Update update=Update::none);
 			void draw(const renderer::Camera&);
@@ -57,6 +61,8 @@ namespace lux {
 			sys::graphic::Graphic_system renderer;
 
 		private:
+			Engine& _engine;
+
 			mutable renderer::Command_queue _render_queue;
 
 			renderer::Shader_program _post_shader;

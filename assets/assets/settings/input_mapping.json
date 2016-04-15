@@ -12,7 +12,8 @@
                 "Left": {"type":"continuous", "action":"scroll_l"},
                 "Right": {"type":"continuous", "action":"scroll_r"},
                 "Down": {"type":"continuous", "action":"scroll_d"},
-                "Up": {"type":"continuous", "action":"scroll_u"}
+                "Up": {"type":"continuous", "action":"scroll_u"},
+                "F5": {"type":"once", "action":"save"}
             },
             "mouse_wheel_up": {"type":"once", "action": "zoom_in"},
             "mouse_wheel_down": {"type":"once", "action": "zoom_out"},

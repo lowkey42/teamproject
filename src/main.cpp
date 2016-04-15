@@ -70,7 +70,7 @@ void init(int argc, char** argv, char** env) {
 	try {
 		util::init_stacktrace(argv[0]);
 		engine.reset(new Engine("Teamproject", argc, argv, env));
-		engine->screens().enter<Editor_screen>();
+		engine->screens().enter<Editor_screen>("test");
 
 	} catch (const util::Error& ex) {
 		CRASH_REPORT("Exception in init: "<<ex.what());

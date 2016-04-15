@@ -58,7 +58,7 @@ namespace lux {
 	}
 
 
-	Editor_screen::Editor_screen(Engine& engine)
+	Editor_screen::Editor_screen(Engine& engine, const std::string& level_id)
 	    : Screen(engine),
 	      _mailbox(engine.bus()),
 	      _input_manager(engine.input()),
@@ -115,6 +115,10 @@ namespace lux {
 						_commands.execute<Delete_cmd>(_selection);
 					}
 					break;
+
+				case "save"_strid:
+					save_level(_engine, _systems.entity_manager, _level_metadata);
+					break;
 			}
 		});
 
@@ -138,6 +142,18 @@ namespace lux {
 
 		_render_queue.shared_uniforms(renderer::make_uniform_map("vp", _camera_menu.vp()));
 
+#if 1
+		_level_metadata = _systems.load_level(level_id);
+#else
+		_level_metadata.id = "test";
+		_level_metadata.name = "test";
+		_level_metadata.ambient_brightness = 0.1f;
+		_level_metadata.author = "me";
+		_level_metadata.description = "test";
+		_level_metadata.environment_id = "default_env";
+		_level_metadata.environment_light_color = Rgb{0.5, 0.5, 0.5};
+		_level_metadata.environment_light_direction = {0.1, -0.8, 0.4};
+
 		{
 			_selected_entity = _systems.entity_manager.emplace("blueprint:test"_aid);
 			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
@@ -156,7 +172,7 @@ namespace lux {
 			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
 			transform.position(Position{0_m, -1_m, 0.1_m});
 		}
-		_selection.select(_selected_entity);
+#endif
 	}
 
 	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {
@@ -196,7 +212,7 @@ namespace lux {
 	void Editor_screen::_update(Time dt) {
 		_mailbox.update_subscriptions();
 
-		_systems.update(dt, Update::movements);
+		_systems.update(dt, Update::animations);
 		_selection.update();
 
 		if(_selection.selection()) {

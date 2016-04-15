@@ -15,6 +15,17 @@ namespace lux {
 namespace sys {
 namespace graphic {
 
+	class Terrain_data_comp : public ecs::Component<Terrain_data_comp> {
+		public:
+			static constexpr const char* name() {return "Terrain_data";}
+			void load(sf2::JsonDeserializer& state,
+			          asset::Asset_manager& asset_mgr)override;
+			void save(sf2::JsonSerializer& state)const override;
+
+			Terrain_data_comp(ecs::Entity& owner) : Component(owner){}
+	};
+
+
 	class Terrain_comp : public ecs::Component<Terrain_comp> {
 		public:
 			static constexpr const char* name() {return "Terrain";}
@@ -22,8 +33,7 @@ namespace graphic {
 			          asset::Asset_manager& asset_mgr)override;
 			void save(sf2::JsonSerializer& state)const override;
 
-			Terrain_comp(ecs::Entity& owner, renderer::Material_ptr material = {}) :
-				Component(owner), _smart_texture(material) {}
+			Terrain_comp(ecs::Entity& owner, renderer::Material_ptr material = {});
 
 			auto& smart_texture()noexcept {return _smart_texture;}
 			auto& smart_texture()const noexcept {return _smart_texture;}

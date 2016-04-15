@@ -49,7 +49,7 @@ namespace asset {
 namespace ecs {
 	class BlueprintComponent : public ecs::Component<BlueprintComponent> {
 		public:
-			static constexpr const char* name() {return "Blueprint";}
+			static constexpr const char* name() {return "$Blueprint";}
 
 			void load(sf2::JsonDeserializer& state,
 			          asset::Asset_manager& asset_mgr)override;
@@ -65,6 +65,7 @@ namespace ecs {
 		private:
 			asset::Ptr<Blueprint> blueprint;
 	};
+	Component_type blueprint_comp_id = BlueprintComponent::type();
 
 	namespace {
 		sf2::format::Error_handler create_error_handler(std::string source_name) {
@@ -200,7 +201,7 @@ namespace ecs {
 	void save(sf2::JsonSerializer& s, const Entity& e) {
 		auto& ecs_s = static_cast<EcsSerializer&>(s);
 
-		std::unordered_map<std::string, details::Component_base*> comps;
+		std::map<std::string, details::Component_base*> comps;
 
 		EcsSerializer& ecss = static_cast<EcsSerializer&>(s);
 

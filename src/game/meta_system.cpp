@@ -36,6 +36,7 @@ namespace lux {
 	      lights(engine.bus(), entity_manager, engine.assets()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
 
+	      _engine(engine),
 	      _canvas{create_framebuffer(engine), create_framebuffer(engine)},
 	      _skybox(engine.assets(), "tex_cube:default_env"_aid /*TODO: should be loaded*/) {
 
@@ -51,6 +52,15 @@ namespace lux {
 	}
 
 	Meta_system::~Meta_system() {
+	}
+
+
+	auto Meta_system::load_level(const std::string& id) -> Level_data {
+		auto level_meta_data = ::lux::load_level(_engine, entity_manager, id);
+		_skybox.texture(_engine.assets().load<Texture>({"tex_cube"_strid, level_meta_data.environment_id}));
+		// TODO: setup the rest of the subsystems with level_meta_data
+
+		return level_meta_data;
 	}
 
 	void Meta_system::update(Time dt, Update mask) {

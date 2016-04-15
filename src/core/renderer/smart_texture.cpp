@@ -6,9 +6,9 @@
 namespace lux {
 namespace renderer {
 
-	Smart_texture::Smart_texture(Material_ptr material)
+	Smart_texture::Smart_texture(Material_ptr material, std::vector<glm::vec2> points)
 	    : _material(std::move(material)),
-	      _points{{-1,-1}, {1,-1}, {1,1}, {-1,1}},
+	      _points{points},
 	      _dirty(true) {
 	}
 
@@ -215,8 +215,22 @@ namespace renderer {
 				vertices.emplace_back(vec3(bottom_right, d), uv_br, uv_clip, tangent, shadow_res, &mat);
 			};
 
+			auto i_offset = 0u;
+			for(;i_offset<points.size(); i_offset++) {
+				auto pi = prev_i(i_offset);
+				auto normal = calc_normal(pi, i_offset);
+				auto normal_prev = calc_normal(prev_i(pi), pi);
+
+				if(glm::length2(normal-normal_prev)>connection_limit) {
+					break;
+				}
+			}
+			i_offset = i_offset % points.size();
+
+
 			auto w = 0.f;
-			for(auto i=0u; i<points.size(); i++) {
+			for(auto j=0u; j<points.size(); j++) {
+				auto i = (j+i_offset) % points.size();
 				auto pi = prev_i(i);
 
 				auto prev = points[pi];
@@ -243,12 +257,12 @@ namespace renderer {
 
 				if(glm::abs(normal.x) >= glm::abs(normal.y)) { // vertical
 					if(normal.x>0) { // left facing
-						add_sprite(0.0002f, prev, curr, normal_l, normal_r,
+						add_sprite(0.02f, prev, curr, normal_l, normal_r,
 						           vec4{0.75f+pc,0.f, 0.875f-pc, 0.75f-pc},
 						           {1,s}, {1,w}, {0,s}, {0,w});
 
 					} else { // right facing
-						add_sprite(0.0001f, prev, curr, normal_l, normal_r,
+						add_sprite(0.01f, prev, curr, normal_l, normal_r,
 						           vec4{0.875f+pc,0.f, 1.f, 0.75f-pc},
 						           {0,-s}, {0,-w}, {1,-s}, {1,-w});
 					}
@@ -257,40 +271,40 @@ namespace renderer {
 
 					if(normal.y>0) { // down facing
 						edge_y_offset = 0.125f;
-						add_sprite(0.0003f, prev, curr, normal_l, normal_r,
+						add_sprite(0.03f, prev, curr, normal_l, normal_r,
 						           vec4{0.125f+pc,0.875f+pc, 0.875f-pc, 1.f},
 						           {s,0}, {w,0}, {s,1}, {w,1});
 
 						auto tangent = glm::normalize(curr-prev);
 						if(glm::length2(normal-normal_prev)>connection_limit || glm::abs(normal_prev.x) >= glm::abs(normal_prev.y)) {
 							// left edge
-							add_sprite(0.0004f, prev-tangent*h, prev, normal_l, normal_l,
+							add_sprite(0.04f, prev-tangent*h*0.9f, prev+tangent*h*0.1f, normal_l, normal_l,
 							           vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
 							           {0,0}, {1,0}, {0,1}, {1,1});
 						}
 						if(glm::length2(normal-normal_next)>connection_limit || glm::abs(normal_next.x) >= glm::abs(normal_next.y)) {
 							// right edge
-							add_sprite(0.0004f, curr, curr+tangent*h, normal_r, normal_r,
+							add_sprite(0.04f, curr-tangent*h*0.1f, curr+tangent*h*0.9f, normal_r, normal_r,
 							           vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
 							           {0,0}, {1,0}, {0,1}, {1,1});
 						}
 
 					} else { // up facing
 						edge_y_offset = 0.0f;
-						add_sprite(0.0005f, prev, curr, normal_l, normal_r,
+						add_sprite(0.05f, prev, curr, normal_l, normal_r,
 						           vec4{0.125f+pc,0.75f+pc, 0.875f-pc, 0.875f-pc},
 						           {-s,1}, {-w,1}, {-s,0}, {-w,0});
 
 						auto tangent = glm::normalize(curr-prev);
 						if(glm::length2(normal-normal_prev)>connection_limit || glm::abs(normal_prev.x) >= glm::abs(normal_prev.y)) {
 							// left edge
-							add_sprite(0.0006f, prev-tangent*h, prev, normal_l, normal_l,
+							add_sprite(0.06f, prev-tangent*h*0.9f, prev+tangent*h*0.1f, normal_l, normal_l,
 							           vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
 							           {1,1}, {0,1}, {1,0}, {0,0});
 						}
 						if(glm::length2(normal-normal_next)>connection_limit || glm::abs(normal_next.x) >= glm::abs(normal_next.y)) {
 							// right edge
-							add_sprite(0.0006f, curr, curr+tangent*h, normal_r, normal_r,
+							add_sprite(0.06f, curr-tangent*h*0.1f, curr+tangent*h*0.9f, normal_r, normal_r,
 							           vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
 							           {1,1}, {0,1}, {1,0}, {0,0});
 						}

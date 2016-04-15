@@ -73,15 +73,19 @@ namespace asset {
 			void shrink_to_fit()noexcept;
 
 			template<typename T>
-			auto load(const AID& id) throw(Loading_failed) -> Ptr<T>;
+			auto load(const AID& id, bool cache=true) throw(Loading_failed) -> Ptr<T>;
 
 			template<typename T>
-			auto load_maybe(const AID& id) throw(Loading_failed) -> util::maybe<Ptr<T>>;
+			auto load_maybe(const AID& id, bool cache=true) throw(Loading_failed) -> util::maybe<Ptr<T>>;
+
+			auto load_raw(const AID& id) -> util::maybe<istream>;
 
 			auto list(Asset_type type) -> std::vector<AID>;
 
 			template<typename T>
 			void save(const AID& id, const T& asset) throw(Loading_failed);
+
+			auto save_raw(const AID& id) -> ostream;
 
 			bool exists(const AID& id)const noexcept;
 
