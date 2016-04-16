@@ -23,14 +23,13 @@ namespace lux {
 	      _mailbox(engine.bus()),
 	      _systems(engine),
 	      _camera_ui(engine.graphics_ctx().viewport(),
-	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
-	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, -5_m, 100_m)
+	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()})
 	{
 
 		_mailbox.subscribe_to([&](input::Once_action& e){
 			switch(e.id) {
 				case "back"_strid:
-					_engine.exit();
+					_engine.screens().leave();
 					break;
 			}
 		});
@@ -41,10 +40,12 @@ namespace lux {
 	}
 
 	void Game_screen::_on_enter(util::maybe<Screen&> prev) {
+		_mailbox.enable();
 		//_engine.audio_ctx().play_music(_engine.assets().load<audio::Music>("music:intro"_aid));
 	}
 
 	void Game_screen::_on_leave(util::maybe<Screen&> next) {
+		_mailbox.disable();
 
 	}
 
@@ -56,7 +57,7 @@ namespace lux {
 
 
 	void Game_screen::_draw() {
-		_systems.draw(_camera_world);
+		_systems.draw();
 
 		_render_queue.flush();
 	}

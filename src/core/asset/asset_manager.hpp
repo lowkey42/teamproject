@@ -94,6 +94,8 @@ namespace asset {
 			void reload();
 
 		private:
+			friend class ostream;
+
 			using Reloader = void (*)(void*, istream);
 
 			template<class T>

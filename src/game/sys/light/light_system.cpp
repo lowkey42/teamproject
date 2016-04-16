@@ -26,7 +26,7 @@ namespace light {
 	             asset::Asset_manager& asset_manager,
 	             Rgb sun_light,
 	             glm::vec3 sun_dir,
-	             Rgb ambient_light)
+	             float ambient_brightness)
 	    : _mailbox(bus),
 	      _lights(entity_manager.list<Light_comp>()),
 	      _shadowcaster_queue(1),
@@ -35,7 +35,7 @@ namespace light {
 	      _shadow_map       (shadowmap_size,shadowmap_rows, false, true),
 	      _sun_light(sun_light),
 	      _sun_dir(glm::normalize(sun_dir)),
-	      _ambient_light(ambient_light) {
+	      _ambient_brightness(ambient_brightness) {
 
 		entity_manager.register_component_type<Light_comp>();
 
@@ -152,7 +152,7 @@ namespace light {
 
 	void Light_system::_setup_uniforms(IUniform_map& uniforms, gsl::span<Light_info> lights) {
 
-		uniforms.emplace("light_ambient",   _ambient_light);
+		uniforms.emplace("light_ambient",   _ambient_brightness);
 		uniforms.emplace("light_sun.color", _sun_light);
 		uniforms.emplace("light_sun.dir",   _sun_dir);
 

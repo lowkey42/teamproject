@@ -20,6 +20,8 @@
 #include <functional>
 #include <algorithm>
 #include <utility>
+#include <atomic>
+
 
 namespace lux {
 namespace util {
@@ -43,9 +45,17 @@ namespace util {
 
 			auto empty()const noexcept -> bool;
 
+			void enable() {
+				_active.store(true);
+			}
+			void disable() {
+				_active.store(false);
+			}
+
 		private:
 			moodycamel::ConcurrentQueue<T> _queue;
 			Message_bus& _bus;
+			std::atomic<bool> _active {true};
 	};
 
 	class Mailbox_collection {
@@ -80,10 +90,14 @@ namespace util {
 			template<typename Msg>
 			void send_msg(const Msg& msg, Typeuid self);
 
+			void enable();
+			void disable();
+
 		private:
 			struct Sub {
 				std::shared_ptr<void> box;
 				std::function<void(Sub&)> handler;
+				std::function<void(Sub&, bool)> activator;
 			};
 
 			Message_bus& _bus;

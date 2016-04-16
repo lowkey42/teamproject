@@ -194,6 +194,13 @@ namespace asset {
 	ostream::ostream(ostream&& o)
 	  : stream(std::move(o)), std::ostream(_fbuf.get()) {
 	}
+	ostream::~ostream() {
+		if(good())
+			flush();
+
+		_manager._post_write();
+	}
+
 	auto ostream::operator=(ostream&& s) -> ostream& {
 		stream::operator=(std::move(s));
 		init(_fbuf.get());

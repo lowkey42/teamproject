@@ -6,3 +6,4 @@ cfg:savegame = savegame
 cfg:editor = settings/editor.json
 cfg:levels = levels/level_list.json
 cfg:my_levels = my_levels.json
+level: = levels/

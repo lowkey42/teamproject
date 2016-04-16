@@ -8,5 +8,8 @@
     },
     "Editor": {
         "bounds": {"x":1, "y":1, "z":1}
-    }
+    },
+    "Camera_target":{},
+    "Input_controller": {},
+    "Physics": {}
 }

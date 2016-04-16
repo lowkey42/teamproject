@@ -2,6 +2,8 @@
 
 #include "editor_screen.hpp"
 
+#include "game_screen.hpp"
+
 #include <core/units.hpp>
 #include <core/renderer/graphics_ctx.hpp>
 #include <core/renderer/command_queue.hpp>
@@ -66,7 +68,7 @@ namespace lux {
 	      _editor_sys(_systems.entity_manager, engine.assets()),
 	      _camera_menu(engine.graphics_ctx().viewport(),
 	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
-	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, -5_m, 100_m),
+	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, 5_m, 100_m),
 	      _debug_Text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _selection(engine, _systems.entity_manager, _camera_world, _commands),
 	      _last_pointer_pos(util::nothing())
@@ -118,6 +120,11 @@ namespace lux {
 
 				case "save"_strid:
 					save_level(_engine, _systems.entity_manager, _level_metadata);
+					break;
+
+				case "start"_strid:
+					save_level(_engine, _systems.entity_manager, _level_metadata);
+					_engine.screens().enter<Game_screen>(_level_metadata.id);
 					break;
 			}
 		});
@@ -176,9 +183,11 @@ namespace lux {
 	}
 
 	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {
+		_mailbox.enable();
 	}
 
 	void Editor_screen::_on_leave(util::maybe<Screen&> next) {
+		_mailbox.disable();
 	}
 
 	auto Editor_screen::_handle_pointer_menu(util::maybe<glm::vec2> mp1,

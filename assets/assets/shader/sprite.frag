@@ -29,7 +29,7 @@ uniform sampler2D shadowmaps_tex;
 uniform samplerCube environment_tex;
 uniform sampler2D last_frame_tex;
 
-uniform vec3 light_ambient;
+uniform float light_ambient;
 uniform Dir_light light_sun;
 uniform Point_light light[4];
 
@@ -40,6 +40,9 @@ float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);
 }
 vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance) {
+
+	// TODO: cleanup this mess and replace experiments with real formulas
+
 	vec3 view_dir = normalize(pos-eye);
 	vec3 N = normal;
 	vec3 V = normalize(pos-eye*vec3(1,1,-1));
@@ -77,7 +80,6 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 al
 	vec3 diffuse = (albedo * invPi);
 
 
-	// TODO: reflection and ambient radiance
 	diffuse*=1.0-metalness;
 	vec3 refl = textureCube(environment_tex, reflect(view_dir,N), 6.0*roughness).rgb * 0.5;
 	diffuse = mix(diffuse, refl, reflectance);
@@ -177,7 +179,7 @@ void main() {
 		discard;
 	}
 
-	vec3 color = albedo.rgb * light_ambient;
+	vec3 color = albedo.rgb * (textureCube(environment_tex, normal, 10.0).rgb * light_ambient);
 
 	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 

@@ -150,8 +150,8 @@ namespace renderer {
 	    : Camera(viewport, glm::perspective(fov.value(),
 	                                        aspect_radio(viewport),
 	                                        1.0f,
-	                                        -dist_min.value() + dist_max.value() +0.2f)),
-	      _pos(0_m, 0_m, -dist_min + 0.1f) {
+	                                        dist_min.value() + dist_max.value() +0.2f)),
+	      _pos(0_m, 0_m, dist_min + 0.1f) {
 	}
 
 	namespace {

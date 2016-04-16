@@ -33,6 +33,9 @@ namespace lux {
 	Meta_system::Meta_system(Engine& engine)
 	    : entity_manager(engine.assets()),
 	      scene_graph(entity_manager),
+	      physics(engine, entity_manager),
+	      controller(engine, entity_manager),
+	      camera(engine, entity_manager),
 	      lights(engine.bus(), entity_manager, engine.assets()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
 
@@ -58,7 +61,9 @@ namespace lux {
 	auto Meta_system::load_level(const std::string& id) -> Level_data {
 		auto level_meta_data = ::lux::load_level(_engine, entity_manager, id);
 		_skybox.texture(_engine.assets().load<Texture>({"tex_cube"_strid, level_meta_data.environment_id}));
-		// TODO: setup the rest of the subsystems with level_meta_data
+		lights.config(level_meta_data.environment_light_color,
+		              level_meta_data.environment_light_direction,
+		              level_meta_data.ambient_brightness);
 
 		return level_meta_data;
 	}
@@ -71,7 +76,10 @@ namespace lux {
 		entity_manager.process_queued_actions();
 
 		if(mask & Update::movements) {
+			controller.update(dt);
+			physics.update(dt);
 			scene_graph.update(dt);
+			camera.update(dt);
 		}
 
 		if(mask & Update::animations) {
@@ -79,7 +87,9 @@ namespace lux {
 		}
 	}
 
-	void Meta_system::draw(const renderer::Camera& cam) {
+	void Meta_system::draw(util::maybe<const renderer::Camera&> cam_mb) {
+		const renderer::Camera& cam = cam_mb.get_or_other(camera.camera());
+
 		auto uniforms = _render_queue.shared_uniforms();
 
 		renderer.draw_shadowcaster(lights.shadowcaster_batch(), cam);

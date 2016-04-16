@@ -297,12 +297,13 @@ namespace asset {
 		else {
 			auto res = _dispatcher.find(AID{id.type(), ""}); // search for prefix-entry
 
-			path = (res!=_dispatcher.end()) ?
-				   (res->second + "/" + id.name()) :
-					id.name();
+			if(res!=_dispatcher.end()) {
+				PHYSFS_mkdir(res->second.c_str());
+				path = append_file(res->second, id.name());
+			} else {
+				path = id.name();
+			}
 		}
-
-		//PHYSFS_mkdir(util::split_on_last(path, "/").first.c_str());
 
 		if(exists_file(path))
 			PHYSFS_delete(path.c_str());
@@ -385,6 +386,7 @@ namespace asset {
 		return _open(path, id);
 	}
 	auto Asset_manager::save_raw(const AID& id) -> ostream {
+		_assets.erase(id);
 		return _create(id);
 	}
 

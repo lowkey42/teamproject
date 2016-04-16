@@ -37,7 +37,13 @@ namespace light {
 			             asset::Asset_manager& asset_manager,
 			             Rgb sun_light = Rgb{0.5, 0.5, 0.5},
 			             glm::vec3 sun_dir = {0.1, -0.8, 0.4},
-			             Rgb ambient_light = Rgb{0.01, 0.01, 0.01});
+			             float ambient_brightness = 0.1f);
+
+			void config(Rgb sun_light, glm::vec3 sun_dir, float ambient_brightness) {
+				_sun_light = sun_light;
+				_sun_dir = sun_dir;
+				_ambient_brightness = ambient_brightness;
+			}
 
 			auto shadowcaster_batch() -> auto& {return _shadowcaster_batch;}
 			void prepare_draw(renderer::Command_queue&, const renderer::Camera& camera);
@@ -55,7 +61,7 @@ namespace light {
 
 			Rgb _sun_light;
 			glm::vec3 _sun_dir;
-			Rgb _ambient_light;
+			float _ambient_brightness;
 
 
 			void _setup_uniforms(renderer::IUniform_map& uniforms, gsl::span<Light_info>);

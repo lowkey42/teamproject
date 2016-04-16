@@ -30,7 +30,7 @@ namespace lux {
 			void _on_leave(util::maybe<Screen&> next) override;
 
 			auto _prev_screen_policy()const noexcept -> Prev_screen_policy override {
-				return Prev_screen_policy::discard;
+				return Prev_screen_policy::stack;
 			}
 
 		private:
@@ -39,7 +39,6 @@ namespace lux {
 			Meta_system _systems;
 
 			renderer::Camera_2d _camera_ui;
-			renderer::Camera_sidescroller _camera_world;
 
 			renderer::Command_queue _render_queue;
 	};
