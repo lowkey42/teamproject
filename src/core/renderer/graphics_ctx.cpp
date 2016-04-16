@@ -238,7 +238,12 @@ namespace renderer {
 			osstr<<_name<<" ("<<(int((1.0f/_delta_time_smoothed)*10.0f)/10.0f)<<" FPS, ";
 			osstr<<(int(_delta_time_smoothed*10000.0f)/10.0f)<<" ms/frame, ";
 			osstr<<(int(_cpu_delta_time_smoothed*10000.0f)/10.0f)<<" ms/frame [cpu])";
+
+#ifdef EMSCRIPTEN
+			DEBUG(_cpu_delta_time_smoothed);
+#else
 			SDL_SetWindowTitle(_window.get(), osstr.str().c_str());
+#endif
 		}
 		SDL_GL_SwapWindow(_window.get());
 
