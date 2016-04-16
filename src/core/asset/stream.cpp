@@ -195,8 +195,8 @@ namespace asset {
 	  : stream(std::move(o)), std::ostream(_fbuf.get()) {
 	}
 	ostream::~ostream() {
-		if(good())
-			flush();
+//		if(good())
+//			flush();
 
 		_manager._post_write();
 	}

@@ -9,7 +9,14 @@
     "Editor": {
         "bounds": {"x":1, "y":1, "z":1}
     },
-    "Camera_target":{},
-    "Input_controller": {},
-    "Physics": {}
+    "Camera_target": {
+    },
+    "Input_controller": {
+    },
+    "Dynamic_body": {
+    	"shape": "circle",
+    	"fixed_rotation": true,
+    	"friction": 1.0,
+    	"resitution": 0.01
+    }
 }

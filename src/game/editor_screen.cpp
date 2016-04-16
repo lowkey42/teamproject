@@ -118,6 +118,13 @@ namespace lux {
 					}
 					break;
 
+				case "load"_strid:
+					_level_metadata = _systems.load_level(_level_metadata.id);
+					_selection.select({});
+					_commands.clear();
+					break;
+
+
 				case "save"_strid:
 					save_level(_engine, _systems.entity_manager, _level_metadata);
 					break;

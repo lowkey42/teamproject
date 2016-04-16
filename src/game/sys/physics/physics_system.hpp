@@ -14,6 +14,8 @@
 #include <core/ecs/ecs.hpp>
 
 
+class b2World;
+
 namespace lux {
 namespace sys {
 namespace physics {
@@ -21,12 +23,23 @@ namespace physics {
 	class Physics_system {
 		public:
 			Physics_system(Engine&, ecs::Entity_manager&);
+			~Physics_system();
 
 			void update(Time);
 
+			void update_body_shape(Dynamic_body_comp&);
+			void update_body_shape(Static_body_comp&);
+
 		private:
-			Physics_comp::Pool& _bodies;
+			Dynamic_body_comp::Pool& _bodies_dynamic;
+			Static_body_comp::Pool& _bodies_static;
+
+			std::unique_ptr<b2World> _world;
+			float _dt_acc = 0.f;
 			// TODO
+
+			void _get_positions();
+			void _set_positions(float alpha);
 	};
 
 }

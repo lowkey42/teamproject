@@ -52,7 +52,7 @@ namespace lux {
 	void Game_screen::_update(Time dt) {
 		_mailbox.update_subscriptions();
 
-		_systems.update(dt, Update::movements);
+		_systems.update(dt, update_all);
 	}
 
 

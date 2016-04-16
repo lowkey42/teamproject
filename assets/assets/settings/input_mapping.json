@@ -14,7 +14,8 @@
                 "Down": {"type":"continuous", "action":"scroll_d"},
                 "Up": {"type":"continuous", "action":"scroll_u"},
                 "F5": {"type":"once", "action":"save"},
-                "F9": {"type":"once", "action":"start"}
+                "F9": {"type":"once", "action":"load"},
+                "F6": {"type":"once", "action":"start"}
             },
             "mouse_wheel_up": {"type":"once", "action": "zoom_in"},
             "mouse_wheel_down": {"type":"once", "action": "zoom_out"},

@@ -174,6 +174,7 @@ namespace ecs {
 			auto mb_comp = e.manager().find_comp_info(key);
 
 			if(mb_comp.is_nothing()) {
+				DEBUG("Skipped unknown component "<<key);
 				s.skip_obj();
 				return true;
 
@@ -183,6 +184,7 @@ namespace ecs {
 			auto& ecs_deserializer = static_cast<EcsDeserializer&>(s);
 
 			if(ecs_deserializer.filter && !ecs_deserializer.filter(comp.type)) {
+				DEBUG("Skipped filtered component "<<key);
 				s.skip_obj();
 				return true;
 			}
