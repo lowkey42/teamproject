@@ -190,6 +190,7 @@ namespace lux {
 	}
 
 	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {
+		_engine.input().enable_context("editor"_strid);
 		_mailbox.enable();
 	}
 

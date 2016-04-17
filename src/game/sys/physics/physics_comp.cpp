@@ -115,6 +115,21 @@ namespace physics {
 		_body = update_body(world, _body, _def, owner(), b2_dynamicBody);
 	}
 
+	void Dynamic_body_comp::apply_force(glm::vec2 f) {
+		_body->ApplyForceToCenter(b2Vec2{f.x,f.y}, true);
+	}
+	void Dynamic_body_comp::foot_friction(bool enable) {
+		if(_def.shape==Body_shape::humanoid) {
+			// TODO: set friction of foot fixture
+		}
+	}
+	bool Dynamic_body_comp::has_ground_contact()const {
+		return glm::abs(_body->GetLinearVelocity().y) < 2.f;
+	}
+	auto Dynamic_body_comp::velocity()const -> glm::vec2 {
+		return {_body->GetLinearVelocity().x, _body->GetLinearVelocity().y};
+	}
+
 
 	void Static_body_comp::load(sf2::JsonDeserializer& state,
 	                            asset::Asset_manager& asset_mgr) {

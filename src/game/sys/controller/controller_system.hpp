@@ -17,6 +17,9 @@
 
 namespace lux {
 namespace sys {
+namespace physics {
+	class Dynamic_body_comp;
+}
 namespace controller {
 
 	class Controller_system {
@@ -26,8 +29,19 @@ namespace controller {
 			void update(Time);
 
 		private:
+			util::Mailbox_collection _mailbox;
 			Input_controller_comp::Pool& _input_controllers;
-			// TODO
+
+			bool _mouse_look = true;
+			float _move_dir = 0.f;
+			int _move_left = 0;
+			int _move_right = 0;
+			bool _jump = false;
+			glm::vec2 _target_dir;
+			bool _transform_pending = false;
+			bool _transform = false;
+
+			bool _jump_allowed(Input_controller_comp& c, physics::Dynamic_body_comp& body)const;
 	};
 
 }

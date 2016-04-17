@@ -57,7 +57,7 @@ namespace physics {
 			auto pos = remove_units(transform.position());
 			comp._body->SetTransform(b2Vec2{pos.x, pos.y}, transform.rotation().value());
 
-			comp._body->SetActive(std::abs(pos.z) <= max_depth_offset);
+			comp._body->SetActive(comp._active && std::abs(pos.z) <= max_depth_offset);
 		}
 
 		for(auto& comp : _bodies_static) {
@@ -69,7 +69,7 @@ namespace physics {
 			auto pos = remove_units(transform.position());
 			comp._body->SetTransform(b2Vec2{pos.x, pos.y}, transform.rotation().value());
 
-			comp._body->SetActive(std::abs(pos.z) <= max_depth_offset);
+			comp._body->SetActive(comp._active && std::abs(pos.z) <= max_depth_offset);
 		}
 	}
 	void Physics_system::_set_positions(float alpha) {

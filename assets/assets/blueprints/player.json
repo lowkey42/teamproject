@@ -12,11 +12,14 @@
     "Camera_target": {
     },
     "Input_controller": {
+    	"jump_force": 60.0,
+    	"move_force": 20.0,
+    	"max_speed": 10.0
     },
     "Dynamic_body": {
     	"shape": "circle",
     	"fixed_rotation": true,
-    	"friction": 1.0,
-    	"resitution": 0.01
+    	"friction": 0.1,
+    	"resitution": 0.1
     }
 }

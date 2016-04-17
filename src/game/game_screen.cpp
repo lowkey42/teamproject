@@ -28,7 +28,7 @@ namespace lux {
 
 		_mailbox.subscribe_to([&](input::Once_action& e){
 			switch(e.id) {
-				case "back"_strid:
+				case "pause"_strid:
 					_engine.screens().leave();
 					break;
 			}
@@ -40,6 +40,7 @@ namespace lux {
 	}
 
 	void Game_screen::_on_enter(util::maybe<Screen&> prev) {
+		_engine.input().enable_context("game"_strid);
 		_mailbox.enable();
 		//_engine.audio_ctx().play_music(_engine.assets().load<audio::Music>("music:intro"_aid));
 	}

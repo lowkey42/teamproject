@@ -32,7 +32,13 @@ namespace controller {
 
 		private:
 			friend class Controller_system;
-			// TODO
+
+			float _move_force = 1.f;
+			float _jump_force = 1.f;
+
+			float _max_speed = 10.f;
+
+			Time _jump_timer{0};
 	};
 
 }

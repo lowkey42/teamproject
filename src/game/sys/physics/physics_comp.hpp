@@ -47,11 +47,19 @@ namespace physics {
 
 			Dynamic_body_comp(ecs::Entity& owner);
 
+			void apply_force(glm::vec2 f);
+			void foot_friction(bool enable);//< only for humanoids
+			bool has_ground_contact()const;
+			void active(bool e) {_active = e;}
+
+			auto velocity()const -> glm::vec2;
+
 		private:
 			friend class Physics_system;
 
 			Body_definition _def;
 			b2Body* _body = nullptr;
+			bool _active = true;
 
 			void _update_body(b2World& world);
 	};
@@ -65,11 +73,14 @@ namespace physics {
 
 			Static_body_comp(ecs::Entity& owner);
 
+			void active(bool e) {_active = e;}
+
 		private:
 			friend class Physics_system;
 
 			Body_definition _def;
 			b2Body* _body = nullptr;
+			bool _active = true;
 
 			void _update_body(b2World& world);
 	};
