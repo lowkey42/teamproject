@@ -51,8 +51,8 @@ static const uint32 xOffset = xScale * (1u << (xTruncBits - 1u));
 static const uint32 yMask = ((1u << yTruncBits) - 1u) << yShift;
 static const uint32 xMask = ~yMask;
 static const uint32 relativeTagRight = 1u << xShift;
-static const uint32 relativeTagBottomLeft = (uint32)((1 << yShift) +
-                                                    (-1 << xShift));
+static const uint32 relativeTagBottomLeft = (uint32)((1u << yShift) +
+                                                    (-1u << xShift));
 
 static const uint32 relativeTagBottomRight = (1u << yShift) + (1u << xShift);
 

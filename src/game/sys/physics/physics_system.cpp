@@ -15,11 +15,11 @@ namespace physics {
 
 	namespace {
 		constexpr auto gravity_x = 0.f;
-		constexpr auto gravity_y = -10.f;
+		constexpr auto gravity_y = -30.f;
 
 		constexpr auto time_step = 1.f / 60;
-		constexpr auto velocity_iterations = 8;
-		constexpr auto position_iterations = 3;
+		constexpr auto velocity_iterations = 10;
+		constexpr auto position_iterations = 6;
 
 		constexpr auto max_depth_offset = 2.f;
 	}
@@ -44,7 +44,8 @@ namespace physics {
 			_world->Step(time_step, velocity_iterations, position_iterations);
 		}
 		_world->ClearForces();
-		_set_positions(1.f);// TODO: interpolation
+		_set_positions(steps/(steps+1.f) + _dt_acc / time_step);// TODO: interpolation
+
 	}
 
 	void Physics_system::_get_positions() {
@@ -76,7 +77,9 @@ namespace physics {
 		for(Dynamic_body_comp& comp : _bodies_dynamic) {
 			auto& transform = comp.owner().get<Transform_comp>().get_or_throw();
 
-			auto pos = comp._body->GetPosition();
+			auto b2_pos = comp._body->GetPosition();
+			auto pos = glm::vec2{b2_pos.x, b2_pos.y};
+			pos = glm::mix(remove_units(transform.position()).xy(), pos, alpha);
 			transform.position({pos.x*1_m, pos.y*1_m, transform.position().z});// TODO: interpolation
 			transform.rotation(Angle{comp._body->GetAngle()});
 		}

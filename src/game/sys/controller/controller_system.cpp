@@ -98,11 +98,21 @@ namespace controller {
 			}
 			body.active(true); // TODO: false for light form
 
-			if(glm::abs(effective_move)>0.1f) {
-				if(glm::abs(body.velocity().x) <= c._max_speed) {
-					body.apply_force(glm::vec2{effective_move*c._move_force, 0.f});
+			if(glm::abs(effective_move)>0.001f) {
+				if(body.has_ground_contact()) {
+					body.foot_friction(false);
+					if(glm::abs(body.velocity().x) <= c._max_speed) {
+						body.apply_force(glm::vec2{effective_move*c._move_force, 0.f}); // TODO: calculate force based on target velocity
+					}
+
+				} else {
+					auto x_vel = effective_move*c._max_speed*0.5f;
+
+					x_vel = glm::mix(x_vel, body.velocity().x, glm::abs(x_vel)>0.01f ? 0.2f : 0.8f);
+
+					body.velocity({x_vel, body.velocity().y});
 				}
-				body.foot_friction(false);
+
 			} else {
 				body.foot_friction(true);
 			}

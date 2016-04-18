@@ -10,7 +10,8 @@
                 "D": {"type":"continuous", "action":"move_right"},
                 "Right": {"type":"continuous", "action":"move_right"},
 
-                "Space": {"type":"continuous", "action":"jump"}
+                "Space": {"type":"continuous", "action":"jump"},
+				"Up": {"type":"continuous", "action":"jump"}
             },
 
             "mouse_buttons": {

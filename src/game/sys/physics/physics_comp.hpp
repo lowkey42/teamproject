@@ -13,6 +13,7 @@
 
 
 class b2Body;
+class b2Fixture;
 class b2World;
 
 namespace lux {
@@ -36,6 +37,7 @@ namespace physics {
 		float friction = 1.f;
 		float resitution = 0.3f;
 		float density = 2.f;
+		glm::vec2 size;
 	};
 
 	class Dynamic_body_comp : public ecs::Component<Dynamic_body_comp> {
@@ -53,12 +55,17 @@ namespace physics {
 			void active(bool e) {_active = e;}
 
 			auto velocity()const -> glm::vec2;
+			void velocity(glm::vec2 v)const;
 
 		private:
 			friend class Physics_system;
 
 			Body_definition _def;
 			b2Body* _body = nullptr;
+			b2Fixture* _fixture_foot = nullptr;
+			b2Fixture* _fixture_sensor_botton = nullptr;
+			b2Fixture* _fixture_sensor_left = nullptr;
+			b2Fixture* _fixture_sensor_right = nullptr;
 			bool _active = true;
 
 			void _update_body(b2World& world);

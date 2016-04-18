@@ -9,6 +9,7 @@
 #include "renderer/graphics_ctx.hpp"
 
 #include <stdexcept>
+#include <chrono>
 
 
 namespace lux {
@@ -71,10 +72,56 @@ namespace {
 		assets().shrink_to_fit();
 	}
 
+	namespace {
+		double current_time_sec() {
+#ifdef SDL_FRAMETIME
+			return static_cast<float>(SDL_GetTicks()) / 1000.f;
+#else
+			using namespace std::chrono;
+			static const auto start_time = high_resolution_clock::now();
+			return duration_cast<duration<double, std::micro>>(high_resolution_clock::now()-start_time).count() / 1000.0 / 1000.0;
+#endif
+		}
+		float smooth(float curr) {
+			static float history[11] {};
+			static auto i = 0;
+			static auto first = true;
+			if(first) {
+				first = false;
+				std::fill(std::begin(history), std::end(history), 1.f/60);
+			}
+
+			auto sum = 0.f;
+			auto min=999.f, max=0.f;
+			for(auto v : history) {
+				if(v<min) {
+					if(min<999.f) {
+						sum += min;
+					}
+					min = v;
+				} else if(v>max) {
+					sum += max;
+					max = v;
+				} else {
+					sum += v;
+				}
+			}
+			curr = glm::mix(sum/9.f, curr, 0.2f);
+
+			i = (i+1) % 11;
+			history[i] = curr;
+			return curr;
+		}
+	}
+
 	void Engine::on_frame() {
 		_last_time = _current_time;
-		_current_time = SDL_GetTicks() / 1000.0f;
-		const auto delta_time = std::min(_current_time - _last_time, 1.f) * second;
+		_current_time = current_time_sec();
+		auto delta_time = static_cast<float>(_current_time - _last_time);
+		auto delta_time_smoothed = smooth(delta_time);
+		if(delta_time > 1.f/10) {
+			delta_time = 1.f / 60;
+		}
 
 		_graphics_ctx->start_frame();
 
@@ -85,15 +132,15 @@ namespace {
 			_audio_ctx->flip();
 		}
 
-		_input_manager->update(delta_time);
+		_input_manager->update(delta_time * second);
 
-		_on_frame(delta_time);
+		_on_frame(delta_time_smoothed * second);
 
 		_poll_events();
 
-		_screens.on_frame(delta_time);
+		_screens.on_frame(delta_time_smoothed * second);
 
-		_graphics_ctx->end_frame(delta_time);
+		_graphics_ctx->end_frame(delta_time * second);
 	}
 
 	void Engine::_poll_events() {
