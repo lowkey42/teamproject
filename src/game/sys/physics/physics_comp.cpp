@@ -108,10 +108,10 @@ namespace physics {
 						body->CreateFixture(&main_fixture);
 
 						b2Vec2 foot_shape[] {
-							{ half_size.x,         -half_size.y+foot_h},
-							{ half_size.x-foot_h,  -half_size.y},
-							{-half_size.x+foot_h,  -half_size.y},
-							{-half_size.x,         -half_size.y+foot_h},
+							{ half_size.x-0.01f,         -half_size.y+foot_h},
+							{ half_size.x-foot_h*2.f,  -half_size.y},
+							{-half_size.x+foot_h*2.f,  -half_size.y},
+							{-half_size.x+0.01f,         -half_size.y+foot_h},
 						};
 						shape.Set(foot_shape, 4);
 						main_fixture.shape = &shape;
@@ -133,7 +133,20 @@ namespace physics {
 
 				INVARIANT(def.shape==Body_shape::polygon, "A terrain can only be of polygonal shape!");
 
-				create_polygons(terrain_comp.smart_texture().points(), *body, main_fixture);
+				auto vertices = terrain_comp.smart_texture().vertices();
+				for(auto i=0u; i<vertices.size(); i+=3) {
+					b2PolygonShape shape;
+					b2Vec2 body_shape[] {
+						{vertices[i+0].x, vertices[i+0].y},
+						{vertices[i+1].x, vertices[i+1].y},
+						{vertices[i+2].x, vertices[i+2].y}
+					};
+					shape.Set(body_shape, 3);
+					main_fixture.shape = &shape;
+					body->CreateFixture(&main_fixture);
+				}
+
+				//create_polygons(terrain_comp.smart_texture().points(), *body, main_fixture);
 				return std::make_tuple(body, nullptr, nullptr, nullptr, nullptr);
 			}
 
@@ -187,9 +200,9 @@ namespace physics {
 		}
 	}
 	auto Dynamic_body_comp::mass()const -> float {
+		if(!_body) return 1.f;
 		return _body->GetMass();
 	}
-
 
 	void Static_body_comp::load(sf2::JsonDeserializer& state,
 	                            asset::Asset_manager& asset_mgr) {

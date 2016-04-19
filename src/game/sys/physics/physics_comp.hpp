@@ -15,6 +15,7 @@
 class b2Body;
 class b2Fixture;
 class b2World;
+class b2RevoluteJoint;
 
 namespace lux {
 namespace sys {

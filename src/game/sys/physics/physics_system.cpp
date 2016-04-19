@@ -15,7 +15,7 @@ namespace physics {
 
 	namespace {
 		constexpr auto gravity_x = 0.f;
-		constexpr auto gravity_y = -30.f;
+		constexpr auto gravity_y = -40.f;
 
 		constexpr auto time_step = 1.f / 60;
 		constexpr auto velocity_iterations = 10;
@@ -56,7 +56,8 @@ namespace physics {
 
 			auto& transform = comp.owner().get<Transform_comp>().get_or_throw();
 			auto pos = remove_units(transform.position());
-			comp._body->SetTransform(b2Vec2{pos.x, pos.y}, transform.rotation().value());
+			auto rot = comp._def.fixed_rotation ? 0.f : transform.rotation().value();
+			comp._body->SetTransform(b2Vec2{pos.x, pos.y}, rot);
 
 			comp._body->SetActive(comp._active && std::abs(pos.z) <= max_depth_offset);
 		}
@@ -81,7 +82,9 @@ namespace physics {
 			auto pos = glm::vec2{b2_pos.x, b2_pos.y};
 			pos = glm::mix(remove_units(transform.position()).xy(), pos, alpha);
 			transform.position({pos.x*1_m, pos.y*1_m, transform.position().z});// TODO: interpolation
-			transform.rotation(Angle{comp._body->GetAngle()});
+			if(!comp._def.fixed_rotation) {
+				transform.rotation(Angle{comp._body->GetAngle()});
+			}
 		}
 	}
 
@@ -91,6 +94,53 @@ namespace physics {
 
 	void Physics_system::update_body_shape(Static_body_comp& comp) {
 		comp._update_body(*_world);
+	}
+
+	namespace {
+		struct Simple_ray_callback : public b2RayCastCallback {
+			float max_dist = 1.f;
+			ecs::Entity* exclude = nullptr;
+			util::maybe<Raycast_result> result = util::nothing();
+
+			Simple_ray_callback(float max_dist, ecs::Entity* exclude=nullptr)
+			    : max_dist(max_dist), exclude(exclude) {
+			}
+
+			float32 ReportFixture(b2Fixture* fixture, const b2Vec2& point,
+			                      const b2Vec2& normal, float32 fraction) override {
+				if(fixture->IsSensor())
+					return -1.f; // ignore
+
+				if(exclude && static_cast<ecs::Entity*>(fixture->GetBody()->GetUserData())==exclude)
+					return -1.f; // ignore
+
+				result = Raycast_result{glm::vec2{normal.x, normal.y}, fraction*max_dist};
+				return fraction;
+			}
+
+			bool ShouldQueryParticleSystem(const b2ParticleSystem*) override {
+				return false;
+			}
+		};
+	}
+
+	auto Physics_system::raycast(glm::vec2 position, glm::vec2 dir,
+	                             float max_dist) -> util::maybe<Raycast_result> {
+		const auto target = position + dir*max_dist;
+
+		Simple_ray_callback callback{max_dist};
+		_world->RayCast(&callback, b2Vec2{position.x, position.y}, b2Vec2{target.x, target.y});
+
+		return callback.result;
+	}
+	auto Physics_system::raycast(glm::vec2 position, glm::vec2 dir, float max_dist,
+	                             ecs::Entity& exclude) -> util::maybe<Raycast_result> {
+		const auto target = position + dir*max_dist;
+
+		Simple_ray_callback callback{max_dist, &exclude};
+		_world->RayCast(&callback, b2Vec2{position.x, position.y}, b2Vec2{target.x, target.y});
+
+		return callback.result;
 	}
 
 }

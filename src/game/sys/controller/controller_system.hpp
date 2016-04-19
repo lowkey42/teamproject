@@ -19,18 +19,20 @@ namespace lux {
 namespace sys {
 namespace physics {
 	class Dynamic_body_comp;
+	class Physics_system;
 }
 namespace controller {
 
 	class Controller_system {
 		public:
-			Controller_system(Engine&, ecs::Entity_manager&);
+			Controller_system(Engine&, ecs::Entity_manager&, physics::Physics_system& physics_world);
 
 			void update(Time);
 
 		private:
 			util::Mailbox_collection _mailbox;
 			Input_controller_comp::Pool& _input_controllers;
+			physics::Physics_system& _physics_world;
 
 			bool _mouse_look = true;
 			float _move_dir = 0.f;
@@ -41,7 +43,7 @@ namespace controller {
 			bool _transform_pending = false;
 			bool _transform = false;
 
-			bool _jump_allowed(Input_controller_comp& c, physics::Dynamic_body_comp& body)const;
+			bool _jump_allowed(Input_controller_comp& c, float ground_dist)const;
 	};
 
 }

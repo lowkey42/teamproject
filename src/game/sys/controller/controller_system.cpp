@@ -1,7 +1,10 @@
+#define GLM_SWIZZLE
+
 #include "controller_system.hpp"
 
 #include "../physics/physics_comp.hpp"
 #include "../physics/transform_comp.hpp"
+#include "../physics/physics_system.hpp"
 
 #include <core/input/events.hpp>
 
@@ -11,14 +14,17 @@ namespace sys {
 namespace controller {
 
 	using namespace unit_literals;
+	using namespace glm;
 
 	namespace {
 		constexpr auto max_jump_time = 0.25_s;
 	}
 
-	Controller_system::Controller_system(Engine& engine, ecs::Entity_manager& ecs)
+	Controller_system::Controller_system(Engine& engine, ecs::Entity_manager& ecs,
+	                                     physics::Physics_system& physics_world)
 	    : _mailbox(engine.bus()),
-	      _input_controllers(ecs.list<Input_controller_comp>()) {
+	      _input_controllers(ecs.list<Input_controller_comp>()),
+	      _physics_world(physics_world) {
 
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
 			switch(e.id) {
@@ -57,12 +63,12 @@ namespace controller {
 		});
 	}
 
-	bool Controller_system::_jump_allowed(Input_controller_comp& c, physics::Dynamic_body_comp& body)const {
+	bool Controller_system::_jump_allowed(Input_controller_comp& c, float ground_dist)const {
 		if(c._jump_timer>max_jump_time)
 			return false;
 
 		if(c._jump_timer<=0_s) {
-			return body.has_ground_contact(); // TODO: check ground contact
+			return ground_dist<1.f;
 		}
 
 		return true;
@@ -83,8 +89,8 @@ namespace controller {
 
 		for(Input_controller_comp& c : _input_controllers) {
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
-//			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
-//			auto cpos = remove_units(ctransform.position()).xy();
+			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
+			auto cpos = remove_units(ctransform.position()).xy();
 //			auto dir = _mouse_look ? _target_dir-cpos : _target_dir;
 			// TODO: apply dir to sprite
 
@@ -98,31 +104,45 @@ namespace controller {
 			}
 			body.active(true); // TODO: false for light form
 
-			if(glm::abs(effective_move)>0.001f) {
-				//if(body.has_ground_contact()) {
-					body.foot_friction(false);
-					// TODO: still sucks. Maybe good enough for air-control. Try this one next: http://qandasys.info/stopping-on-a-slope-in-box2d/
-					//if(glm::abs(body.velocity().x) <= c._max_speed) {
-						auto vel_diff = (effective_move*c._max_speed) - body.velocity().x;
-						if(body.has_ground_contact())
-							vel_diff /=2.f;
-						auto force = vel_diff * body.mass() / dt.value();
-						body.apply_force(glm::vec2{force, 0.f}); // TODO: calculate force based on target velocity
-					//}
-/*
+
+			auto ground =_physics_world.raycast(cpos, vec2{0,-1}, 20.f, c.owner());
+			auto ground_dist   = ground.process(999.f, [](auto& m) {return m.distance;});
+			auto ground_normal = ground.process(vec2{0,1}, [](auto& m) {return m.normal;});
+			auto move_force = vec2{0,0};
+
+			// TODO: player can still get stuck on some edges
+
+			if(ground_dist>1.0f) { // we are in the air
+				ctransform.rotation(Angle{glm::mix(ctransform.rotation().value(), 0.f, 20*dt.value())});
+
+				// TODO: make air-velocity configurable
+				auto vel_target = effective_move*c._max_speed * 0.5f;
+				auto vel_diff = vel_target - body.velocity().x;
+				move_force.x = vel_diff * body.mass() / dt.value();
+				// TODO: allows running up ~80_deg walls, maybe use body.velocity().y<-1.f to limit the max-force on the way up
+
+			} else { // we are on the ground
+				auto ground_angle = Angle{glm::atan(-ground_normal.x, ground_normal.y)};
+
+				ctransform.rotation(Angle{glm::mix(ctransform.rotation().value(), ground_angle.value()*0.75f, 10*dt.value())});
+
+				if(abs(ground_angle)<40_deg) {
+					// TODO: nicer acceleration curve (fast linear acceleration to walk-velocity,
+					//			after N seconds acceleration to run-velocity)
+					auto vel_target = effective_move*c._max_speed * 0.5f;
+					auto vel_diff = vel_target - body.velocity().x;
+					move_force.x = vel_diff * body.mass() / dt.value();
 				} else {
-					auto x_vel = effective_move*c._max_speed*0.5f;
-
-					x_vel = glm::mix(x_vel, body.velocity().x, glm::abs(x_vel)>0.01f ? 0.2f : 0.8f);
-
-					body.velocity({x_vel, body.velocity().y});
+					ground_dist = 999.f;
 				}
-*/
-			} else {
-				body.foot_friction(true);
 			}
 
-			if(_jump && _jump_allowed(c, body)) {
+			body.foot_friction(glm::length2(move_force)<0.001f);
+
+			body.apply_force(move_force);
+
+
+			if(_jump && _jump_allowed(c, ground_dist)) {
 				c._jump_timer+=dt;
 				body.apply_force(glm::vec2{0.f, c._jump_force});
 

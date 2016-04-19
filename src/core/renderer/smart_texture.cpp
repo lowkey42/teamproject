@@ -127,18 +127,8 @@ namespace renderer {
 			return true;
 		}
 
-		void triangulate_background(std::vector<glm::vec2> points,
-		                            std::vector<Sprite_vertex>& vertices,
-		                            bool shadowcaster, const renderer::Material& mat) {
-
-			const auto pc = 0.5f / mat.albedo().width();
-
-			auto add_vertex = [&](auto v) {
-				auto uv_clip = vec4{0.f, 0.f, 0.75f-pc, 0.75f-pc};
-				auto uv = vec2{v.x,-v.y}*0.1f;
-				vertices.emplace_back(vec3(v,0.f), uv, uv_clip, vec2{1.f,0.f}, shadowcaster ? 1.f : 0.f, &mat);
-			};
-
+		template<typename F1, typename F2>
+		void triangulate(std::vector<glm::vec2> points, F1&& add_vertex, F2&& error) {
 			int triangles_produced = 0;
 			do {
 				triangles_produced = 0;
@@ -170,9 +160,27 @@ namespace renderer {
 				add_vertex(points[2]);
 
 			} else {
-				INFO("Polygon is not valid. "<<points.size()<<" vertices left");
-				vertices.clear();
+				error(points.size());
 			}
+		}
+
+		void triangulate_background(const std::vector<glm::vec2>& points,
+		                            std::vector<Sprite_vertex>& vertices,
+		                            bool shadowcaster, const renderer::Material& mat) {
+
+			const auto pc = 0.5f / mat.albedo().width();
+
+			auto add_vertex = [&](auto v) {
+				auto uv_clip = vec4{0.f, 0.f, 0.75f-pc, 0.75f-pc};
+				auto uv = vec2{v.x,-v.y}*0.1f;
+				vertices.emplace_back(vec3(v,0.f), uv, uv_clip, vec2{1.f,0.f}, shadowcaster ? 1.f : 0.f, &mat);
+			};
+			auto error = [&](auto left) {
+				INFO("Polygon is not valid. "<<left<<" vertices left");
+				vertices.clear();
+			};
+
+			triangulate(points, add_vertex, error);
 		}
 		void triangulate_border(const std::vector<glm::vec2>& points,
 		                        std::vector<Sprite_vertex>& vertices,
@@ -320,5 +328,20 @@ namespace renderer {
 		triangulate_border(_points, _vertices, _shadowcaster, *_material);
 	}
 
+	auto Smart_texture::vertices()const -> std::vector<glm::vec2> {
+		auto ret = std::vector<glm::vec2>();
+		ret.reserve(_points.size());
+
+		auto add_vertex = [&](auto v) {
+			ret.emplace_back(v);
+		};
+		auto error = [&](auto left) {
+			INFO("Polygon is not valid. "<<left<<" vertices left");
+		};
+
+		triangulate(_points, add_vertex, error);
+
+		return ret;
+	}
 }
 }

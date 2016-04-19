@@ -34,7 +34,7 @@ namespace lux {
 	    : entity_manager(engine.assets()),
 	      scene_graph(entity_manager),
 	      physics(engine, entity_manager),
-	      controller(engine, entity_manager),
+	      controller(engine, entity_manager, physics),
 	      camera(engine, entity_manager),
 	      lights(engine.bus(), entity_manager, engine.assets()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
