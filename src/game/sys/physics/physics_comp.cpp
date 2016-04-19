@@ -186,6 +186,9 @@ namespace physics {
 			_body->SetLinearVelocity(b2Vec2{v.x,v.y});
 		}
 	}
+	auto Dynamic_body_comp::mass()const -> float {
+		return _body->GetMass();
+	}
 
 
 	void Static_body_comp::load(sf2::JsonDeserializer& state,

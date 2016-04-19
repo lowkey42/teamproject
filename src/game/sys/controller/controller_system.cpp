@@ -99,12 +99,17 @@ namespace controller {
 			body.active(true); // TODO: false for light form
 
 			if(glm::abs(effective_move)>0.001f) {
-				if(body.has_ground_contact()) {
+				//if(body.has_ground_contact()) {
 					body.foot_friction(false);
-					if(glm::abs(body.velocity().x) <= c._max_speed) {
-						body.apply_force(glm::vec2{effective_move*c._move_force, 0.f}); // TODO: calculate force based on target velocity
-					}
-
+					// TODO: still sucks. Maybe good enough for air-control. Try this one next: http://qandasys.info/stopping-on-a-slope-in-box2d/
+					//if(glm::abs(body.velocity().x) <= c._max_speed) {
+						auto vel_diff = (effective_move*c._max_speed) - body.velocity().x;
+						if(body.has_ground_contact())
+							vel_diff /=2.f;
+						auto force = vel_diff * body.mass() / dt.value();
+						body.apply_force(glm::vec2{force, 0.f}); // TODO: calculate force based on target velocity
+					//}
+/*
 				} else {
 					auto x_vel = effective_move*c._max_speed*0.5f;
 
@@ -112,7 +117,7 @@ namespace controller {
 
 					body.velocity({x_vel, body.velocity().y});
 				}
-
+*/
 			} else {
 				body.foot_friction(true);
 			}

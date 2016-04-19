@@ -57,6 +57,8 @@ namespace physics {
 			auto velocity()const -> glm::vec2;
 			void velocity(glm::vec2 v)const;
 
+			auto mass()const -> float;
+
 		private:
 			friend class Physics_system;
 

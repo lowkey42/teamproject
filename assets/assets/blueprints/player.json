@@ -12,7 +12,7 @@
     "Camera_target": {
     },
     "Input_controller": {
-    	"jump_force": 200.0,
+    	"jump_force": 150.0,
     	"move_force": 30.0,
     	"max_speed": 10.0
     },
