@@ -28,17 +28,20 @@ namespace controller {
 
 			Input_controller_comp(ecs::Entity& owner);
 
-
-
 		private:
 			friend class Controller_system;
 
-			float _move_force = 1.f;
-			float _jump_force = 1.f;
+			float _air_velocity = 1.f;
+			float _ground_velocity = 1.f;
+			float _acceleration_time = 0.2f;
 
-			float _max_speed = 10.f;
+			float _jump_velocity = 1.f;
+			float _jump_cooldown = 0.25f;
 
-			Time _jump_timer{0};
+			float _last_velocity = 0.f;
+			Time _moving_time{0};
+			Time _air_time{0};
+			Time _jump_cooldown_timer{0};
 	};
 
 }

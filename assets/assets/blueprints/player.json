@@ -12,16 +12,18 @@
     "Camera_target": {
     },
     "Input_controller": {
-    	"jump_force": 150.0,
-    	"move_force": 5.0,
-    	"max_speed": 10.0
+    	"air_velocity": 4.0,
+    	"ground_velocity": 6.0,
+    	"acceleration_time": 0.5,
+    	"jump_velocity": 20.0,
+    	"jump_cooldown": 0.025
     },
     "Dynamic_body": {
     	"shape": "humanoid",
     	"bullet": true,
     	"fixed_rotation": true,
     	"friction": 0.0,
-    	"resitution": 0.0,
-		"linear_damping": 0.5
+    	"resitution": 0.01,
+		"linear_damping": 0.1
     }
 }

@@ -16,7 +16,7 @@ namespace sys {
 namespace physics {
 
 	namespace {
-		constexpr auto def_foot_friction = 5.0f;
+		constexpr auto def_foot_friction = 500.0f;
 	}
 
 	sf2_structDef(Body_definition,
@@ -34,14 +34,11 @@ namespace physics {
 
 	namespace {
 		// body, foot, sensor_bottom, sensor_left, sensor_right
-		using ub_res = std::tuple<b2Body*, b2Fixture*, b2Fixture*, b2Fixture*, b2Fixture*>;
+		using ub_res = std::tuple<b2Body*, b2Fixture*, glm::vec2>;
 
 		auto update_body(b2World& world, b2Body* body, const Body_definition& def,
 		                 ecs::Entity& owner, b2BodyType btype) -> ub_res {
 			b2Fixture* fixture_foot = nullptr;
-			b2Fixture* fixture_sensor_botton = nullptr;
-			b2Fixture* fixture_sensor_left = nullptr;
-			b2Fixture* fixture_sensor_right = nullptr;
 
 			if(body) {
 				world.DestroyBody(body);
@@ -109,22 +106,19 @@ namespace physics {
 
 						b2Vec2 foot_shape[] {
 							{ half_size.x-0.01f,         -half_size.y+foot_h},
-							{ half_size.x-foot_h*2.f,  -half_size.y},
-							{-half_size.x+foot_h*2.f,  -half_size.y},
+							{ half_size.x-foot_h*1.5f,  -half_size.y},
+							{-half_size.x+foot_h*1.5f,  -half_size.y},
 							{-half_size.x+0.01f,         -half_size.y+foot_h},
 						};
 						shape.Set(foot_shape, 4);
 						main_fixture.shape = &shape;
 						main_fixture.friction = def_foot_friction;
-						main_fixture.restitution = 0.1f;
+						main_fixture.restitution = 0.01f;
 						fixture_foot = body->CreateFixture(&main_fixture);
-
-						// TODO: sensors
 						break;
 				}
 
-				return std::make_tuple(body, fixture_foot, fixture_sensor_botton,
-				                       fixture_sensor_left, fixture_sensor_right);
+				return std::make_tuple(body, fixture_foot, size);
 			}
 
 			auto terrain_comp_mb = owner.get<graphic::Terrain_comp>();
@@ -147,11 +141,11 @@ namespace physics {
 				}
 
 				//create_polygons(terrain_comp.smart_texture().points(), *body, main_fixture);
-				return std::make_tuple(body, nullptr, nullptr, nullptr, nullptr);
+				return std::make_tuple(body, nullptr, glm::vec2{1,1});
 			}
 
 			FAIL("No component to determine the size from!!!");
-			return std::make_tuple(nullptr, nullptr, nullptr, nullptr, nullptr);
+			return std::make_tuple(nullptr, nullptr, glm::vec2{1,1});
 		}
 	}
 
@@ -166,8 +160,7 @@ namespace physics {
 	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner) {
 	}
 	void Dynamic_body_comp::_update_body(b2World& world) {
-		std::tie(_body, _fixture_foot, _fixture_sensor_botton,
-		         _fixture_sensor_left, _fixture_sensor_right) =
+		std::tie(_body, _fixture_foot, _size) =
 		        update_body(world, _body, _def, owner(), b2_dynamicBody);
 	}
 
@@ -215,7 +208,7 @@ namespace physics {
 	Static_body_comp::Static_body_comp(ecs::Entity& owner) : Component(owner) {
 	}
 	void Static_body_comp::_update_body(b2World& world) {
-		std::tie(_body, std::ignore, std::ignore, std::ignore, std::ignore) =
+		std::tie(_body, std::ignore, std::ignore) =
 		        update_body(world, _body, _def, owner(), b2_staticBody);
 	}
 

@@ -59,6 +59,7 @@ namespace physics {
 			void velocity(glm::vec2 v)const;
 
 			auto mass()const -> float;
+			auto size()const {return _size;}
 
 		private:
 			friend class Physics_system;
@@ -66,10 +67,8 @@ namespace physics {
 			Body_definition _def;
 			b2Body* _body = nullptr;
 			b2Fixture* _fixture_foot = nullptr;
-			b2Fixture* _fixture_sensor_botton = nullptr;
-			b2Fixture* _fixture_sensor_left = nullptr;
-			b2Fixture* _fixture_sensor_right = nullptr;
 			bool _active = true;
+			glm::vec2 _size;
 
 			void _update_body(b2World& world);
 	};
