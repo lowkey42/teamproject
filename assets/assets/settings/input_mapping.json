@@ -11,7 +11,22 @@
                 "Right": {"type":"continuous", "action":"move_right"},
 
                 "Space": {"type":"continuous", "action":"jump"},
-				"Up": {"type":"continuous", "action":"jump"}
+				"Up": {"type":"continuous", "action":"jump"},
+                "W": {"type":"continuous", "action":"jump"}
+            },
+
+            "pad_sticks": {
+                "left": {"type": "range", "action": "move"},
+                "right": {"type": "range", "action": "move"}
+            },
+            "pad_buttons": {
+                "x":  {"type":"continuous", "action":"jump"},
+                "a":  {"type":"continuous", "action":"transform"},
+                "left_shoulder":  {"type":"continuous", "action":"jump"},
+                "left_trigger":  {"type":"continuous", "action":"transform"},
+                "right_shoulder":  {"type":"continuous", "action":"jump"},
+                "right_trigger":  {"type":"continuous", "action":"transform"},
+                "start":  {"type":"once", "action":"pause"}
             },
 
             "mouse_buttons": {

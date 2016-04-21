@@ -163,7 +163,7 @@ namespace input {
 		d_pad_left     = SDL_CONTROLLER_BUTTON_DPAD_LEFT,
 		d_pad_right    = SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
 
-		left_trigger   = SDL_CONTROLLER_AXIS_MAX+1,
+		left_trigger,
 		right_trigger
 	};
 	constexpr auto pad_button_count = static_cast<int8_t>(Pad_button::right_trigger)+1;

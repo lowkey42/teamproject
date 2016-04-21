@@ -140,6 +140,8 @@ namespace controller {
 		if(_move_right>0)
 			effective_move+=1;
 
+		// TODO: add touch-controls here
+
 		effective_move = glm::clamp(effective_move, -1.f, 1.f);
 
 		for(Input_controller_comp& c : _input_controllers) {
