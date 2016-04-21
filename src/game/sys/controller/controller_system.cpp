@@ -59,8 +59,74 @@ namespace controller {
 		});
 	}
 
-	bool Controller_system::_jump_allowed(Input_controller_comp& c, float ground_dist)const {
-		return true;
+	void Controller_system::_move(Input_controller_comp& c, physics::Dynamic_body_comp& body,
+	                              float effective_move, Time dt) {
+		auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
+
+		auto ground_normal = body.ground_normal();
+		auto ground_angle = Angle{glm::atan(-ground_normal.x, ground_normal.y)};
+		auto grounded = body.grounded() && abs(ground_angle)<40_deg;
+
+		auto move_force = vec2{0,0};
+		auto walking = glm::abs(effective_move)>0.01f;
+		auto target_rotation = 0.f;
+
+
+		if(grounded) { // we are on the ground
+			c._air_time = 0_s;
+			target_rotation = ground_angle.value()*0.75f;
+		} else {
+			c._air_time += dt;
+		}
+		ctransform.rotation(Angle{glm::mix(ctransform.rotation().value(), target_rotation, 10*dt.value())});
+
+		auto same_dir = glm::sign(effective_move)==glm::sign(c._last_velocity) || glm::abs(c._last_velocity)<1.f;
+
+		if(walking && same_dir) {
+			c._moving_time += dt;
+
+			auto vel_target = effective_move * (grounded ? c._ground_velocity : c._air_velocity);
+			vel_target *= std::min(1.f, 0.1f+c._moving_time.value()/c._acceleration_time);
+			c._last_velocity = vel_target;
+
+			auto vel_diff = vel_target - body.velocity().x;
+
+			if(glm::sign(vel_diff)==glm::sign(vel_target) || glm::abs(vel_target)<=0.001f) {
+				move_force.x = vel_diff * body.mass() / dt.value();
+			}
+
+		} else {
+			if(glm::abs(c._last_velocity)>0.1f) {
+				// slow down
+				c._last_velocity*=0.90f / (dt.value()*60.f);
+				auto vel_diff = c._last_velocity - body.velocity().x;
+				move_force.x = vel_diff * body.mass() / dt.value();
+
+			} else {
+				c._last_velocity = 0.f;
+			}
+
+			c._moving_time = 0_s;
+		}
+
+
+		if(!grounded && body.grounded()) { // its a slope
+			move_force.x = glm::clamp(move_force.x ,-10.f, 10.f);
+		}
+
+		body.foot_friction(glm::length2(c._last_velocity)<0.1f);
+		body.apply_force(move_force);
+	}
+	void Controller_system::_start_jump(Input_controller_comp& c, physics::Dynamic_body_comp& body, Time) {
+		if(c._jump_cooldown_timer<=0_s && c._air_time<0.2_s) {
+			c._jump_cooldown_timer = c._jump_cooldown * 1_s;
+			body.velocity({body.velocity().x, c._jump_velocity});
+		}
+	}
+	void Controller_system::_stop_jump(Input_controller_comp& c, physics::Dynamic_body_comp&, Time dt) {
+		if(c._jump_cooldown_timer>0_s && c._air_time<0.01_s) {
+			c._jump_cooldown_timer -= dt;
+		}
 	}
 
 	void Controller_system::update(Time dt) {
@@ -78,8 +144,8 @@ namespace controller {
 
 		for(Input_controller_comp& c : _input_controllers) {
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
-			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
-			auto cpos = remove_units(ctransform.position()).xy();
+//			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
+//			auto cpos = remove_units(ctransform.position()).xy();
 //			auto dir = _mouse_look ? _target_dir-cpos : _target_dir;
 			// TODO: apply dir to sprite
 
@@ -94,87 +160,12 @@ namespace controller {
 			body.active(true); // TODO: false for light form
 
 
-			// TODO: cleanup this mess!!
+			_move(c, body, effective_move, dt);
 
-			auto ground =_physics_world.raycast(cpos, vec2{0,-1}, 20.f, c.owner());
-			auto ground_dist   = ground.process(999.f, [](auto& m) {return m.distance;});
-			auto ground_normal = ground.process(vec2{0,1}, [](auto& m) {return m.normal;});
-			auto move_force = vec2{0,0};
-			auto grounded = true;
-			auto walking = false;
-
-			if(ground_dist>1.0f) { // we are in the air
-				c._air_time += dt;
-				ctransform.rotation(Angle{glm::mix(ctransform.rotation().value(), 0.f, 20*dt.value())});
-
-				walking = glm::abs(effective_move)>0.01f;
-
-			} else { // we are on the ground
-				c._air_time = 0_s;
-
-				auto ground_angle = Angle{glm::atan(-ground_normal.x, ground_normal.y)};
-
-				ctransform.rotation(Angle{glm::mix(ctransform.rotation().value(), ground_angle.value()*0.75f, 10*dt.value())});
-
-				if(abs(ground_angle)<40_deg) {
-					walking = glm::abs(effective_move)>0.01f;
-
-				} else {
-					grounded = false;
-				}
-			}
-
-			if(walking) {
-				if(c._last_velocity!=0 && glm::sign(effective_move)!=glm::sign(c._last_velocity)) {
-					c._moving_time = 0_s;
-				}
-				c._last_velocity = effective_move;
-				c._moving_time += dt;
-
-				auto vel_target = effective_move * (ground_dist>1.0f ? c._air_velocity : c._ground_velocity);
-				vel_target *= std::min(1.f, c._moving_time.value()/c._acceleration_time);
-				c._last_velocity = vel_target;
-
-				auto vel_diff = vel_target - body.velocity().x;
-
-				if(glm::sign(vel_diff)==glm::sign(vel_target) || glm::abs(vel_target)<=0.001f) {
-					move_force.x = vel_diff * body.mass() / dt.value();
-				}
-
+			if(_jump) {
+				_start_jump(c, body, dt);
 			} else {
-				if(glm::abs(c._last_velocity)>0.1f) {
-					// slow down
-					c._last_velocity*=0.90f / (dt.value()*60.f);
-					auto vel_diff = c._last_velocity - body.velocity().x;
-					move_force.x = vel_diff * body.mass() / dt.value();
-
-				} else {
-					c._last_velocity = 0.f;
-				}
-
-				c._moving_time = 0_s;
-			}
-
-			body.foot_friction(glm::length2(c._last_velocity)<0.1f);
-
-			body.apply_force(move_force);
-
-
-			if(grounded && ground_dist>1.f) {
-				auto width = body.size().x;
-				auto ground_l =_physics_world.raycast(cpos-vec2{width/2.f,0}, vec2{0,-1}, 20.f, c.owner());
-				auto ground_r =_physics_world.raycast(cpos+vec2{width/2.f,0}, vec2{0,-1}, 20.f, c.owner());
-				grounded = std::min(ground_l.process(999.f, [](auto& m) {return m.distance;}),
-				                    ground_r.process(999.f, [](auto& m) {return m.distance;}) ) <= 1.f;
-			}
-
-
-			if(_jump && c._jump_cooldown_timer<=0_s && (grounded || c._air_time<0.05_s)) {
-				c._jump_cooldown_timer = c._jump_cooldown * 1_s;
-				body.velocity({body.velocity().x, c._jump_velocity});
-			}
-			if(!_jump && grounded) {
-				c._jump_cooldown_timer -= dt;
+				_stop_jump(c, body, dt);
 			}
 		}
 

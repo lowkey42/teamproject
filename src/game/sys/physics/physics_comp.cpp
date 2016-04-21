@@ -1,6 +1,10 @@
+#define GLM_SWIZZLE
+
 #include "physics_comp.hpp"
 
+#include "physics_system.hpp"
 #include "transform_comp.hpp"
+
 #include "polygon_separator.hpp"
 
 #include "../graphic/sprite_comp.hpp"
@@ -195,6 +199,37 @@ namespace physics {
 	auto Dynamic_body_comp::mass()const -> float {
 		if(!_body) return 1.f;
 		return _body->GetMass();
+	}
+	void Dynamic_body_comp::_update_ground_info(Physics_system& world) {
+		using namespace glm;
+
+		if(_def.shape==Body_shape::humanoid && _body) {
+			auto pos = remove_units(owner().get<Transform_comp>().get_or_throw().position()).xy();
+
+			auto ground = world.raycast(pos, vec2{0,-1}, 20.f, owner());
+			auto ground_dist   = ground.process(999.f, [](auto& m) {return m.distance;});
+			_ground_normal = ground.process(vec2{0,1}, [](auto& m) {return m.normal;});
+			_grounded = ground_dist*ground_dist < glm::length2(_size/2.f);
+
+			if(!_grounded) {
+				// check left/right side, too
+
+				auto ground_l = world.raycast(pos-vec2{_size.x/2.f,0}, vec2{0,-1}, 20.f, owner());
+				auto ground_l_dist   = ground_l.process(999.f, [](auto& m) {return m.distance;});
+
+				auto ground_r = world.raycast(pos+vec2{_size.x/2.f,0}, vec2{0,-1}, 20.f, owner());
+				auto ground_r_dist   = ground_r.process(999.f, [](auto& m) {return m.distance;});
+
+				if(ground_l_dist<ground_dist && ground_l_dist<=ground_r_dist) {
+					_grounded = ground_l_dist*ground_l_dist < glm::length2(_size/2.f);
+					_ground_normal = ground_l.get_or_throw().normal;
+
+				} else if(ground_r_dist<ground_dist && ground_r_dist<=ground_l_dist) {
+					_grounded = ground_r_dist*ground_r_dist < glm::length2(_size/2.f);
+					_ground_normal = ground_r.get_or_throw().normal;
+				}
+			}
+		}
 	}
 
 	void Static_body_comp::load(sf2::JsonDeserializer& state,

@@ -43,7 +43,9 @@ namespace controller {
 			bool _transform_pending = false;
 			bool _transform = false;
 
-			bool _jump_allowed(Input_controller_comp& c, float ground_dist)const;
+			static void _move(Input_controller_comp& c, physics::Dynamic_body_comp& body, float dir, Time dt);
+			static void _start_jump(Input_controller_comp& c, physics::Dynamic_body_comp& body, Time dt);
+			static void _stop_jump(Input_controller_comp& c, physics::Dynamic_body_comp& body, Time dt);
 	};
 
 }

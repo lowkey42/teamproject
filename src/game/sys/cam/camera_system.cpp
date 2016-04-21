@@ -39,7 +39,7 @@ namespace cam {
 		// TODO: should implement a more lazy camera. big dead-zone in the center, lerp to recenter,
 		//       when dead-zone is left or recenter-y after a ground-contact has been reestablisht + always recenter when in light-form
 		//       Maybe like the Super Mario World (platform-locked / water) camera.
-		_camera.position(target);
+		_camera.position(target*0.5 + _last_target*0.5);
 
 		_last_target = target;
 	}

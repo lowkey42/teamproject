@@ -61,6 +61,9 @@ namespace physics {
 			auto mass()const -> float;
 			auto size()const {return _size;}
 
+			auto grounded()const {return _grounded;}
+			auto ground_normal()const {return _ground_normal;}
+
 		private:
 			friend class Physics_system;
 
@@ -69,8 +72,11 @@ namespace physics {
 			b2Fixture* _fixture_foot = nullptr;
 			bool _active = true;
 			glm::vec2 _size;
+			bool _grounded = true;
+			glm::vec2 _ground_normal{0,1};
 
 			void _update_body(b2World& world);
+			void _update_ground_info(Physics_system&);
 	};
 
 	class Static_body_comp : public ecs::Component<Static_body_comp> {

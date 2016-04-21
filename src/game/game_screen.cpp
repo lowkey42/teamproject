@@ -33,6 +33,11 @@ namespace lux {
 					break;
 			}
 		});
+		_mailbox.subscribe_to([&](sys::physics::Collision& c){
+			if(c.impact>40.f) {
+				DEBUG("Smashed to death: "<<c.a<<" <=>"<<c.b<<" | "<<c.impact);
+			}
+		});
 
 		_render_queue.shared_uniforms(renderer::make_uniform_map("vp", _camera_ui.vp()));
 

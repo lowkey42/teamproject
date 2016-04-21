@@ -6,6 +6,8 @@
 
 #include <Box2D/Box2D.h>
 
+#include <unordered_set>
+
 
 namespace lux {
 namespace sys {
@@ -24,11 +26,32 @@ namespace physics {
 		constexpr auto max_depth_offset = 2.f;
 	}
 
-	Physics_system::Physics_system(Engine&, ecs::Entity_manager& ecs)
+	struct Physics_system::Contact_listener : public b2ContactListener {
+		util::Message_bus& bus;
+		Contact_listener(Engine& e) : bus(e.bus()) {}
+
+		void PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) override {
+			auto a = static_cast<ecs::Entity*>(contact->GetFixtureA()->GetBody()->GetUserData());
+			auto b = static_cast<ecs::Entity*>(contact->GetFixtureB()->GetBody()->GetUserData());
+
+			if(a!=nullptr && b!=nullptr) {
+				auto impact = 0.f;
+				for(auto i=0; i<impulse->count; ++i) {
+					impact+=impulse->normalImpulses[i];
+				}
+
+				bus.send<Collision>(a, b, impact);
+			}
+		}
+	};
+
+	Physics_system::Physics_system(Engine& engine, ecs::Entity_manager& ecs)
 	    : _bodies_dynamic(ecs.list<Dynamic_body_comp>()),
 	      _bodies_static(ecs.list<Static_body_comp>()),
+	      _listener(std::make_unique<Contact_listener>(engine)),
 	      _world(std::make_unique<b2World>(b2Vec2{gravity_x,gravity_y})) {
 
+		_world->SetContactListener(_listener.get());
 		_world->SetAutoClearForces(false);
 	}
 	Physics_system::~Physics_system() {}
@@ -44,8 +67,8 @@ namespace physics {
 			_world->Step(time_step, velocity_iterations, position_iterations);
 		}
 		_world->ClearForces();
-		_set_positions(steps/(steps+1.f) + _dt_acc / time_step);// TODO: interpolation
-		//_set_positions(1.f);
+		//_set_positions(steps/(steps+1.f) + _dt_acc / time_step);// TODO: interpolation causes inconsistent slow-downs
+		_set_positions(1.f);
 	}
 
 	void Physics_system::_get_positions() {
@@ -85,6 +108,8 @@ namespace physics {
 			if(!comp._def.fixed_rotation) {
 				transform.rotation(Angle{comp._body->GetAngle()});
 			}
+
+			comp._update_ground_info(*this);
 		}
 	}
 
