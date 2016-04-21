@@ -23,6 +23,8 @@ namespace cam {
 		public:
 			Camera_system(Engine&, ecs::Entity_manager&);
 
+			void reset_position(Position p);
+
 			auto camera()const -> auto& {return _camera;}
 
 			void update(Time);
@@ -30,10 +32,14 @@ namespace cam {
 		private:
 			Camera_target_comp::Pool& _targets;
 			renderer::Camera_sidescroller _camera;
+			bool _first_target = true;
 			Position _last_target;
+			std::array<Position, 4> _target_history;
+			int _target_history_curr;
+			bool _moving = false;
 
 			auto _calc_target() -> Position;
-			// TODO
+			auto _smooth_target(Position p, Time dt) -> Position;
 	};
 
 }

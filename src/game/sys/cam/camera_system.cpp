@@ -3,6 +3,7 @@
 #include "camera_system.hpp"
 
 #include "../physics/transform_comp.hpp"
+#include "../physics/physics_comp.hpp"
 
 #include <core/renderer/graphics_ctx.hpp>
 
@@ -12,11 +13,17 @@ namespace cam {
 
 	using namespace unit_literals;
 
-	constexpr auto cam_distance = 5_m;
+	namespace {
+		constexpr auto cam_distance = 5_m;
+	}
 
 	Camera_system::Camera_system(Engine& engine, ecs::Entity_manager& ecs)
 	    : _targets(ecs.list<Camera_target_comp>()),
 	      _camera(engine.graphics_ctx().viewport(), 80_deg, cam_distance, 100_m) {
+	}
+	void Camera_system::reset_position(Position p) {
+		std::fill(std::begin(_target_history), std::end(_target_history), p);
+		_last_target = p;
 	}
 
 	auto Camera_system::_calc_target() -> Position {
@@ -25,21 +32,56 @@ namespace cam {
 
 		} else if(_targets.size()>1) {
 			// TODO: magic?
+			// calculate the avg position of all targets => x,y
+			// use the max distance to the avg position to calculate the camera distance => z
 			return _last_target;
 
 		} else {
 			auto& cam = *_targets.begin();
-			return Position{cam.owner().get<physics::Transform_comp>().get_or_throw().position().xy(), cam_distance};
+			auto& transform = cam.owner().get<physics::Transform_comp>().get_or_throw();
+			auto grounded = cam.owner().get<physics::Dynamic_body_comp>().process(true, [](auto& b){return b.grounded();});
+			auto light_form = false; // TODO
+
+			auto x = transform.position().x;
+			auto y = transform.position().y;
+
+			if(!grounded && !light_form && glm::abs(remove_unit(_last_target.y-y))<6.f) {
+				y = _last_target.y;
+			}
+
+			if(glm::abs(remove_unit(_last_target.x-x))<8.f && !_moving)
+				x = _last_target.x;
+
+			_moving = glm::abs(remove_unit(_last_target.x-x))>0.05f;
+
+			return Position{x, y, cam_distance};
 		}
 	}
 
-	void Camera_system::update(Time) {
+	auto Camera_system::_smooth_target(Position curr, Time dt) -> Position {
+		auto sum = Position{0_m,0_m,0_m};
+		for(auto v : _target_history) {
+			sum += v;
+		}
+		curr = glm::mix(remove_units(sum)/float(_target_history.size()), remove_units(curr), dt.value()*10.f)*1_m;
+
+		_target_history_curr = (_target_history_curr+1) % _target_history.size();
+		_target_history[_target_history_curr] = curr;
+		return curr;
+	}
+
+	void Camera_system::update(Time dt) {
 		auto target = _calc_target();
 
-		// TODO: should implement a more lazy camera. big dead-zone in the center, lerp to recenter,
-		//       when dead-zone is left or recenter-y after a ground-contact has been reestablisht + always recenter when in light-form
-		//       Maybe like the Super Mario World (platform-locked / water) camera.
-		_camera.position(target*0.5 + _last_target*0.5);
+		if(_first_target) {
+			reset_position(target);
+			_first_target = false;
+		}
+
+		target = _smooth_target(target, dt);
+		target.x = glm::mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
+		target.y = glm::mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*30.f,1.f))*1_m;
+		_camera.position(target);
 
 		_last_target = target;
 	}

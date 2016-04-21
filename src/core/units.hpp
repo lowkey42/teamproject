@@ -154,6 +154,7 @@ namespace lux {
 	using Velocity = glm::detail::tvec3<Speed, glm::highp>;
 	using Acceleration = glm::detail::tvec3<Speed_per_time, glm::highp>;
 
+	inline Position operator/(Position a, float b)noexcept {return Position(a.x/b, a.y/b, a.z/b);}
 	inline Position operator*(Position a, float b)noexcept {return Position(a.x*b, a.y*b, a.z*b);}
 	inline Position operator*(float b, Position a)noexcept {return Position(a.x*b, a.y*b, a.z*b);}
 	inline Dir_force operator*(Dir_force a, float b)noexcept {return Dir_force(a.x*b, a.y*b, a.z*b);}
