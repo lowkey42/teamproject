@@ -28,7 +28,108 @@ namespace lux {
 				engine.graphics_ctx().win_height(),
 				true, true};
 		}
+		auto create_blur_framebuffer(Engine& engine) {
+			return Framebuffer{
+				engine.graphics_ctx().win_width()/2,
+				engine.graphics_ctx().win_height()/2,
+				false, false};
+		}
 	}
+
+	struct Meta_system::Post_renderer {
+		public:
+			Post_renderer(Engine& engine) :
+			    graphics_ctx(engine.graphics_ctx()),
+			    canvas{create_framebuffer(engine), create_framebuffer(engine)},
+			    blur_canvas{create_blur_framebuffer(engine), create_blur_framebuffer(engine)}
+			{
+				render_queue.shared_uniforms(std::make_unique<Global_uniform_map>());
+
+				auto blur_size = glm::vec2{engine.graphics_ctx().win_width()/2,
+				                           engine.graphics_ctx().win_height()/2};
+
+				post_shader.attach_shader(engine.assets().load<Shader>("vert_shader:post"_aid))
+				            .attach_shader(engine.assets().load<Shader>("frag_shader:post"_aid))
+				            .bind_all_attribute_locations(simple_vertex_layout)
+				            .build()
+				            .uniforms(make_uniform_map(
+				                "texture", int(Texture_unit::last_frame),
+				                "texture_glow", int(Texture_unit::temporary),
+				                "gamma", 2.2f,
+				                "exposure", 1.0f,
+				                "bloom", (graphics_ctx.bloom() ? 1.f : 0.f)
+				            ));
+
+				blur_shader.attach_shader(engine.assets().load<Shader>("vert_shader:blur"_aid))
+				           .attach_shader(engine.assets().load<Shader>("frag_shader:blur"_aid))
+				           .bind_all_attribute_locations(simple_vertex_layout)
+				           .build()
+				           .uniforms(make_uniform_map(
+				                "texture", int(Texture_unit::temporary),
+				                "texture_size", blur_size
+				            ));
+
+				glow_shader.attach_shader(engine.assets().load<Shader>("vert_shader:glow_filter"_aid))
+				           .attach_shader(engine.assets().load<Shader>("frag_shader:glow_filter"_aid))
+				           .bind_all_attribute_locations(simple_vertex_layout)
+				           .build()
+				           .uniforms(make_uniform_map(
+				                "texture", int(Texture_unit::last_frame)
+				            ));
+			}
+
+		// TODO
+			Graphics_ctx& graphics_ctx;
+			mutable renderer::Command_queue render_queue;
+			renderer::Shader_program post_shader;
+			renderer::Shader_program blur_shader;
+			renderer::Shader_program glow_shader;
+
+			renderer::Framebuffer canvas[2];
+			renderer::Framebuffer blur_canvas[2];
+			bool                  canvas_first_active = true;
+
+			auto& active_canvas() {
+				return canvas[canvas_first_active ? 0: 1];
+			}
+
+			void flush() {
+				{
+					auto fbo_cleanup = Framebuffer_binder{active_canvas()};
+					active_canvas().clear();
+
+					render_queue.flush();
+				}
+
+				if(graphics_ctx.bloom()) {
+					auto fbo_cleanup = Framebuffer_binder{blur_canvas[0]};
+					blur_canvas[0].clear();
+
+					glow_shader.bind();
+					renderer::draw_fullscreen_quad(active_canvas(), Texture_unit::last_frame);
+
+					blur_shader.bind();
+
+					constexpr auto steps = 4;
+					for(auto i : util::range(steps*2)) {
+						auto src = i%2;
+						auto dest = src>0?0:1;
+
+						auto fbo_cleanup = Framebuffer_binder{blur_canvas[dest]};
+
+						blur_shader.set_uniform("horizontal", i%2==0);
+						renderer::draw_fullscreen_quad(blur_canvas[src], Texture_unit::temporary);
+					}
+
+					blur_canvas[0].bind(int(Texture_unit::temporary));
+				}
+
+				post_shader.bind().set_uniform("exposure", 1.0f);
+				renderer::draw_fullscreen_quad(active_canvas(), Texture_unit::last_frame);
+
+				canvas_first_active = !canvas_first_active;
+			}
+	};
 
 	Meta_system::Meta_system(Engine& engine)
 	    : entity_manager(engine.assets()),
@@ -40,18 +141,8 @@ namespace lux {
 	      renderer(engine.bus(), entity_manager, engine.assets()),
 
 	      _engine(engine),
-	      _canvas{create_framebuffer(engine), create_framebuffer(engine)},
-	      _skybox(engine.assets(), "tex_cube:default_env"_aid /*TODO: should be loaded*/) {
-
-		_render_queue.shared_uniforms(std::make_unique<Global_uniform_map>());
-
-		_post_shader.attach_shader(engine.assets().load<Shader>("vert_shader:post"_aid))
-		            .attach_shader(engine.assets().load<Shader>("frag_shader:post"_aid))
-		            .bind_all_attribute_locations(simple_vertex_layout)
-		            .build()
-		            .uniforms(make_uniform_map(
-		                "texture", int(Texture_unit::temporary), "gamma", 2.2f, "exposure", 1.0f
-		            ));
+	      _skybox(engine.assets(), "tex_cube:default_env"_aid),
+	      _post_renderer(std::make_unique<Post_renderer>(engine)) {
 	}
 
 	Meta_system::~Meta_system() {
@@ -90,30 +181,21 @@ namespace lux {
 	void Meta_system::draw(util::maybe<const renderer::Camera&> cam_mb) {
 		const renderer::Camera& cam = cam_mb.get_or_other(camera.camera());
 
-		auto uniforms = _render_queue.shared_uniforms();
+		auto& queue = _post_renderer->render_queue;
+		auto uniforms = queue.shared_uniforms();
 
 		renderer.draw_shadowcaster(lights.shadowcaster_batch(), cam);
-		lights.prepare_draw(_render_queue, cam);
+		lights.prepare_draw(queue, cam);
 
 		uniforms->emplace("vp", cam.vp());
+		uniforms->emplace("vp_inv", glm::inverse(cam.vp()));
 		uniforms->emplace("eye", cam.eye_position());
 
-		renderer.draw(_render_queue, cam);
+		renderer.draw(queue, cam);
 
-		_skybox.draw(_render_queue);
+		_skybox.draw(queue);
 
-		{
-			auto fbo_cleanup = Framebuffer_binder{_active_canvas()};
-			_active_canvas().clear();
-
-			_render_queue.flush();
-		}
-
-		_post_shader.bind()
-		        .set_uniform("exposure", 1.0f); // TODO: calc real exposure
-		renderer::draw_fullscreen_quad(_active_canvas());
-
-		_canvas_first_active = !_canvas_first_active;
+		_post_renderer->flush();
 	}
 
 }

@@ -59,6 +59,8 @@ int main(int argc, char** argv, char** env) {
 }
 
 void init(int argc, char** argv, char** env) {
+	const auto app_name = "Teamproject";
+
 	INFO("Game started from: "<<argv[0]<<"\n"
 	     <<"Working dir: "<<asset::pwd()<<"\n"
 	     <<"Version: "<<version_info::name<<"\n"
@@ -69,7 +71,7 @@ void init(int argc, char** argv, char** env) {
 
 	try {
 		util::init_stacktrace(argv[0]);
-		engine.reset(new Engine("Teamproject", argc, argv, env));
+		engine.reset(new Engine(app_name, argc, argv, env));
 		engine->screens().enter<Editor_screen>("test");
 
 	} catch (const util::Error& ex) {

@@ -17,7 +17,7 @@ void main() {
 
 	//height= 1.0;// TODO: remove and blur instead to remove jitter
 
-	if(alpha < 0.1 || height < 0.7) {
+	if(alpha < 0.99 || height < 0.7) {
 		discard;
 	}
 

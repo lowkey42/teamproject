@@ -10,6 +10,7 @@ attribute float shadow_resistence;
 varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
+varying vec3 pos_vp_frag;
 varying float shadow_resistence_frag;
 
 varying mat3 TBN;
@@ -17,8 +18,10 @@ varying mat3 TBN;
 uniform mat4 vp;
 
 void main() {
-	gl_Position = vp * vec4(position, 1);
+	vec4 pos_vp = vp * vec4(position, 1);
+	gl_Position = pos_vp;
 
+	pos_vp_frag = pos_vp.xyz / pos_vp.w;
 	uv_frag = uv;
 	uv_clip_frag = uv_clip;
 	pos_frag = position;

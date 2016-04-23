@@ -67,21 +67,13 @@ namespace lux {
 			sys::graphic::Graphic_system renderer;
 
 		private:
+			struct Post_renderer;
+
 			Engine& _engine;
 
-			mutable renderer::Command_queue _render_queue;
-
-			renderer::Shader_program _post_shader;
-
-			renderer::Framebuffer _canvas[2];
-			bool                  _canvas_first_active = true;
-
 			renderer::Skybox _skybox;
+			std::unique_ptr<Post_renderer> _post_renderer;
 
-
-			auto& _active_canvas() {
-				return _canvas[_canvas_first_active ? 0: 1];
-			}
 	};
 
 }

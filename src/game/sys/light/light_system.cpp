@@ -109,18 +109,15 @@ namespace light {
 		_setup_uniforms(*uniforms, lights);
 
 
-		auto camp = camera.eye_position();
-		auto vp = glm::ortho(-50.f, 50.f, -50.f, 50.f, -10.f, 10.f)
-		          * glm::translate(glm::vec3(camp.x,camp.y,0.f));
-
+		auto& vp = camera.vp();
 		uniforms->emplace("vp", vp);
-
 		_draw_occlusion_map(uniforms);
 
 		_shadowmap_shader.bind();
 		auto transform = [&vp](auto* transform) {
 			if(!transform) return glm::vec2(1000,0);
-			return (vp*glm::vec4(remove_units(transform->position()), 1.f)).xy();
+			auto p = vp*glm::vec4(remove_units(transform->position()), 1.f);
+			return p.xy() / p.w;
 		};
 
 		_shadowmap_shader.set_uniform("VP_inv", glm::inverse(vp));
@@ -156,6 +153,7 @@ namespace light {
 		uniforms.emplace("light_sun.color", _sun_light);
 		uniforms.emplace("light_sun.dir",   _sun_dir);
 
+		// TODO: fade out light color, when they left the screen
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
 	uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
@@ -164,7 +162,7 @@ namespace light {
 			                                               + lights[N].light->_direction.value());\
 \
 			uniforms.emplace("light["#N"].angle", lights[N].light->_angle.value());\
-			uniforms.emplace("light["#N"].color", lights[N].light->_color);\
+			uniforms.emplace("light["#N"].color", lights[N].light->_color); \
 			uniforms.emplace("light["#N"].factors", lights[N].light->_factors);\
 		} else {\
 			uniforms.emplace("light["#N"].color", glm::vec3(0,0,0));\

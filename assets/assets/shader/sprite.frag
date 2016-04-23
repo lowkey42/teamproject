@@ -16,6 +16,7 @@ struct Point_light {
 varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
+varying vec3 pos_vp_frag;
 varying float shadow_resistence_frag;
 varying mat3 TBN;
 
@@ -34,7 +35,8 @@ uniform Dir_light light_sun;
 uniform Point_light light[4];
 
 uniform vec3 eye;
-
+uniform mat4 vp;
+uniform mat4 vp_inv;
 
 float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);
@@ -95,8 +97,9 @@ float my_smoothstep(float edge0, float edge1, float x) {
 }
 
 float sample_shadow_ray(vec2 tc, float r) {
-	float d = texture2D(shadowmaps_tex, tc).r*50.0;
-	return my_smoothstep(0.1, 0.2, r-d);
+	float d = texture2D(shadowmaps_tex, tc).r*4.0;
+	if(r>d) return 1.0;
+	return my_smoothstep(0.1, 0.2, r-d); // TODO: causes light bleeding
 }
 
 float sample_shadow(float light_num, float r, vec3 dir) {
@@ -131,16 +134,20 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 
 vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance, float light_num) {
 	vec3 light_dir = light.pos.xyz - pos;
-	float light_dist_linear = length(light_dir.xy);
-	light_dist_linear-= abs(pos.z) * light_dist_linear/8.0; // perspective correction
-
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
 
-	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist_linear*light.factors.z), 0.0, 1.0);
+	// TODO: move matrix-multiplications to main program or vertex shader
+	vec4 lpos_ndc = vp * vec4(light.pos.xy, 0.0, 1.0);
+	vec4 pos_ndc = vp * vec4(pos, 1.0);
+	vec3 light_dir_linear = vec3(lpos_ndc.xy/lpos_ndc.w - pos_ndc.xy/pos_ndc.w, 0);
+	float light_dist_linear = length(light_dir_linear);
+	light_dir_linear /= light_dist_linear;
 
-	// TODO: integrate angle and direction attenuation
-	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir), 1.0, shadow_resistence_frag*0.9);
+
+	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z), 0.0, 1.0);
+
+	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir_linear), 1.0, shadow_resistence_frag*0.9);
 
 	const float PI = 3.141;
 	float theta = atan(light_dir.y, -light_dir.x)-light.dir;
@@ -184,7 +191,7 @@ void main() {
 	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 
 
-	for(int i=0; i<1; i++) {
+	for(int i=0; i<4; i++) {
 		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance, float(i));
 	}
 

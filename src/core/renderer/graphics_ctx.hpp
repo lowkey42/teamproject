@@ -35,21 +35,18 @@ namespace renderer {
 			auto win_width()const noexcept{return _win_width;}
 			auto win_height()const noexcept{return _win_height;}
 			auto viewport()const noexcept {return glm::vec4{0, 0, _win_width, _win_height};}
+			auto gamma()const noexcept {return _gamma;}
+			auto bloom()const noexcept {return _bloom;}
 
-			auto max_screenshake()const noexcept -> float;
-			auto brightness()const noexcept {return _brightness;}
-
-			void resolution(int width, int height, float max_screenshake=-1);
-
-			void toggle_screenschake(bool enable);
+			void settings(int width, int height, bool fullscreen, float gamma, bool bloom);
 
 		private:
 			asset::Asset_manager& _assets;
 			std::string _name;
 			int _win_width, _win_height;
 			bool _fullscreen;
-			float _max_screenshake;
-			float _brightness;
+			float _gamma;
+			bool _bloom;
 			bool _screenshake_enabled = true;
 
 			std::unique_ptr<SDL_Window,void(*)(SDL_Window*)> _window;

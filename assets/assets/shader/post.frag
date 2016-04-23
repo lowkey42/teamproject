@@ -7,6 +7,7 @@ uniform sampler2D texture;
 uniform sampler2D texture_glow;
 uniform float exposure;
 uniform float gamma;
+uniform float bloom;
 
 
 vec3 tone_mapping(vec3 color) {
@@ -22,7 +23,7 @@ vec3 tone_mapping(vec3 color) {
 }
 
 void main() {
-	vec4 color = texture2D(texture, uv_frag);// + texture2D(texture_glow, uv_frag);
+	vec4 color = texture2D(texture, uv_frag) + texture2D(texture_glow, uv_frag)*bloom;
 	
 	gl_FragColor = vec4(tone_mapping(color.rgb), 1.0);
 }

@@ -20,10 +20,15 @@
 	#include <emscripten.h>
 #endif
 
+using namespace lux::util;
+
 namespace {
 
 	std::string append_file(const std::string& folder, const std::string file) {
-		return folder+PHYSFS_getDirSeparator()+file;
+		if(ends_with(folder, PHYSFS_getDirSeparator()) || starts_with(file, PHYSFS_getDirSeparator()))
+			return folder+file;
+		else
+			return folder+PHYSFS_getDirSeparator()+file;
 	}
 	void create_dir(const std::string& dir) {
 #ifdef WIN
@@ -134,9 +139,10 @@ namespace asset {
 
 		create_dir(write_dir_parent);
 
-		std::string write_dir = write_dir_parent+PHYSFS_getDirSeparator()+app_name;
+		std::string write_dir = append_file(write_dir_parent, app_name);
 		create_dir(write_dir);
 
+		INFO("Write dir: "<<write_dir);
 
 		if(!PHYSFS_addToSearchPath(PHYSFS_getBaseDir(), 1) ||
 				!PHYSFS_addToSearchPath(append_file(PHYSFS_getBaseDir(), "..").c_str(), 1)  ||
