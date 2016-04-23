@@ -136,10 +136,11 @@ namespace physics {
 				if(fixture->IsSensor())
 					return -1.f; // ignore
 
-				if(exclude && static_cast<ecs::Entity*>(fixture->GetBody()->GetUserData())==exclude)
+				auto hit_entity = static_cast<ecs::Entity*>(fixture->GetBody()->GetUserData());
+				if(exclude && hit_entity==exclude)
 					return -1.f; // ignore
 
-				result = Raycast_result{glm::vec2{normal.x, normal.y}, fraction*max_dist};
+				result = Raycast_result{glm::vec2{normal.x, normal.y}, fraction*max_dist, hit_entity};
 				return fraction;
 			}
 

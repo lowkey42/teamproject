@@ -19,13 +19,19 @@ namespace lux {
 namespace sys {
 namespace cam {
 
+	enum class Camera_move_type {
+		lazy, centered
+	};
+
 	class Camera_system {
 		public:
 			Camera_system(Engine&, ecs::Entity_manager&);
 
 			void reset_position(Position p);
+			void type(Camera_move_type t) {_type_changed=_type!=t; _type = t;}
 
 			auto camera()const -> auto& {return _camera;}
+			auto screen_to_world(glm::vec2 screen_pos) const noexcept -> glm::vec3;
 
 			void update(Time);
 
@@ -37,6 +43,9 @@ namespace cam {
 			std::array<Position, 4> _target_history;
 			int _target_history_curr;
 			bool _moving = false;
+
+			bool _type_changed = false;
+			Camera_move_type _type = Camera_move_type::lazy;
 
 			auto _calc_target() -> Position;
 			auto _smooth_target(Position p, Time dt) -> Position;

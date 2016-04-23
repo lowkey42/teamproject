@@ -24,6 +24,7 @@ namespace physics {
 	struct Raycast_result {
 		glm::vec2 normal;
 		float distance;
+		ecs::Entity* entity=nullptr;
 	};
 
 	struct Collision {

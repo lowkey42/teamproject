@@ -1,4 +1,4 @@
-/** A simple camera that follows its entity **********************************
+/** System managing all gameplay components **********************************
  *                                                                           *
  * Copyright (c) 2016 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
@@ -6,6 +6,8 @@
 \*****************************************************************************/
 
 #pragma once
+
+#include "enlightened_comp.hpp"
 
 #include <core/renderer/camera.hpp>
 #include <core/engine.hpp>
@@ -16,22 +18,29 @@
 namespace lux {
 namespace sys {
 namespace cam {
-
 	class Camera_system;
+}
+namespace physics {
+	class Dynamic_body_comp;
+	class Physics_system;
+}
+namespace gameplay {
 
-	class Camera_target_comp : public ecs::Component<Camera_target_comp> {
+	class Gameplay_system {
 		public:
-			static constexpr const char* name() {return "Camera_target";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			Gameplay_system(Engine&, ecs::Entity_manager&, physics::Physics_system& physics_world,
+			                cam::Camera_system& camera_sys);
 
-			Camera_target_comp(ecs::Entity& owner);
-
-
+			void update(Time);
 
 		private:
-			friend class Camera_system;
+			util::Mailbox_collection _mailbox;
+			Enlightened_comp::Pool& _enlightened;
+			physics::Physics_system& _physics_world;
+			cam::Camera_system& _camera_sys;
+
+			Time _light_timer{0};
+			// TODO
 	};
 
 }

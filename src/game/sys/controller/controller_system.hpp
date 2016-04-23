@@ -42,6 +42,7 @@ namespace controller {
 			glm::vec2 _target_dir;
 			bool _transform_pending = false;
 			bool _transform = false;
+			bool _transform_canceled = false;
 
 			static void _move(Input_controller_comp& c, physics::Dynamic_body_comp& body, float dir, Time dt);
 			static void _start_jump(Input_controller_comp& c, physics::Dynamic_body_comp& body, Time dt);

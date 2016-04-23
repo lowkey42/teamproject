@@ -31,7 +31,8 @@
 
             "mouse_buttons": {
                 {"button":1, "clicks":0}: {"type":"continuous", "action":"transform"}
-            }
+            },
+            "mouse_movement": {"type": "range", "action": "mouse_look"}
         },
 
 		"editor": {

@@ -138,6 +138,7 @@ namespace lux {
 	      camera(engine, entity_manager),
 	      lights(engine.bus(), entity_manager, engine.assets()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
+	      gameplay(engine, entity_manager, physics, camera),
 
 	      _engine(engine),
 	      _skybox(engine.assets(), "tex_cube:default_env"_aid),
@@ -168,6 +169,7 @@ namespace lux {
 		if(mask & Update::movements) {
 			controller.update(dt);
 			physics.update(dt);
+			gameplay.update(dt);
 			scene_graph.update(dt);
 			camera.update(dt);
 		}

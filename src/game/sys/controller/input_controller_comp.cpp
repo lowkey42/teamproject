@@ -4,8 +4,7 @@ namespace lux {
 namespace sys {
 namespace controller {
 
-	void Input_controller_comp::load(sf2::JsonDeserializer& state,
-	                                 asset::Asset_manager&) {
+	void Input_controller_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
 		state.read_virtual(
 			sf2::vmember("air_velocity", _air_velocity),
 			sf2::vmember("ground_velocity", _ground_velocity),

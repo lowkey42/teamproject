@@ -2,7 +2,7 @@
     "Transform":{
     },
     "Sprite": {
-        "material": "mat:test",
+        "material": "mat:player",
         "size": {"x":0.75, "y":1},
         "shadowcaster": false
     },
@@ -17,6 +17,11 @@
     	"acceleration_time": 0.5,
     	"jump_velocity": 20.0,
     	"jump_cooldown": 0.025
+    },
+    "Enlightened": {
+    	"velocity": 30.0,
+    	"air_transformations": 1,
+        "radius": 0.25
     },
     "Dynamic_body": {
     	"shape": "humanoid",

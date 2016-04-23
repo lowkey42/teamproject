@@ -1,3 +1,5 @@
+#define GLM_SWIZZLE
+
 #include "game_screen.hpp"
 
 #include "level.hpp"
@@ -47,10 +49,16 @@ namespace lux {
 	void Game_screen::_on_enter(util::maybe<Screen&> prev) {
 		_engine.input().enable_context("game"_strid);
 		_mailbox.enable();
+		_engine.input().screen_to_world_coords([&](auto p) {
+			return _systems.camera.screen_to_world(p).xy();
+		});
 		//_engine.audio_ctx().play_music(_engine.assets().load<audio::Music>("music:intro"_aid));
 	}
 
 	void Game_screen::_on_leave(util::maybe<Screen&> next) {
+		_engine.input().screen_to_world_coords([](auto p) {
+			return p;
+		});
 		_mailbox.disable();
 
 	}

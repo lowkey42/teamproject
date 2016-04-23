@@ -6,6 +6,8 @@
 #include "../physics/transform_comp.hpp"
 #include "../physics/physics_system.hpp"
 
+#include "../gameplay/enlightened_comp.hpp"
+
 #include <core/input/events.hpp>
 
 
@@ -33,12 +35,17 @@ namespace controller {
 
 				case "jump"_strid:
 					_jump = e.begin;
+					if(_jump && _transform_pending) {
+						_transform_canceled = true;
+						_transform_pending = false;
+					}
 					break;
 
 				case "transform"_strid:
 					_transform_pending = e.begin;
 					if(!e.begin) {
-						_transform = true;
+						_transform = !_transform_canceled;
+						_transform_canceled = false;
 					}
 					break;
 			}
@@ -146,20 +153,46 @@ namespace controller {
 
 		for(Input_controller_comp& c : _input_controllers) {
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
-//			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
-//			auto cpos = remove_units(ctransform.position()).xy();
-//			auto dir = _mouse_look ? _target_dir-cpos : _target_dir;
+			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
+			auto cpos = remove_units(ctransform.position()).xy();
+			auto dir = _mouse_look ? glm::normalize(_target_dir-cpos) : _target_dir;
+			if(!_mouse_look) {
+				dir.y*=-1.0f;
+			}
 			// TODO: apply dir to sprite
 
-			if(_transform_pending) { // TODO: check if on ground
-				// TODO: set animation
-				body.active(false); // disable player collision
+			auto enlightened_comp = c.owner().get<gameplay::Enlightened_comp>();
+			enlightened_comp >> [&](gameplay::Enlightened_comp& light) {
+				bool transformation_allowed = body.grounded() || light.can_air_transform();
+
+				// transforming to physical
+				if(_transform_pending && light.enabled()) {
+					light.start_transformation();
+				}
+
+				// transforming to light
+				if(_transform_pending && transformation_allowed && light.disabled()) {
+					light.start_transformation();
+				}
+				if(!light.was_light()) {
+					light.direction(dir);
+				}
+
+				// jump to cancel
+				if(_jump) {
+					light.cancel_transformation();
+				}
+
+				// execute
+				if(_transform && (transformation_allowed || light.was_light())) {
+					light.finish_transformation();
+				}
+			};
+
+			bool is_light = enlightened_comp.process(false, [](auto& l){return !l.disabled();});
+
+			if(is_light)
 				continue;
-			}
-			if(_transform) {
-				// TODO: toggle transformation
-			}
-			body.active(true); // TODO: false for light form
 
 
 			_move(c, body, effective_move, dt);

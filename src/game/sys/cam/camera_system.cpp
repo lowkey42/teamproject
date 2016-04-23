@@ -40,19 +40,20 @@ namespace cam {
 			auto& cam = *_targets.begin();
 			auto& transform = cam.owner().get<physics::Transform_comp>().get_or_throw();
 			auto grounded = cam.owner().get<physics::Dynamic_body_comp>().process(true, [](auto& b){return b.grounded();});
-			auto light_form = false; // TODO
 
 			auto x = transform.position().x;
 			auto y = transform.position().y;
 
-			if(!grounded && !light_form && glm::abs(remove_unit(_last_target.y-y))<6.f) {
-				y = _last_target.y;
+			if(_type == Camera_move_type::lazy) {
+				if(!grounded && glm::abs(remove_unit(_last_target.y-y))<6.f) {
+					y = _last_target.y;
+				}
+
+				if(glm::abs(remove_unit(_last_target.x-x))<8.f && !_moving)
+					x = _last_target.x;
+
+				_moving = glm::abs(remove_unit(_last_target.x-x))>0.05f;
 			}
-
-			if(glm::abs(remove_unit(_last_target.x-x))<8.f && !_moving)
-				x = _last_target.x;
-
-			_moving = glm::abs(remove_unit(_last_target.x-x))>0.05f;
 
 			return Position{x, y, cam_distance};
 		}
@@ -73,17 +74,27 @@ namespace cam {
 	void Camera_system::update(Time dt) {
 		auto target = _calc_target();
 
-		if(_first_target) {
+		if(_first_target || _type_changed) {
 			reset_position(target);
 			_first_target = false;
+			_type_changed = false;
 		}
 
-		target = _smooth_target(target, dt);
-		target.x = glm::mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
-		target.y = glm::mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*30.f,1.f))*1_m;
+		if(_type == Camera_move_type::lazy) {
+			target = _smooth_target(target, dt);
+			target.x = glm::mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
+			target.y = glm::mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*30.f,1.f))*1_m;
+		} else {
+			target = glm::mix(remove_units(_last_target), remove_units(target), std::min(dt.value()*30.f,1.f)) * 1_m;
+		}
 		_camera.position(target);
 
 		_last_target = target;
+	}
+	auto Camera_system::screen_to_world(glm::vec2 screen_pos) const noexcept -> glm::vec3 {
+		auto exp_p = remove_units(_last_target);
+		exp_p.z = 0.0;
+		return _camera.screen_to_world(screen_pos, exp_p);
 	}
 
 }

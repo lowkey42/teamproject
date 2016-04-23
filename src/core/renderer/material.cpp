@@ -15,6 +15,7 @@ namespace renderer {
 
 		Texture_ptr black;
 		Texture_ptr white;
+		Texture_ptr material;
 		Texture_ptr normal;
 	}
 
@@ -31,7 +32,7 @@ namespace renderer {
 
 		_albedo    = load_or_default(desc.albedo, black);
 		_normal    = load_or_default(desc.normal, normal);
-		_material  = load_or_default(desc.material, black);
+		_material  = load_or_default(desc.material, material);
 		_height    = load_or_default(desc.height, white);
 	}
 
@@ -46,6 +47,7 @@ namespace renderer {
 		black = assets.load<Texture>("tex:black"_aid);
 		white = assets.load<Texture>("tex:white"_aid);
 		normal = assets.load<Texture>("tex:normal"_aid);
+		material = assets.load<Texture>("tex:material"_aid);
 	}
 }
 }

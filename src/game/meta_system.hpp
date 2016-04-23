@@ -11,6 +11,7 @@
 
 #include "sys/cam/camera_system.hpp"
 #include "sys/controller/controller_system.hpp"
+#include "sys/gameplay/gameplay_system.hpp"
 #include "sys/graphic/graphic_system.hpp"
 #include "sys/light/light_system.hpp"
 #include "sys/physics/transform_system.hpp"
@@ -65,6 +66,7 @@ namespace lux {
 			sys::cam::Camera_system camera;
 			sys::light::Light_system lights;
 			sys::graphic::Graphic_system renderer;
+			sys::gameplay::Gameplay_system gameplay;
 
 		private:
 			struct Post_renderer;
