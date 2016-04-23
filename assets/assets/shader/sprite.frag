@@ -36,8 +36,6 @@ uniform Dir_light light_sun;
 uniform Point_light light[4];
 
 uniform vec3 eye;
-uniform mat4 vp;
-uniform mat4 vp_inv;
 
 float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);

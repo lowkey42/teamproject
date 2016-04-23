@@ -1,7 +1,7 @@
 #version 100
 precision mediump float;
 
-in vec2 uv_frag;
+varying vec2 uv_frag;
 
 uniform sampler2D texture;
 

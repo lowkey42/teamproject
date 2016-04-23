@@ -47,7 +47,6 @@ namespace renderer {
 			bool _fullscreen;
 			float _gamma;
 			bool _bloom;
-			bool _screenshake_enabled = true;
 
 			std::unique_ptr<SDL_Window,void(*)(SDL_Window*)> _window;
 			SDL_GLContext _gl_ctx;
