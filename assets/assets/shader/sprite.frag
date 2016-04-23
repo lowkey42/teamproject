@@ -7,6 +7,7 @@ struct Dir_light {
 };
 struct Point_light {
 	vec3 pos;
+	vec2 pos_ndc;
 	float dir;
 	float angle;
 	vec3 color;
@@ -50,7 +51,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 al
 	vec3 V = normalize(pos-eye*vec3(1,1,-1));
 
 	float alpha = roughness*roughness;
-	vec3 L = light_dir;
+	vec3 L = normalize(light_dir);
 	vec3 H = normalize (V + L);
 
 	float dotNL = clamp (dot (N, L), 0.0, 1.0);
@@ -83,7 +84,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 al
 
 
 	diffuse*=1.0-metalness;
-	vec3 refl = textureCube(environment_tex, reflect(view_dir,N), 6.0*roughness).rgb * 0.5;
+	vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,N), 6.0*roughness).rgb, vec3(2.2)) * 0.25;
 	diffuse = mix(diffuse, refl, reflectance);
 
 	light_color = mix(light_color, light_color*albedo, metalness);
@@ -137,10 +138,7 @@ vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, flo
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
 
-	// TODO: move matrix-multiplications to main program or vertex shader
-	vec4 lpos_ndc = vp * vec4(light.pos.xy, 0.0, 1.0);
-	vec4 pos_ndc = vp * vec4(pos, 1.0);
-	vec3 light_dir_linear = vec3(lpos_ndc.xy/lpos_ndc.w - pos_ndc.xy/pos_ndc.w, 0);
+	vec3 light_dir_linear = vec3(light.pos_ndc.xy - pos_vp_frag.xy, 0);
 	float light_dist_linear = length(light_dir_linear);
 	light_dir_linear /= light_dist_linear;
 
@@ -160,6 +158,13 @@ vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, flo
 }
 vec3 calc_dir_light(Dir_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance) {
 	return calc_light(light.dir, light.color, pos, normal, albedo, roughness, metalness, reflectance);
+}
+
+vec3 saturation(vec3 c, float change) {
+	vec3 f = vec3(0.299,0.587,0.114);
+	float p = sqrt(c.r*c.r*f.r + c.g*c.g*f.g + c.b*c.b*f.b);
+
+	return vec3(p) + (c-vec3(p))*vec3(change);
 }
 
 void main() {
@@ -186,7 +191,8 @@ void main() {
 		discard;
 	}
 
-	vec3 color = albedo.rgb * (textureCube(environment_tex, normal, 10.0).rgb * light_ambient);
+	vec3 ambient = (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
+	vec3 color = albedo.rgb * ambient;
 
 	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 
@@ -195,6 +201,10 @@ void main() {
 		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance, float(i));
 	}
 
-	gl_FragColor = vec4(color + albedo.rgb*emmision, albedo.a);
+	// remove saturation of objects further away
+	float fade_out = clamp(-pos_frag.z*0.025, 0.0, 0.5);
+	color = saturation(mix(color, ambient*10.0, fade_out*0.2), 1.0 - fade_out);
+
+	gl_FragColor = vec4(mix(color, albedo.rgb*2.0, emmision), albedo.a);
 }
 

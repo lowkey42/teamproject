@@ -106,7 +106,7 @@ namespace light {
 
 		auto uniforms = queue.shared_uniforms();
 
-		_setup_uniforms(*uniforms, lights);
+		_setup_uniforms(*uniforms, camera, lights);
 
 
 		auto& vp = camera.vp();
@@ -116,7 +116,9 @@ namespace light {
 		_shadowmap_shader.bind();
 		auto transform = [&vp](auto* transform) {
 			if(!transform) return glm::vec2(1000,0);
-			auto p = vp*glm::vec4(remove_units(transform->position()), 1.f);
+			auto p_in = remove_units(transform->position());
+			p_in.z = 0.f;
+			auto p = vp*glm::vec4(p_in, 1.f);
 			return p.xy() / p.w;
 		};
 
@@ -147,16 +149,24 @@ namespace light {
 		_shadowcaster_queue.flush();
 	}
 
-	void Light_system::_setup_uniforms(IUniform_map& uniforms, gsl::span<Light_info> lights) {
+	void Light_system::_setup_uniforms(IUniform_map& uniforms, const renderer::Camera& camera,
+	                                   gsl::span<Light_info> lights) {
 
 		uniforms.emplace("light_ambient",   _ambient_brightness);
 		uniforms.emplace("light_sun.color", _sun_light);
 		uniforms.emplace("light_sun.dir",   _sun_dir);
 
+		auto transform = [&](auto p) {
+			p.z = 0.f;
+			auto ps = camera.vp()*glm::vec4(p, 1.f);
+			return ps.xy() / ps.w;
+		};
+
 		// TODO: fade out light color, when they left the screen
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
 	uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
+	uniforms.emplace("light["#N"].pos_ndc", transform(remove_units(lights[N].transform->position())+lights[N].light->offset()));\
 \
 			uniforms.emplace("light["#N"].dir", lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\

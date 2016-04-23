@@ -78,7 +78,6 @@ namespace lux {
 				            ));
 			}
 
-		// TODO
 			Graphics_ctx& graphics_ctx;
 			mutable renderer::Command_queue render_queue;
 			renderer::Shader_program post_shader;
