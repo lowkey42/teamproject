@@ -46,7 +46,7 @@ namespace editor {
 
 		private:
 			enum class Action_type {
-				inactive, none, move, scale, rotate, layer
+				inactive, none, move, scale, rotate, layer, mod_form
 			};
 
 			util::Mailbox_collection _mailbox;
@@ -66,15 +66,19 @@ namespace editor {
 			glm::vec3 _curr_entity_position;
 			Angle     _curr_entity_rotation;
 			float     _curr_entity_scale = 1.f;
+			glm::vec2 _curr_point_position;
 
 			glm::vec3 _prev_entity_position;
 			Angle     _prev_entity_rotation;
 			float     _prev_entity_scale = 1.f;
+			glm::vec2 _prev_point_position;
+			bool      _point_created=false;
 
 			util::maybe<glm::vec2> _last_primary_pointer_pos;
 			util::maybe<glm::vec2> _last_secondary_pointer_pos;
 
 			Action_type _current_action = Action_type::inactive;
+			int _current_shape_index = 0;
 			bool _snap_to_grid = true;
 
 
@@ -89,6 +93,8 @@ namespace editor {
 			void _rotate(glm::vec2 pivot, Angle offset);
 			void _scale(float factor);
 			void _scale(glm::vec2 pivot, float factor);
+			auto _insert_point(int prev, glm::vec2 position) -> int;
+			void _move_point(glm::vec2 offset);
 			void _update_entity_transform();
 	};
 

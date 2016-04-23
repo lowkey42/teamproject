@@ -64,8 +64,8 @@ namespace lux {
 			std::unique_ptr<audio::Audio_ctx> _audio_ctx;
 			std::unique_ptr<input::Input_manager> _input_manager;
 
-			float _current_time = 0;
-			float _last_time = 0;
+			double _current_time = 0;
+			double _last_time = 0;
 	};
 
 }

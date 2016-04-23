@@ -7,6 +7,7 @@ struct Dir_light {
 };
 struct Point_light {
 	vec3 pos;
+	vec2 pos_ndc;
 	float dir;
 	float angle;
 	vec3 color;
@@ -14,38 +15,41 @@ struct Point_light {
 };
 
 varying vec2 uv_frag;
+varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
+varying vec3 pos_vp_frag;
 varying float shadow_resistence_frag;
+varying mat3 TBN;
 
 uniform sampler2D albedo_tex;
 uniform sampler2D normal_tex;
-uniform sampler2D emission_tex;
-uniform sampler2D roughness_tex;
-uniform sampler2D metallic_tex;
+uniform sampler2D material_tex;
 uniform sampler2D height_tex;
 
-uniform sampler2D shadowmap_1_tex;
+uniform sampler2D shadowmaps_tex;
 
 uniform samplerCube environment_tex;
 uniform sampler2D last_frame_tex;
 
-uniform vec3 light_ambient;
+uniform float light_ambient;
 uniform Dir_light light_sun;
 uniform Point_light light[4];
 
 uniform vec3 eye;
 
-
 float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);
 }
 vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance) {
+
+	// TODO: cleanup this mess and replace experiments with real formulas
+
 	vec3 view_dir = normalize(pos-eye);
 	vec3 N = normal;
 	vec3 V = normalize(pos-eye*vec3(1,1,-1));
 
 	float alpha = roughness*roughness;
-	vec3 L = light_dir;
+	vec3 L = normalize(light_dir);
 	vec3 H = normalize (V + L);
 
 	float dotNL = clamp (dot (N, L), 0.0, 1.0);
@@ -77,9 +81,8 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 al
 	vec3 diffuse = (albedo * invPi);
 
 
-	// TODO: reflection and abient radiance
 	diffuse*=1.0-metalness;
-	vec3 refl = textureCube(environment_tex, reflect(view_dir,N), 6.0*roughness).rgb * 0.5;
+	vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,N), 6.0*roughness).rgb, vec3(2.2)) * 0.25;
 	diffuse = mix(diffuse, refl, reflectance);
 
 	light_color = mix(light_color, light_color*albedo, metalness);
@@ -93,8 +96,9 @@ float my_smoothstep(float edge0, float edge1, float x) {
 }
 
 float sample_shadow_ray(vec2 tc, float r) {
-	float d = texture2D(shadowmap_1_tex, tc).r*50.0;
-	return my_smoothstep(0.1, 0.2, r-d);
+	float d = texture2D(shadowmaps_tex, tc).r*4.0;
+	if(r>d) return 1.0;
+	return my_smoothstep(0.1, 0.2, r-d); // TODO: causes light bleeding
 }
 
 float sample_shadow(float light_num, float r, vec3 dir) {
@@ -129,16 +133,17 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 
 vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance, float light_num) {
 	vec3 light_dir = light.pos.xyz - pos;
-	float light_dist_linear = length(light_dir.xy);
-	light_dist_linear-= abs(pos.z) * light_dist_linear/8.0; // perspective correction
-
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
 
+	vec3 light_dir_linear = vec3(light.pos_ndc.xy - pos_vp_frag.xy, 0);
+	float light_dist_linear = length(light_dir_linear);
+	light_dir_linear /= light_dist_linear;
+
+
 	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z), 0.0, 1.0);
 
-	// TODO: integrate angle and direction attenuation
-	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir), 1.0, shadow_resistence_frag*0.9);
+	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir_linear), 1.0, shadow_resistence_frag*0.9);
 
 	const float PI = 3.141;
 	float theta = atan(light_dir.y, -light_dir.x)-light.dir;
@@ -153,18 +158,29 @@ vec3 calc_dir_light(Dir_light light, vec3 pos, vec3 normal, vec3 albedo, float r
 	return calc_light(light.dir, light.color, pos, normal, albedo, roughness, metalness, reflectance);
 }
 
+vec3 saturation(vec3 c, float change) {
+	vec3 f = vec3(0.299,0.587,0.114);
+	float p = sqrt(c.r*c.r*f.r + c.g*c.g*f.g + c.b*c.b*f.b);
+
+	return vec3(p) + (c-vec3(p))*vec3(change);
+}
+
 void main() {
-	vec4 albedo = pow(texture2D(albedo_tex, uv_frag), vec4(2.2));
-	vec3 normal = texture2D(normal_tex, uv_frag).xyz;
+	vec2 uv = mod(uv_frag, 1.0) * (uv_clip_frag.zw-uv_clip_frag.xy) + uv_clip_frag.xy;
+
+	vec4 albedo = pow(texture2D(albedo_tex, uv), vec4(2.2));
+	vec3 normal = texture2D(normal_tex, uv).xyz;
 	if(length(normal)<0.00001)
 		normal = vec3(0,0,1);
 	else {
-		normal = normalize(normal*2.0 - 1.0);	//TODO: transform by rotation
+		normal = normalize(normal*2.0 - 1.0);
 	}
+	normal = TBN * normal;
 
-
-	float smoothness = 1.0-texture2D(roughness_tex, uv_frag).r;
-	float metalness = texture2D(metallic_tex, uv_frag).r;
+	vec3 material = texture2D(material_tex, uv).xyz;
+	float emmision = material.r;
+	float metalness = material.g;
+	float smoothness = 1.0-material.b;
 
 	float roughness = 1.0 - smoothness*smoothness;
 	float reflectance = clamp((smoothness-0.1)*1.1 + metalness*0.2, 0.0, 1.0);
@@ -173,15 +189,20 @@ void main() {
 		discard;
 	}
 
-	vec3 color = albedo.rgb * light_ambient;
+	vec3 ambient = (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
+	vec3 color = albedo.rgb * ambient;
 
 	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 
 
-	for(int i=0; i<1; i++) {
+	for(int i=0; i<4; i++) {
 		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance, float(i));
 	}
 
-	gl_FragColor = vec4(color, albedo.a);
+	// remove saturation of objects further away
+	float fade_out = clamp(-pos_frag.z*0.025, 0.0, 0.5);
+	color = saturation(mix(color, ambient*10.0, fade_out*0.2), 1.0 - fade_out);
+
+	gl_FragColor = vec4(mix(color, albedo.rgb*2.0, emmision), albedo.a);
 }
 

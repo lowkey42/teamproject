@@ -69,6 +69,7 @@ namespace asset {
 		public:
 			ostream(AID aid, Asset_manager& manager, const std::string& path);
 			ostream(ostream&&);
+			~ostream();
 
 			auto operator=(ostream&&) -> ostream&;
 	};

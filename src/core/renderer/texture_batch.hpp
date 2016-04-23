@@ -11,18 +11,16 @@
 #include "shader.hpp"
 #include "camera.hpp"
 #include "texture.hpp"
-#include "../asset/aid.hpp"
+#include "command_queue.hpp"
 
-#include "../../core/units.hpp"
+#include "../asset/aid.hpp"
+#include "../units.hpp"
 
 #include <vector>
 
 
 namespace lux {
 namespace renderer {
-
-	class Command;
-	class Command_queue;
 
 	struct Texture_Vertex {
 		glm::vec2 position;
@@ -38,7 +36,7 @@ namespace renderer {
 
 	extern void init_texture_renderer(asset::Asset_manager& asset_manager);
 
-	extern void draw_fullscreen_quad(const renderer::Texture&);
+	extern void draw_fullscreen_quad(const renderer::Texture&, Texture_unit unit=Texture_unit::temporary);
 
 
 	class Texture_batch {

@@ -36,6 +36,7 @@ namespace util {
 			maybe(maybe&& o)noexcept : _valid(o._valid), _data(std::move(o._data)) {
 				o._valid = false;
 			}
+
 			~maybe()noexcept {
 				if(is_some())
 					_data.~T();
@@ -176,10 +177,14 @@ namespace util {
 		public:
 			maybe() : _ref(nullptr) {}
 			/*implicit*/ maybe(T& data)noexcept : _ref(&data) {}
+			template<typename U, class = std::enable_if_t<std::is_convertible<U*, T*>::value> >
+			maybe(U& o)noexcept : _ref(&o) {}
 			maybe(const maybe& o)noexcept : _ref(o._ref) {}
 			maybe(maybe&& o)noexcept : _ref(o._ref) {
 				o._ref = nullptr;
 			}
+			template<typename U, class = std::enable_if_t<std::is_convertible<U*, T*>::value> >
+			maybe(const maybe<U>& o)noexcept : _ref(o._ref) {}
 			~maybe()noexcept = default;
 
 			operator maybe<const T&>()const noexcept {

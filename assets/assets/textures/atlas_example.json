@@ -1,5 +1,0 @@
-{
-	"texture": "tex:atlas_example_tex",
-	"frames": [{"name":"ui_intro_circle","x":0,"y":0,"width":800,"height":799}]
-}
-

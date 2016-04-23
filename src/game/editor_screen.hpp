@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "level.hpp"
 #include "meta_system.hpp"
 
 #include "sys/editor/editor_system.hpp"
@@ -27,7 +28,7 @@ namespace lux {
 
 	class Editor_screen : public Screen {
 		public:
-			Editor_screen(Engine& game_engine);
+			Editor_screen(Engine& game_engine, const std::string& level_id);
 			~Editor_screen()noexcept = default;
 
 		protected:
@@ -76,6 +77,8 @@ namespace lux {
 			ecs::Entity_ptr _selected_entity;
 
 			glm::vec2 _cam_speed;
+
+			Level_data _level_metadata;
 
 			auto _handle_pointer_menu(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
 			auto _handle_pointer_cam(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;

@@ -7,13 +7,14 @@
 
 #pragma once
 
+#include "sprite_comp.hpp"
+#include "terrain_comp.hpp"
+
 #include "../../entity_events.hpp"
 
 #include <core/renderer/sprite_batch.hpp>
 #include <core/renderer/camera.hpp>
 #include <core/utils/messagebus.hpp>
-
-#include "sprite_comp.hpp"
 
 
 namespace lux {
@@ -36,6 +37,7 @@ namespace graphic {
 
 			util::Mailbox_collection _mailbox;
 			Sprite_comp::Pool& _sprites;
+			Terrain_comp::Pool& _terrains;
 
 			mutable renderer::Sprite_batch _sprite_batch;
 	};

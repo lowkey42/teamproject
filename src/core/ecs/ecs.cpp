@@ -138,12 +138,15 @@ namespace ecs {
 	void Entity_manager::write(std::ostream& stream,
 	                           const std::vector<Entity_ptr>& entities,
 	                           Component_filter filter) {
+
 		auto serializer = EcsSerializer{stream, *this, _asset_mgr, filter};
 		serializer.write_virtual(
 			sf2::vmember("entities", entities)
 		);
 
 		stream.flush();
+
+		DEBUG(entities.size()<<" saved. No survivors");
 	}
 
 	void Entity_manager::read(std::istream& stream, bool clear, Component_filter filter) {
@@ -156,10 +159,14 @@ namespace ecs {
 			_delete_queue.clear();
 		}
 
+		// read into dummy vector, because entity register themself when they are created
+		std::vector<Entity_ptr> dummy;
 		auto deserializer = EcsDeserializer{"$EntityDump", stream, *this, _asset_mgr, filter};
 		deserializer.read_virtual(
-			sf2::vmember("entities", _entities)
+			sf2::vmember("entities", dummy)
 		);
+
+		DEBUG("Loaded "<<dummy.size()<<" entities");
 	}
 
 } /* namespace ecs */

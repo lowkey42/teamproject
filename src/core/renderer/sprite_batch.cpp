@@ -11,14 +11,15 @@ namespace renderer {
 
 	namespace {
 		std::unique_ptr<Shader_program> sprite_shader;
+		const auto def_uv_clip = glm::vec4{0,0,1,1};
 		const Sprite_vertex single_sprite_vert[] {
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, 0,0, nullptr},
-			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, 0,0, nullptr},
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, 0,0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0},0, nullptr},
 
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, 0,0, nullptr},
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, 0,0, nullptr},
-			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, 0,0, nullptr}
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, {1,0},0, nullptr}
 		};
 	}
 
@@ -26,7 +27,8 @@ namespace renderer {
 		Vertex_layout::Mode::triangles,
 		vertex("position",  &Sprite_vertex::position),
 		vertex("uv",        &Sprite_vertex::uv),
-		vertex("rotation",  &Sprite_vertex::rotation),
+		vertex("uv_clip",   &Sprite_vertex::uv_clip),
+		vertex("tangent",   &Sprite_vertex::tangent),
 		vertex("shadow_resistence", &Sprite_vertex::shadow_resistence)
 	};
 
@@ -37,10 +39,10 @@ namespace renderer {
 	      uv(uv), shadow_resistence(shadow_resistence), material(&material) {
 	}
 
-	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords,
-	                             float rotation, float shadow_resistence,
+	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
+	                             glm::vec2 tangent, float shadow_resistence,
 	                             const renderer::Material* material)
-	    : position(pos), uv(uv_coords), rotation(rotation),
+	    : position(pos), uv(uv_coords), uv_clip(uv_clip), tangent(tangent),
 	      shadow_resistence(shadow_resistence), material(material) {
 	}
 
@@ -54,12 +56,9 @@ namespace renderer {
 		              .uniforms(make_uniform_map(
 		                  "albedo_tex", int(Texture_unit::color),
 		                  "normal_tex", int(Texture_unit::normal),
-		                  "emission_tex", int(Texture_unit::emission),
-		                  "roughness_tex", int(Texture_unit::roughness),
-		                  "metallic_tex", int(Texture_unit::metallic),
+		                  "material_tex", int(Texture_unit::material),
 		                  "height_tex", int(Texture_unit::height),
-		                  "shadowmap_1_tex", int(Texture_unit::shadowmap_1),
-		                  "shadowmap_2_tex", int(Texture_unit::shadowmap_2),
+		                  "shadowmaps_tex", int(Texture_unit::shadowmaps),
 		                  "environment_tex", int(Texture_unit::environment),
 		                  "last_frame_tex", int(Texture_unit::last_frame)
 		              ));
@@ -86,6 +85,8 @@ namespace renderer {
 			return sprite.position + rotate(p, sprite.rotation, vec3{0,0,1})*scale;
 		};
 
+		auto tangent = rotate(vec3(1,0,0), sprite.rotation, vec3{0,0,1}).xy();
+
 		auto tex_clip = sprite.material->albedo().clip_rect();
 		auto sprite_clip = sprite.uv;
 
@@ -100,8 +101,17 @@ namespace renderer {
 
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
-			_vertices.emplace_back(transform(vert.position), uv,
-			                       sprite.rotation.value(), sprite.shadow_resistence, sprite.material);
+			_vertices.emplace_back(transform(vert.position), uv, vert.uv_clip,
+			                       tangent, sprite.shadow_resistence, sprite.material);
+		}
+	}
+	void Sprite_batch::insert(glm::vec3 position,
+	                          const std::vector<Sprite_vertex>& vertices) {
+		_vertices.reserve(_vertices.size() + vertices.size());
+
+		for(auto& v : vertices) {
+			_vertices.emplace_back(v.position + position,
+			                       v.uv, v.uv_clip, v.tangent, v.shadow_resistence, v.material);
 		}
 	}
 

@@ -55,8 +55,8 @@ namespace renderer {
 		single_quat_tex = std::make_unique<Object>(simple_vertex_layout, create_buffer(single_tex_vert));
 	}
 
-	void draw_fullscreen_quad(const renderer::Texture& tex) {
-		tex.bind(int(Texture_unit::temporary));
+	void draw_fullscreen_quad(const renderer::Texture& tex, Texture_unit unit) {
+		tex.bind(static_cast<int>(unit));
 		single_quat_tex->draw();
 	}
 

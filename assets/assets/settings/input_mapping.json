@@ -1,6 +1,40 @@
 {
 	"initial": "editor",
 	"contexts": {
+        "game": {
+            "keys": {
+                "Escape": {"type":"once", "action":"pause"},
+
+                "A": {"type":"continuous", "action":"move_left"},
+                "Left": {"type":"continuous", "action":"move_left"},
+                "D": {"type":"continuous", "action":"move_right"},
+                "Right": {"type":"continuous", "action":"move_right"},
+
+                "Space": {"type":"continuous", "action":"jump"},
+				"Up": {"type":"continuous", "action":"jump"},
+                "W": {"type":"continuous", "action":"jump"}
+            },
+
+            "pad_sticks": {
+                "left": {"type": "range", "action": "move"},
+                "right": {"type": "range", "action": "move"}
+            },
+            "pad_buttons": {
+                "x":  {"type":"continuous", "action":"jump"},
+                "a":  {"type":"continuous", "action":"transform"},
+                "left_shoulder":  {"type":"continuous", "action":"jump"},
+                "left_trigger":  {"type":"continuous", "action":"transform"},
+                "right_shoulder":  {"type":"continuous", "action":"jump"},
+                "right_trigger":  {"type":"continuous", "action":"transform"},
+                "start":  {"type":"once", "action":"pause"}
+            },
+
+            "mouse_buttons": {
+                {"button":1, "clicks":0}: {"type":"continuous", "action":"transform"}
+            },
+            "mouse_movement": {"type": "range", "action": "mouse_look"}
+        },
+
 		"editor": {
 			"keys": {
                 "Escape": {"type":"once", "action":"back"},
@@ -12,7 +46,10 @@
                 "Left": {"type":"continuous", "action":"scroll_l"},
                 "Right": {"type":"continuous", "action":"scroll_r"},
                 "Down": {"type":"continuous", "action":"scroll_d"},
-                "Up": {"type":"continuous", "action":"scroll_u"}
+                "Up": {"type":"continuous", "action":"scroll_u"},
+                "F5": {"type":"once", "action":"save"},
+                "F9": {"type":"once", "action":"load"},
+                "F6": {"type":"once", "action":"start"}
             },
             "mouse_wheel_up": {"type":"once", "action": "zoom_in"},
             "mouse_wheel_down": {"type":"once", "action": "zoom_out"},

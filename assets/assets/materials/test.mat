@@ -1,7 +1,0 @@
-{
-	"albedo": "tex:textures/test_albedo.tga",
-	"normal": "tex:textures/test_normal.tga",
-	"roughness": "tex:textures/test_roughness.tga",
-	"height": "tex:textures/test_height.tga",
-	"metallic": "tex:textures/test_metallic.tga"
-}

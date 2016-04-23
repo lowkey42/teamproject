@@ -98,8 +98,8 @@ namespace renderer {
 			int width;
 			int height;
 			bool fullscreen;
-			float max_screenshake;
-			float brightness;
+			float gamma;
+			bool bloom;
 
 			Graphics_cfg();
 		};
@@ -108,16 +108,16 @@ namespace renderer {
 			width,
 			height,
 			fullscreen,
-			max_screenshake,
-			brightness
+			gamma,
+			bloom
 		)
 
 	#ifndef EMSCRIPTEN
-		Graphics_cfg::Graphics_cfg() : width(1920), height(1080), fullscreen(true),
-		    max_screenshake(0.5f), brightness(1.1f) {}
+		Graphics_cfg::Graphics_cfg() : width(1920), height(1080), fullscreen(true), // TODO: read defaults from SDL instead
+		   gamma(2.2f), bloom(true) {}
 	#else
 		Graphics_cfg::Graphics_cfg() : width(1024), height(512), fullscreen(false),
-		    max_screenshake(0.5f), brightness(1.2f) {}
+		    gamma(2.3f), bloom(false) {}
 	#endif
 
 	}
@@ -134,9 +134,9 @@ namespace renderer {
 
 		_win_width = cfg.width;
 		_win_height = cfg.height;
-		_max_screenshake = cfg.max_screenshake;
-		_brightness = cfg.brightness;
 		_fullscreen = cfg.fullscreen;
+		_gamma = cfg.gamma;
+		_bloom = cfg.bloom;
 
 		if(&cfg==&default_cfg) {
 			assets.save<Graphics_cfg>("cfg:graphics"_aid, cfg);
@@ -238,32 +238,30 @@ namespace renderer {
 			osstr<<_name<<" ("<<(int((1.0f/_delta_time_smoothed)*10.0f)/10.0f)<<" FPS, ";
 			osstr<<(int(_delta_time_smoothed*10000.0f)/10.0f)<<" ms/frame, ";
 			osstr<<(int(_cpu_delta_time_smoothed*10000.0f)/10.0f)<<" ms/frame [cpu])";
+
+#ifdef EMSCRIPTEN
+			DEBUG(_cpu_delta_time_smoothed);
+#else
 			SDL_SetWindowTitle(_window.get(), osstr.str().c_str());
+#endif
 		}
 		SDL_GL_SwapWindow(_window.get());
-
-		// unbind texture
-//		glActiveTexture(0);
-//		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	void Graphics_ctx::set_clear_color(float r, float g, float b) {
 		_clear_color = glm::vec3(r,g,b);
 		_clear_color_dirty = true;
 	}
 
-	auto Graphics_ctx::max_screenshake()const noexcept -> float {
-		return _screenshake_enabled ? _max_screenshake * 100 : 0;
-	}
-	void Graphics_ctx::toggle_screenschake(bool enable) {
-		_screenshake_enabled = enable;
-	}
-
-	void Graphics_ctx::resolution(int width, int height, float max_screenshake) {
+	void Graphics_ctx::settings(int width, int height, bool fullscreen, float gamma, bool bloom) {
 		auto cfg = *_assets.load<Graphics_cfg>("cfg:graphics"_aid);
 		cfg.width = width;
 		cfg.height = height;
-		cfg.max_screenshake = max_screenshake;
+		cfg.fullscreen = fullscreen;
+		cfg.gamma = gamma;
+		cfg.bloom = bloom;
 		_assets.save<Graphics_cfg>("cfg:graphics"_aid, cfg);
+
+		// TODO: apply changes
 	}
 
 	Disable_depthtest::Disable_depthtest() {

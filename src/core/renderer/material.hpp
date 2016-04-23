@@ -35,9 +35,7 @@ namespace renderer {
 		private:
 			Texture_ptr _albedo;
 			Texture_ptr _normal;
-			Texture_ptr _roughness;
-			Texture_ptr _metallic;
-			Texture_ptr _emission;
+			Texture_ptr _material; //< R:emmision, G:metallc, B:roughness
 			Texture_ptr _height;
 	};
 	using Material_ptr = asset::Ptr<Material>;

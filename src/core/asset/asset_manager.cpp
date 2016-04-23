@@ -20,10 +20,15 @@
 	#include <emscripten.h>
 #endif
 
+using namespace lux::util;
+
 namespace {
 
 	std::string append_file(const std::string& folder, const std::string file) {
-		return folder+PHYSFS_getDirSeparator()+file;
+		if(ends_with(folder, PHYSFS_getDirSeparator()) || starts_with(file, PHYSFS_getDirSeparator()))
+			return folder+file;
+		else
+			return folder+PHYSFS_getDirSeparator()+file;
 	}
 	void create_dir(const std::string& dir) {
 #ifdef WIN
@@ -134,9 +139,10 @@ namespace asset {
 
 		create_dir(write_dir_parent);
 
-		std::string write_dir = write_dir_parent+PHYSFS_getDirSeparator()+app_name;
+		std::string write_dir = append_file(write_dir_parent, app_name);
 		create_dir(write_dir);
 
+		INFO("Write dir: "<<write_dir);
 
 		if(!PHYSFS_addToSearchPath(PHYSFS_getBaseDir(), 1) ||
 				!PHYSFS_addToSearchPath(append_file(PHYSFS_getBaseDir(), "..").c_str(), 1)  ||
@@ -297,12 +303,13 @@ namespace asset {
 		else {
 			auto res = _dispatcher.find(AID{id.type(), ""}); // search for prefix-entry
 
-			path = (res!=_dispatcher.end()) ?
-				   (res->second + "/" + id.name()) :
-					id.name();
+			if(res!=_dispatcher.end()) {
+				PHYSFS_mkdir(res->second.c_str());
+				path = append_file(res->second, id.name());
+			} else {
+				path = id.name();
+			}
 		}
-
-		//PHYSFS_mkdir(util::split_on_last(path, "/").first.c_str());
 
 		if(exists_file(path))
 			PHYSFS_delete(path.c_str());
@@ -372,6 +379,21 @@ namespace asset {
 		}
 
 		FAIL("Unexpected Location_type: "<<(int)type);
+	}
+
+	auto Asset_manager::load_raw(const AID& id) -> util::maybe<istream> {
+		Location_type type;
+		std::string path;
+		std::tie(type, path) = _locate(id);
+
+		if(type!=Location_type::file)
+			return util::nothing();
+
+		return _open(path, id);
+	}
+	auto Asset_manager::save_raw(const AID& id) -> ostream {
+		_assets.erase(id);
+		return _create(id);
 	}
 
 } /* namespace asset */

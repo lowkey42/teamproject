@@ -335,7 +335,7 @@ namespace input {
 
 	auto Input_manager::Gamepad::button_down(Pad_button button)const noexcept -> bool {
 		if(!is_trigger(button))
-			return SDL_GameControllerGetButton(_sdl_controller, to_sdl_pad_button(button))==1;
+			return SDL_GameControllerGetButton(_sdl_controller, to_sdl_pad_button(button))!=0;
 
 		else
 			return trigger(button) > _stick_dead_zone;

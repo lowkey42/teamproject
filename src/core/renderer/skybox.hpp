@@ -22,6 +22,8 @@ namespace renderer {
 
 			void draw(Command_queue&)const;
 
+			void texture(Texture_ptr tex);
+
 		private:
 			mutable Shader_program _prog;
 			Object         _obj;

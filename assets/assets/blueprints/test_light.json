@@ -3,11 +3,13 @@
     },
     "Light": {
         "color": {"r":5.0, "g":5.0, "b":4.5},
-        "radius": 20
+        "radius": 30,
+		"offset": {"z":2.0}
     },
     "Sprite": {
         "material": "mat:test",
-        "size": {"x":0.1, "y":0.1}
+        "size": {"x":0.3, "y":0.3},
+		"shadowcaster": false
     },
     "Editor": {
         "bounds": {"x":0.2, "y":0.2, "z":1}

@@ -51,7 +51,7 @@ namespace renderer {
 		auto tex_type = _cubemap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
 
 		glBindTexture(tex_type, _handle);
-		glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, _cubemap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, _cubemap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 		glTexParameteri(tex_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glBindTexture(tex_type, 0);
 	}

@@ -19,7 +19,8 @@ namespace util {
 
 	template<class T>
 	void Mailbox<T>::send(const T& v) {
-		_queue.enqueue(v);
+		if(_active.load())
+			_queue.enqueue(v);
 	}
 
 	template<class T>
@@ -75,6 +76,13 @@ namespace util {
 		box.handler = [handler](Sub& s) {
 			details::receive_bulk<T, bulk_size>(s.box.get(), handler);
 		};
+		box.activator = [](Sub& s, bool active) {
+			auto mb = static_cast<Mailbox<T>*>(s.box.get());
+			if(active)
+				mb->enable();
+			else
+				mb->disable();
+		};
 	}
 	template<std::size_t bulk_size,
 	         std::size_t queue_size,
@@ -107,6 +115,18 @@ namespace util {
 	template<typename Msg>
 	void Mailbox_collection::send_msg(const Msg& msg, Typeuid self) {
 		_bus.send_msg(msg, self);
+	}
+
+	inline void Mailbox_collection::enable() {
+		for(auto& b : _boxes) {
+			b.second.activator(b.second, true);
+		}
+	}
+
+	inline void Mailbox_collection::disable() {
+		for(auto& b : _boxes) {
+			b.second.activator(b.second, false);
+		}
 	}
 
 

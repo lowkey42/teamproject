@@ -49,7 +49,7 @@ namespace asset {
 namespace ecs {
 	class BlueprintComponent : public ecs::Component<BlueprintComponent> {
 		public:
-			static constexpr const char* name() {return "Blueprint";}
+			static constexpr const char* name() {return "$Blueprint";}
 
 			void load(sf2::JsonDeserializer& state,
 			          asset::Asset_manager& asset_mgr)override;
@@ -65,6 +65,7 @@ namespace ecs {
 		private:
 			asset::Ptr<Blueprint> blueprint;
 	};
+	Component_type blueprint_comp_id = BlueprintComponent::type();
 
 	namespace {
 		sf2::format::Error_handler create_error_handler(std::string source_name) {
@@ -173,6 +174,7 @@ namespace ecs {
 			auto mb_comp = e.manager().find_comp_info(key);
 
 			if(mb_comp.is_nothing()) {
+				DEBUG("Skipped unknown component "<<key);
 				s.skip_obj();
 				return true;
 
@@ -182,6 +184,7 @@ namespace ecs {
 			auto& ecs_deserializer = static_cast<EcsDeserializer&>(s);
 
 			if(ecs_deserializer.filter && !ecs_deserializer.filter(comp.type)) {
+				DEBUG("Skipped filtered component "<<key);
 				s.skip_obj();
 				return true;
 			}
@@ -200,7 +203,7 @@ namespace ecs {
 	void save(sf2::JsonSerializer& s, const Entity& e) {
 		auto& ecs_s = static_cast<EcsSerializer&>(s);
 
-		std::unordered_map<std::string, details::Component_base*> comps;
+		std::map<std::string, details::Component_base*> comps;
 
 		EcsSerializer& ecss = static_cast<EcsSerializer&>(s);
 

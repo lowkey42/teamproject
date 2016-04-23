@@ -5,6 +5,8 @@ add_subdirectory(core)
 
 project(teamproject)
 
+set(VERSION_NAME "0.1")
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
 
 include_directories(${ROOT_DIR}/src)
@@ -91,11 +93,41 @@ endif()
 if(EMSCRIPTEN)
 	file(COPY ${ROOT_DIR}/assets/archives.lst DESTINATION "./")
 	file(COPY ${ROOT_DIR}/assets/assets DESTINATION "./")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --preload-file archives.lst --preload-file assets -o MagnumOpus.html")
+	file(COPY ${ROOT_DIR}/assets/assets_ext DESTINATION "./")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --preload-file archives.lst --preload-file assets --preload-file assets_ext -o IntoTheLight.html")
 else()
 #	file(COPY ${ROOT_DIR}/assets/archives.lst DESTINATION ${BIN_DIR})
 #	file(COPY ${ROOT_DIR}/assets/assets DESTINATION ${BIN_DIR})
 endif(EMSCRIPTEN)
+
+
+if(NOT GIT_EXECUTABLE)
+    set(GIT_EXECUTABLE "git")
+endif()
+
+# the commit's SHA1, and whether the building workspace was dirty or not
+execute_process(COMMAND
+  "${GIT_EXECUTABLE}" describe --match=NeVeRmAtCh --always --abbrev=40 --dirty
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  OUTPUT_VARIABLE GIT_HASH
+  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# the date of the commit
+execute_process(COMMAND
+  "${GIT_EXECUTABLE}" log -1 --format=%ad --date=local
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  OUTPUT_VARIABLE GIT_DATE
+  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# the subject of the commit
+execute_process(COMMAND
+  "${GIT_EXECUTABLE}" log -1 --format=%s
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  OUTPUT_VARIABLE GIT_SUBJECT
+  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# generate version.cc
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/info.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/info.cpp" @ONLY)
 
 
 file(GLOB_RECURSE MAGNUM_SRCS
@@ -103,7 +135,7 @@ file(GLOB_RECURSE MAGNUM_SRCS
 		 game/*.cpp
 		 game/*.h*)
 
-add_executable(Teamproject main.cpp ${MAGNUM_SRCS})
+add_executable(Teamproject main.cpp ${MAGNUM_SRCS} "${CMAKE_CURRENT_BINARY_DIR}/info.cpp")
 
 if(EMSCRIPTEN)
 	target_link_libraries(Teamproject ${SDL2_LIBRARY} core)

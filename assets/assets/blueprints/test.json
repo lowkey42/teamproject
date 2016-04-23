@@ -1,11 +1,18 @@
 {
     "Transform":{
     },
-    "Sprite": {
-        "material": "mat:test",
-        "size": {"x":2, "y":2}
+    "Terrain": {
+        "material": "mat:test_smart_tex"
+    },
+    "Terrain_data": {
     },
     "Editor": {
         "bounds": {"x":2, "y":2, "z":1}
+    },
+    "Static_body": {
+    	"shape": "polygon",
+    	"fixed_rotation": true,
+    	"friction": 1.0,
+    	"resitution": 0.01
     }
 }

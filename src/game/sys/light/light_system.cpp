@@ -26,7 +26,7 @@ namespace light {
 	             asset::Asset_manager& asset_manager,
 	             Rgb sun_light,
 	             glm::vec3 sun_dir,
-	             Rgb ambient_light)
+	             float ambient_brightness)
 	    : _mailbox(bus),
 	      _lights(entity_manager.list<Light_comp>()),
 	      _shadowcaster_queue(1),
@@ -35,7 +35,7 @@ namespace light {
 	      _shadow_map       (shadowmap_size,shadowmap_rows, false, true),
 	      _sun_light(sun_light),
 	      _sun_dir(glm::normalize(sun_dir)),
-	      _ambient_light(ambient_light) {
+	      _ambient_brightness(ambient_brightness) {
 
 		entity_manager.register_component_type<Light_comp>();
 
@@ -106,21 +106,20 @@ namespace light {
 
 		auto uniforms = queue.shared_uniforms();
 
-		_setup_uniforms(*uniforms, lights);
+		_setup_uniforms(*uniforms, camera, lights);
 
 
-		auto camp = camera.eye_position();
-		auto vp = glm::ortho(-50.f, 50.f, -50.f, 50.f, -10.f, 10.f)
-		          * glm::translate(glm::vec3(camp.x,camp.y,0.f));
-
+		auto& vp = camera.vp();
 		uniforms->emplace("vp", vp);
-
 		_draw_occlusion_map(uniforms);
 
 		_shadowmap_shader.bind();
 		auto transform = [&vp](auto* transform) {
 			if(!transform) return glm::vec2(1000,0);
-			return (vp*glm::vec4(remove_units(transform->position()), 1.f)).xy();
+			auto p_in = remove_units(transform->position());
+			p_in.z = 0.f;
+			auto p = vp*glm::vec4(p_in, 1.f);
+			return p.xy() / p.w;
 		};
 
 		_shadowmap_shader.set_uniform("VP_inv", glm::inverse(vp));
@@ -134,7 +133,7 @@ namespace light {
 
 		renderer::draw_fullscreen_quad(_occlusion_map);
 
-		_shadow_map.bind((int) Texture_unit::shadowmap_1);
+		_shadow_map.bind((int) Texture_unit::shadowmaps);
 	}
 
 	void Light_system::update(Time) {
@@ -150,21 +149,30 @@ namespace light {
 		_shadowcaster_queue.flush();
 	}
 
-	void Light_system::_setup_uniforms(IUniform_map& uniforms, gsl::span<Light_info> lights) {
+	void Light_system::_setup_uniforms(IUniform_map& uniforms, const renderer::Camera& camera,
+	                                   gsl::span<Light_info> lights) {
 
-		uniforms.emplace("light_ambient",   _ambient_light);
+		uniforms.emplace("light_ambient",   _ambient_brightness);
 		uniforms.emplace("light_sun.color", _sun_light);
 		uniforms.emplace("light_sun.dir",   _sun_dir);
 
+		auto transform = [&](auto p) {
+			p.z = 0.f;
+			auto ps = camera.vp()*glm::vec4(p, 1.f);
+			return ps.xy() / ps.w;
+		};
+
+		// TODO: fade out light color, when they left the screen
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
-			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position()));\
+	uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
+	uniforms.emplace("light["#N"].pos_ndc", transform(remove_units(lights[N].transform->position())+lights[N].light->offset()));\
 \
 			uniforms.emplace("light["#N"].dir", lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\
 \
 			uniforms.emplace("light["#N"].angle", lights[N].light->_angle.value());\
-			uniforms.emplace("light["#N"].color", lights[N].light->_color);\
+			uniforms.emplace("light["#N"].color", lights[N].light->_color); \
 			uniforms.emplace("light["#N"].factors", lights[N].light->_factors);\
 		} else {\
 			uniforms.emplace("light["#N"].color", glm::vec3(0,0,0));\

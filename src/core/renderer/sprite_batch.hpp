@@ -41,12 +41,13 @@ namespace renderer {
 	struct Sprite_vertex {
 		glm::vec3 position;
 		glm::vec2 uv;
-		float rotation;
+		glm::vec4 uv_clip;
+		glm::vec2 tangent;
 		float shadow_resistence;
 		const renderer::Material* material;
 
-		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, float rotation, float shadow_resistence,
-		              const renderer::Material*);
+		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
+		              glm::vec2 tangent, float shadow_resistence, const renderer::Material*);
 
 		bool operator<(const Sprite_vertex& rhs)const noexcept {
 			return material < rhs.material;
@@ -63,6 +64,8 @@ namespace renderer {
 			Sprite_batch(Shader_program& shader, std::size_t expected_size=64);
 
 			void insert(const Sprite& sprite);
+			void insert(glm::vec3 position,
+			            const std::vector<Sprite_vertex>& vertices);
 			void flush(Command_queue&);
 
 		private:

@@ -93,5 +93,10 @@ namespace renderer {
 		        .object(_obj) );
 	}
 
+	void Skybox::texture(Texture_ptr tex) {
+		_tex = std::move(tex);
+		_tex->bind(int(Texture_unit::environment));
+	}
+
 }
 }

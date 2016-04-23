@@ -20,6 +20,9 @@ frag_shader:shadowmap = shader/shadowmap.frag
 vert_shader:blur = shader/blur.vert
 frag_shader:blur = shader/blur.frag
 
+vert_shader:glow_filter = shader/post.vert
+frag_shader:glow_filter = shader/glow_filter.frag
+
 vert_shader:dashed_line = shader/dashed_line.vert
 frag_shader:dashed_line = shader/dashed_line.frag
 

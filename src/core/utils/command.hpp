@@ -35,6 +35,8 @@ namespace util {
 				execute(std::make_unique<T>(std::forward<Args>(args)...));
 			}
 
+			void clear() {_commands.clear(); _history_size=0;}
+
 			void undo();
 			void redo();
 

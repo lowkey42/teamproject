@@ -7,9 +7,15 @@
 
 #pragma once
 
+#include "level.hpp"
+
+#include "sys/cam/camera_system.hpp"
+#include "sys/controller/controller_system.hpp"
+#include "sys/gameplay/gameplay_system.hpp"
 #include "sys/graphic/graphic_system.hpp"
 #include "sys/light/light_system.hpp"
 #include "sys/physics/transform_system.hpp"
+#include "sys/physics/physics_system.hpp"
 
 #include <core/engine.hpp>
 #include <core/ecs/ecs.hpp>
@@ -47,29 +53,29 @@ namespace lux {
 			Meta_system(Engine& engine);
 			~Meta_system();
 
+			auto load_level(const std::string& id) -> Level_data;
+
 			void update(Time dt, Update_mask mask=update_all);
 			void update(Time dt, Update update=Update::none);
-			void draw(const renderer::Camera&);
+			void draw(util::maybe<const renderer::Camera&> cam = util::nothing());
 
 			ecs::Entity_manager entity_manager;
 			sys::physics::Scene_graph scene_graph;
+			sys::physics::Physics_system physics;
+			sys::controller::Controller_system controller;
+			sys::cam::Camera_system camera;
 			sys::light::Light_system lights;
 			sys::graphic::Graphic_system renderer;
+			sys::gameplay::Gameplay_system gameplay;
 
 		private:
-			mutable renderer::Command_queue _render_queue;
+			struct Post_renderer;
 
-			renderer::Shader_program _post_shader;
-
-			renderer::Framebuffer _canvas[2];
-			bool                  _canvas_first_active = true;
+			Engine& _engine;
 
 			renderer::Skybox _skybox;
+			std::unique_ptr<Post_renderer> _post_renderer;
 
-
-			auto& _active_canvas() {
-				return _canvas[_canvas_first_active ? 0: 1];
-			}
 	};
 
 }
