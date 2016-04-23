@@ -5,7 +5,7 @@ add_subdirectory(core)
 
 project(teamproject)
 
-set(VERSION_NAME "0.1")
+set(VERSION_NAME "0.2")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
 
