@@ -81,9 +81,9 @@ namespace cam {
 		}
 
 		if(_type == Camera_move_type::lazy) {
-			target = _smooth_target(target, dt);
 			target.x = glm::mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
-			target.y = glm::mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*30.f,1.f))*1_m;
+			target.y = glm::mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*10.f,1.f))*1_m;
+			target = _smooth_target(target, dt);
 		} else {
 			target = glm::mix(remove_units(_last_target), remove_units(target), std::min(dt.value()*30.f,1.f)) * 1_m;
 		}
