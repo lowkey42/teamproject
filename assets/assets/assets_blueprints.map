@@ -6,3 +6,4 @@ blueprint:test_light = blueprints/test_light.json
 
 blueprint:player = blueprints/player.json
 
+blueprint:shard = blueprints/shard.json

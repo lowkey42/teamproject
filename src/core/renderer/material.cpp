@@ -9,9 +9,10 @@ namespace renderer {
 	namespace {
 		struct Material_desc {
 			std::string albedo, normal, material, height;
+			bool alpha;
 		};
 
-		sf2_structDef(Material_desc, albedo, normal, material, height)
+		sf2_structDef(Material_desc, albedo, normal, material, height, alpha)
 
 		Texture_ptr black;
 		Texture_ptr white;
@@ -34,6 +35,7 @@ namespace renderer {
 		_normal    = load_or_default(desc.normal, normal);
 		_material  = load_or_default(desc.material, material);
 		_height    = load_or_default(desc.height, white);
+		_alpha     = desc.alpha;
 	}
 
 	void Material::set_textures(Command& cmd)const {

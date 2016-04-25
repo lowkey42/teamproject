@@ -19,7 +19,7 @@
     	"jump_cooldown": 0.025
     },
     "Enlightened": {
-    	"velocity": 20.0,
+    	"velocity": 15.0,
     	"air_transformations": 1,
         "radius": 0.25
     },

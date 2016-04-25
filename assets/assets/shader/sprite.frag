@@ -180,12 +180,12 @@ void main() {
 	vec3 material = texture2D(material_tex, uv).xyz;
 	float emmision = material.r;
 	float metalness = material.g;
-	float smoothness = 1.0-material.b;
+	float smoothness = clamp(1.0-material.b, 0.01, 0.99);
 
 	float roughness = 1.0 - smoothness*smoothness;
 	float reflectance = clamp((smoothness-0.1)*1.1 + metalness*0.2, 0.0, 1.0);
 
-	if(albedo.a < 0.1) {
+	if(albedo.a < 0.01) {
 		discard;
 	}
 
@@ -203,6 +203,6 @@ void main() {
 	float fade_out = clamp(-pos_frag.z*0.025, 0.0, 0.5);
 	color = saturation(mix(color, ambient*10.0, fade_out*0.2), 1.0 - fade_out);
 
-	gl_FragColor = vec4(mix(color, albedo.rgb*2.0, emmision), albedo.a);
+	gl_FragColor = vec4(color + albedo.rgb*3.0*emmision, albedo.a);
 }
 

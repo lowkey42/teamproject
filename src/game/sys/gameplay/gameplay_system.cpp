@@ -58,7 +58,8 @@ namespace gameplay {
 					break;
 
 				case Enlightened_comp::State::canceling:
-					c._state = Enlightened_comp::State::disabled;
+					c._state = c._was_light ? Enlightened_comp::State::enabled
+					                        : Enlightened_comp::State::disabled;
 					// TODO: set animation, stop effects, ...
 					break;
 
@@ -68,6 +69,7 @@ namespace gameplay {
 						c._state = Enlightened_comp::State::disabled;
 						c._was_light = false;
 						body.velocity(c._direction * c._velocity);
+						body.apply_force(c._direction * c._velocity * 20.f + vec2{0,100});
 
 					} else { // to light
 						// TODO: change animation/effect

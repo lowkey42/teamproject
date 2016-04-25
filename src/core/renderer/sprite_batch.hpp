@@ -50,7 +50,13 @@ namespace renderer {
 		              glm::vec2 tangent, float shadow_resistence, const renderer::Material*);
 
 		bool operator<(const Sprite_vertex& rhs)const noexcept {
-			return material < rhs.material;
+			auto lhs_z = -position.z;
+			auto lhs_alpha = material ? material->alpha() : false;
+			auto rhs_z = -rhs.position.z;
+			auto rhs_alpha = rhs.material ? rhs.material->alpha() : false;
+
+			return std::tie(lhs_alpha, material, lhs_z)
+			     < std::tie(rhs_alpha, rhs.material, rhs_z);
 		}
 	};
 

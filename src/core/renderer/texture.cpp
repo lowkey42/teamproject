@@ -50,9 +50,13 @@ namespace renderer {
 
 		auto tex_type = _cubemap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
 
+		// TODO: mipmapping for sprites
+
 		glBindTexture(tex_type, _handle);
 		glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, _cubemap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 		glTexParameteri(tex_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, CLAMP_TO_EDGE);
 		glBindTexture(tex_type, 0);
 	}
 	Texture::Texture(int width, int height, int bpp) : _width(width), _height(height) {

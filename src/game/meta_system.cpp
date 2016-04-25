@@ -109,7 +109,7 @@ namespace lux {
 
 					blur_shader.bind();
 
-					constexpr auto steps = 4;
+					constexpr auto steps = 16;
 					for(auto i : util::range(steps*2)) {
 						auto src = i%2;
 						auto dest = src>0?0:1;

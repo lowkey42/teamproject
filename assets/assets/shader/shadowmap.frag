@@ -47,6 +47,7 @@ void main() {
 			//vec3 delta = pos2World(vec3(light_pos, 0.0)) - pos2World(vec3(coord, 0.0));
 			//float d = length(delta.xy);
 			distance = min(distance, r);
+			break;
 		}
 	}
 
