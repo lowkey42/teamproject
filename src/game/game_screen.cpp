@@ -37,7 +37,7 @@ namespace lux {
 			}
 		});
 		_mailbox.subscribe_to([&](sys::physics::Collision& c){
-			if(c.impact>40.f) {
+			if(c.impact>=40.f) {
 				DEBUG("Smashed to death: "<<c.a<<" <=>"<<c.b<<" | "<<c.impact);
 				_engine.audio_ctx().play_static(*_engine.assets().load<audio::Sound>("sound:slime"_aid));
 			}

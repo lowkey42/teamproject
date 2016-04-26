@@ -175,7 +175,8 @@ namespace controller {
 					light.start_transformation();
 				}
 				if(!light.was_light()) {
-					light.direction(dir);
+					if(glm::length2(dir)>0.01f)
+						light.direction(dir);
 				}
 
 				// jump to cancel

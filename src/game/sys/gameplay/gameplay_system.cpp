@@ -69,7 +69,7 @@ namespace gameplay {
 						c._state = Enlightened_comp::State::disabled;
 						c._was_light = false;
 						body.velocity(c._direction * c._velocity);
-						body.apply_force(c._direction * c._velocity * 20.f + vec2{0,100});
+						body.apply_force(c._direction * c._velocity * 40.f + vec2{0,100});
 
 					} else { // to light
 						// TODO: change animation/effect
@@ -84,7 +84,7 @@ namespace gameplay {
 				case Enlightened_comp::State::enabled: {
 					auto pos = remove_units(transform.position());
 
-					auto move_distance = c._velocity * dt.value();
+					auto move_distance = std::abs(c._velocity * dt.value());
 					auto direction = c._direction;
 
 					auto ray = _physics_world.raycast(pos.xy(), direction, c._radius*2.f+move_distance, c.owner());

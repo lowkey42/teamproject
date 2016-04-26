@@ -12,14 +12,14 @@
     "Camera_target": {
     },
     "Input_controller": {
-    	"air_velocity": 4.0,
-    	"ground_velocity": 6.0,
+    	"air_velocity": 3.0,
+    	"ground_velocity": 4.0,
     	"acceleration_time": 0.5,
-    	"jump_velocity": 20.0,
+    	"jump_velocity": 15.0,
     	"jump_cooldown": 0.025
     },
     "Enlightened": {
-    	"velocity": 15.0,
+    	"velocity": 10.0,
     	"air_transformations": 1,
         "radius": 0.25
     },
