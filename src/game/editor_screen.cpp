@@ -4,6 +4,8 @@
 
 #include "game_screen.hpp"
 
+#include "sys/physics/transform_comp.hpp"
+
 #include <core/units.hpp>
 #include <core/renderer/graphics_ctx.hpp>
 #include <core/renderer/command_queue.hpp>
@@ -57,6 +59,45 @@ namespace lux {
 				std::string _saved_state;
 		};
 
+		struct Paste_cmd : util::Command {
+			public:
+				Paste_cmd(ecs::Entity_manager& ecs,
+				          sys::editor::Selection& selection, std::string data, glm::vec3 pos)
+				    : _name("Entity pasted"),
+				      _ecs(ecs), _selection(selection), _data(data), _pos(pos) {}
+
+				void execute()override {
+					if(_entity) {
+						_ecs.restore(_entity, _data);
+					} else {
+						_entity = _ecs.restore(_data);
+						auto trans_comp = _entity->get<sys::physics::Transform_comp>();
+						trans_comp.process([&](auto& t){
+							t.position(_pos * 1_m);
+						});
+					}
+
+					_selection.select(_entity);
+				}
+				void undo()override {
+					INVARIANT(_entity, "No stored entity in Paste_cmd");
+					_ecs.erase(_entity);
+					_selection.select({});
+				}
+				auto name()const -> const std::string& override{
+					return _name;
+				}
+
+			private:
+				const std::string _name;
+
+				ecs::Entity_manager& _ecs;
+				sys::editor::Selection& _selection;
+				ecs::Entity_ptr _entity;
+				std::string _data;
+				glm::vec3 _pos;
+		};
+
 	}
 
 
@@ -71,6 +112,7 @@ namespace lux {
 	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, 5_m, 100_m),
 	      _debug_Text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _selection(engine, _systems.entity_manager, _camera_world, _commands),
+	      _clipboard(util::nothing()),
 	      _last_pointer_pos(util::nothing())
 	{
 
@@ -133,6 +175,25 @@ namespace lux {
 					save_level(_engine, _systems.entity_manager, _level_metadata);
 					_engine.screens().enter<Game_screen>(_level_metadata.id);
 					break;
+
+				case "copy"_strid:
+					if(_selection.selection()) {
+						_clipboard = _selection.copy_content();
+					}
+					break;
+				case "cut"_strid:
+					if(_selection.selection()) {
+						_clipboard = _selection.copy_content();
+						_commands.execute<Delete_cmd>(_selection);
+					}
+					break;
+				case "paste"_strid:
+					_clipboard.process([&](auto& entity){
+						auto pos = this->_camera_world.eye_position();
+						pos.z = 0.f;
+						_commands.execute<Paste_cmd>(_systems.entity_manager, _selection, entity, pos);
+					});
+					break;
 			}
 		});
 
@@ -156,37 +217,7 @@ namespace lux {
 
 		_render_queue.shared_uniforms(renderer::make_uniform_map("vp", _camera_menu.vp()));
 
-#if 1
 		_level_metadata = _systems.load_level(level_id);
-#else
-		_level_metadata.id = "test";
-		_level_metadata.name = "test";
-		_level_metadata.ambient_brightness = 0.1f;
-		_level_metadata.author = "me";
-		_level_metadata.description = "test";
-		_level_metadata.environment_id = "default_env";
-		_level_metadata.environment_light_color = Rgb{0.5, 0.5, 0.5};
-		_level_metadata.environment_light_direction = {0.1, -0.8, 0.4};
-
-		{
-			_selected_entity = _systems.entity_manager.emplace("blueprint:test"_aid);
-			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
-			transform.position(Position{0_m, -3_m, 0_m});
-		}
-		{
-			auto& transform = _systems.entity_manager.emplace("blueprint:test_light"_aid)->get<sys::physics::Transform_comp>().get_or_throw();
-			transform.position(Position{0_m, 0_m, 0.0_m});
-		}
-		{
-			auto& transform = _systems.entity_manager.emplace("blueprint:test_bg"_aid)->get<sys::physics::Transform_comp>().get_or_throw();
-			transform.position(Position{0_m, 0_m, -0.1_m});
-		}
-		{
-			_selected_entity = _systems.entity_manager.emplace("blueprint:player"_aid);
-			auto& transform = _selected_entity->get<sys::physics::Transform_comp>().get_or_throw();
-			transform.position(Position{0_m, -1_m, 0.1_m});
-		}
-#endif
 	}
 
 	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {

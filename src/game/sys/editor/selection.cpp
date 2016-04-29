@@ -52,14 +52,21 @@ namespace editor {
 
 		struct Transform_cmd : util::Command {
 			public:
-				Transform_cmd(ecs::Entity_ptr e, Position new_pos, Angle new_rot, float new_scale,
+				Transform_cmd(Selection& selection_mgr, ecs::Entity_ptr e, bool copy,
+				              Position new_pos, Angle new_rot, float new_scale,
 				              Position prev_pos, Angle prev_rot, float prev_scale)
 				    : _name("Entity Transformed "+ecs::entity_name(e)+" "+util::to_string(prev_scale)+" => "+util::to_string(new_scale)),
-				      _entity(e),
+				      _selection_mgr(selection_mgr), _entity(e), _copied_entity(copy),
 				      _new_position(new_pos), _new_rotation(new_rot), _new_scale(new_scale),
 				      _prev_position(prev_pos), _prev_rotation(prev_rot), _prev_scale(prev_scale) {}
 
 				void execute()override {
+					if(_copied_entity && !_saved_state.empty()) {
+						_entity->manager().restore(_entity, _saved_state);
+						_selection_mgr.select(_entity);
+						return;
+					}
+
 					auto& transform = _entity->get<physics::Transform_comp>().get_or_throw();
 
 					transform.position(_new_position);
@@ -67,6 +74,13 @@ namespace editor {
 					transform.scale(_new_scale);
 				}
 				void undo()override {
+					if(_copied_entity) {
+						_selection_mgr.select({});
+						_saved_state = _entity->manager().backup(_entity);
+						_entity->manager().erase(_entity);
+						return;
+					}
+
 					auto& transform = _entity->get<physics::Transform_comp>().get_or_throw();
 
 					transform.position(_prev_position);
@@ -80,7 +94,10 @@ namespace editor {
 			private:
 				const std::string _name;
 
+				Selection& _selection_mgr;
 				ecs::Entity_ptr _entity;
+				bool            _copied_entity;
+				std::string     _saved_state;
 
 				Position  _new_position;
 				Angle     _new_rotation;
@@ -142,7 +159,6 @@ namespace editor {
 				glm::vec2 _prev_pos;
 		};
 
-
 		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam, bool forgiving=false) {
 			bool inside = false;
 
@@ -197,9 +213,15 @@ namespace editor {
 		// TODO: move to method
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
 			switch(e.id) {
+				case "copy_drag"_strid:
+					_copy_dragging = e.begin;
+					break;
 				case "mouse_down"_strid:
 					if(e.begin) {
 						if(_selected_entity) {
+							_curr_copy = _copy_dragging;
+							_curr_copy_created = false;
+
 							_current_action = Action_type::none;
 							auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
 
@@ -226,7 +248,8 @@ namespace editor {
 
 							} else {
 								auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-								_commands.execute<Transform_cmd>(_selected_entity,
+								_commands.execute<Transform_cmd>(*this, _selected_entity,
+								                                 _curr_copy && _curr_copy_created,
 								                                 transform.position(),
 								                                 transform.rotation(),
 								                                 transform.scale(),
@@ -252,6 +275,7 @@ namespace editor {
 				}
 			}
 		});
+
 	}
 
 	void Selection::draw(renderer::Command_queue& queue, renderer::Camera& cam) {
@@ -474,8 +498,9 @@ namespace editor {
 	}
 
 	auto Selection::copy_content()const -> std::string {
-		// TODO
-		return "[]";
+		INVARIANT(_selected_entity, "No entity selected!");
+
+		return _selected_entity->manager().backup(_selected_entity);
 	}
 
 	void Selection::_change_selection(glm::vec2 point) {
@@ -500,6 +525,11 @@ namespace editor {
 	void Selection::_move(glm::vec2 offset) {
 		if(!_selected_entity || glm::length2(offset)<1.f)
 			return;
+
+		if(_curr_copy && !_curr_copy_created) {
+			_selected_entity = _selected_entity->manager().restore(copy_content());
+			_curr_copy_created = true;
+		}
 
 		auto world_offset = _world_cam.screen_to_world(offset, _curr_entity_position)
 		                    - _world_cam.screen_to_world(vec2{0,0}, _curr_entity_position);

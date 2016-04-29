@@ -72,9 +72,8 @@ namespace lux {
 			renderer::Command_queue _render_queue;
 
 			sys::editor::Selection _selection;
+			util::maybe<std::string> _clipboard;
 			util::maybe<glm::vec2> _last_pointer_pos;
-
-			ecs::Entity_ptr _selected_entity;
 
 			glm::vec2 _cam_speed;
 
