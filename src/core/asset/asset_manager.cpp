@@ -25,10 +25,10 @@ using namespace lux::util;
 namespace {
 
 	std::string append_file(const std::string& folder, const std::string file) {
-		if(ends_with(folder, PHYSFS_getDirSeparator()) || starts_with(file, PHYSFS_getDirSeparator()))
+		if(ends_with(folder, "/") || starts_with(file, "/"))
 			return folder+file;
 		else
-			return folder+PHYSFS_getDirSeparator()+file;
+			return folder+"/"+file;
 	}
 	void create_dir(const std::string& dir) {
 #ifdef WIN
