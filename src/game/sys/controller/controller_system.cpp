@@ -139,6 +139,11 @@ namespace controller {
 	void Controller_system::update(Time dt) {
 		_mailbox.update_subscriptions();
 
+		if(_input_block_remainder>0_s) {
+			_input_block_remainder -= dt;
+			return;
+		}
+
 		// TODO: AI
 
 		auto effective_move = _move_dir;

@@ -138,7 +138,7 @@ namespace lux {
 	      camera(engine, entity_manager),
 	      lights(engine.bus(), entity_manager, engine.assets()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
-	      gameplay(engine, entity_manager, physics, camera),
+	      gameplay(engine, entity_manager, physics, camera, controller, [&]{load_level(_current_level);}),
 
 	      _engine(engine),
 	      _skybox(engine.assets(), "tex_cube:default_env"_aid),
@@ -146,10 +146,12 @@ namespace lux {
 	}
 
 	Meta_system::~Meta_system() {
+		entity_manager.clear();
 	}
 
 
 	auto Meta_system::load_level(const std::string& id) -> Level_data {
+		_current_level = id;
 		auto level_meta_data = ::lux::load_level(_engine, entity_manager, id);
 		_skybox.texture(_engine.assets().load<Texture>({"tex_cube"_strid, level_meta_data.environment_id}));
 		lights.config(level_meta_data.environment_light_color,

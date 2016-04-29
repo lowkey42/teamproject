@@ -1,6 +1,7 @@
 {
     "Transform":{
     },
+	"Player_tag": {},
     "Sprite": {
         "material": "mat:player",
         "size": {"x":0.75, "y":1},

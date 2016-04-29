@@ -3,9 +3,13 @@
 #include "gameplay_system.hpp"
 
 #include "../cam/camera_system.hpp"
-
+#include "../controller/controller_system.hpp"
 #include "../physics/transform_comp.hpp"
 #include "../physics/physics_system.hpp"
+
+#include <core/audio/music.hpp>
+#include <core/audio/sound.hpp>
+#include <core/audio/audio_ctx.hpp>
 
 
 namespace lux {
@@ -24,15 +28,62 @@ namespace gameplay {
 
 	Gameplay_system::Gameplay_system(Engine& engine, ecs::Entity_manager& ecs,
 	                                 physics::Physics_system& physics_world,
-	                                 cam::Camera_system& camera_sys)
-	    : _mailbox(engine.bus()),
+	                                 cam::Camera_system& camera_sys,
+	                                 controller::Controller_system& controller_sys,
+	                                 std::function<void()> reload)
+	    : _engine(engine),
+	      _mailbox(engine.bus()),
 	      _enlightened(ecs.list<Enlightened_comp>()),
+	      _players(ecs.list<Player_tag_comp>()),
 	      _physics_world(physics_world),
-	      _camera_sys(camera_sys) {
+	      _camera_sys(camera_sys),
+	      _controller_sys(controller_sys),
+	      _reload(reload) {
+
+		_mailbox.subscribe_to([&](sys::physics::Collision& c){
+			ecs::Entity* player = nullptr;
+			if(c.a && c.a->has<Player_tag_comp>()) {
+				player = c.a;
+			} else if(c.b && c.b->has<Player_tag_comp>()) {
+				player = c.b;
+			}
+
+			if(c.impact>=40.f && player) {
+				// TODO: play death animation
+				// TODO: play sound
+
+				DEBUG("Smashed to death: "<<c.a<<" <=>"<<c.b<<" | "<<c.impact);
+				_engine.audio_ctx().play_static(*_engine.assets().load<audio::Sound>("sound:slime"_aid));
+
+				// TODO: when done => spawn Blood_stain, delete entity
+				auto& transform = player->get<physics::Transform_comp>().get_or_throw();
+				_blood_stains.emplace_back(remove_units(transform.position()).xy());
+
+				player->manager().erase(player->shared_from_this());
+			}
+		});
 	}
 
-	void Gameplay_system::update(Time dt) {
+	void Gameplay_system::draw(renderer::Command_queue&, const renderer::Camera& camera)const {
+		// TODO: add magic to draw the blood stains
 
+	}
+	void Gameplay_system::update(Time dt) {
+		_update_light(dt);
+		_mailbox.update_subscriptions();
+
+		if(_players.size()==0) {
+			DEBUG("Everyone is dead!");
+
+			// set camera to slowly lerp back to player and block input
+			_camera_sys.start_slow_lerp(1.5_s);
+			_controller_sys.block_input(1.0_s);
+
+			_reload();
+		}
+	}
+
+	void Gameplay_system::_update_light(Time dt) {
 		bool any_one_lighted = false;
 		bool any_one_not_grounded = false;
 

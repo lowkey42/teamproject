@@ -37,17 +37,14 @@ namespace physics {
 	sf2_enumDef(Body_shape, polygon, humanoid, circle)
 
 	namespace {
-		// body, foot, sensor_bottom, sensor_left, sensor_right
-		using ub_res = std::tuple<b2Body*, b2Fixture*, glm::vec2>;
+		using body_ptr = std::unique_ptr<b2Body, void(*)(b2Body*)>;
 
-		auto update_body(b2World& world, b2Body* body, const Body_definition& def,
+		// body, foot, sensor_bottom, sensor_left, sensor_right
+		using ub_res = std::tuple<b2Fixture*, glm::vec2>;
+
+		auto update_body(b2World& world, body_ptr& body, const Body_definition& def,
 		                 ecs::Entity& owner, b2BodyType btype) -> ub_res {
 			b2Fixture* fixture_foot = nullptr;
-
-			if(body) {
-				world.DestroyBody(body);
-				body = nullptr;
-			}
 
 			auto& transform_comp = owner.get<Transform_comp>().get_or_throw();
 
@@ -61,7 +58,7 @@ namespace physics {
 			bd.position.y = transform_comp.position().y.value();
 			bd.userData = &owner;
 			bd.type = btype;
-			body = world.CreateBody(&bd);
+			body = body_ptr{world.CreateBody(&bd), +[](b2Body*b){if(b) b->GetWorld()->DestroyBody(b);}};
 
 			b2FixtureDef main_fixture;
 			main_fixture.density = def.density;
@@ -122,7 +119,7 @@ namespace physics {
 						break;
 				}
 
-				return std::make_tuple(body, fixture_foot, size);
+				return std::make_tuple(fixture_foot, size);
 			}
 
 			auto terrain_comp_mb = owner.get<graphic::Terrain_comp>();
@@ -145,11 +142,11 @@ namespace physics {
 				}
 
 				//create_polygons(terrain_comp.smart_texture().points(), *body, main_fixture);
-				return std::make_tuple(body, nullptr, glm::vec2{1,1});
+				return std::make_tuple(nullptr, glm::vec2{1,1});
 			}
 
 			FAIL("No component to determine the size from!!!");
-			return std::make_tuple(nullptr, nullptr, glm::vec2{1,1});
+			return std::make_tuple(nullptr, glm::vec2{1,1});
 		}
 	}
 
@@ -161,10 +158,10 @@ namespace physics {
 	void Dynamic_body_comp::save(sf2::JsonSerializer& state)const {
 		state.write(_def);
 	}
-	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner) {
+	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*b){}) {
 	}
 	void Dynamic_body_comp::_update_body(b2World& world) {
-		std::tie(_body, _fixture_foot, _size) =
+		std::tie(_fixture_foot, _size) =
 		        update_body(world, _body, _def, owner(), b2_dynamicBody);
 	}
 
@@ -240,11 +237,10 @@ namespace physics {
 	void Static_body_comp::save(sf2::JsonSerializer& state)const {
 		state.write(_def);
 	}
-	Static_body_comp::Static_body_comp(ecs::Entity& owner) : Component(owner) {
+	Static_body_comp::Static_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*b){}) {
 	}
 	void Static_body_comp::_update_body(b2World& world) {
-		std::tie(_body, std::ignore, std::ignore) =
-		        update_body(world, _body, _def, owner(), b2_staticBody);
+		update_body(world, _body, _def, owner(), b2_staticBody);
 	}
 
 }

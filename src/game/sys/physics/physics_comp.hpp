@@ -68,7 +68,7 @@ namespace physics {
 			friend class Physics_system;
 
 			Body_definition _def;
-			b2Body* _body = nullptr;
+			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
 			b2Fixture* _fixture_foot = nullptr;
 			bool _active = true;
 			glm::vec2 _size;
@@ -94,7 +94,7 @@ namespace physics {
 			friend class Physics_system;
 
 			Body_definition _def;
-			b2Body* _body = nullptr;
+			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
 			bool _active = true;
 
 			void _update_body(b2World& world);
