@@ -11,6 +11,7 @@
 
 #include <core/renderer/camera.hpp>
 #include <core/renderer/command_queue.hpp>
+#include <core/renderer/text.hpp>
 #include <core/engine.hpp>
 #include <core/utils/maybe.hpp>
 
@@ -37,6 +38,8 @@ namespace lux {
 			util::Mailbox_collection _mailbox;
 
 			Meta_system _systems;
+
+			renderer::Text_dynamic _ui_text;
 
 			renderer::Camera_2d _camera_ui;
 

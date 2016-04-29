@@ -29,6 +29,8 @@ namespace controller {
 
 			void update(Time);
 
+			bool input_active();
+
 			void block_input(Time t) {
 				_input_block_remainder = t;
 			}

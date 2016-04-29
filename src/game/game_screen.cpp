@@ -25,6 +25,7 @@ namespace lux {
 	    : Screen(engine),
 	      _mailbox(engine.bus()),
 	      _systems(engine),
+	      _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _camera_ui(engine.graphics_ctx().viewport(),
 	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()})
 	{
@@ -63,11 +64,19 @@ namespace lux {
 		_mailbox.update_subscriptions();
 
 		_systems.update(dt, update_all);
+
+		if(_systems.gameplay.game_time()>0.0_s)
+			_ui_text.set(util::to_string(_systems.gameplay.game_time().value())+"s");
+		else
+			_ui_text.set("");
 	}
 
 
 	void Game_screen::_draw() {
 		_systems.draw();
+
+		_ui_text.draw(_render_queue, glm::vec2(-_camera_ui.size().x/2.f+_ui_text.size().x/2.f*0.5f + 1.f,
+		                                       -_camera_ui.size().y/2.f+_ui_text.size().y/2.f*0.5f + 1.f), glm::vec4(1,1,1,1), 0.5f);
 
 		_render_queue.flush();
 	}

@@ -11,6 +11,7 @@
 #include "player_tag_comp.hpp"
 
 #include <core/renderer/camera.hpp>
+#include <core/renderer/texture_batch.hpp>
 #include <core/engine.hpp>
 #include <core/units.hpp>
 #include <core/ecs/ecs.hpp>
@@ -48,6 +49,8 @@ namespace gameplay {
 			void update(Time);
 			void draw(renderer::Command_queue&, const renderer::Camera& camera)const;
 
+			auto game_time()const {return _game_timer;}
+
 		private:
 			struct Blood_stain {
 				glm::vec2 position;
@@ -66,10 +69,15 @@ namespace gameplay {
 
 			Time _light_timer{0};
 
+			Time _game_timer{0};
+
 			std::vector<Blood_stain> _blood_stains;
 
+			mutable renderer::Texture_batch _blood_batch;
 
 			void _update_light(Time);
+			bool _is_reflective(glm::vec2 p);
+			void _on_smashed(ecs::Entity& e);
 	};
 
 }

@@ -198,6 +198,8 @@ namespace lux {
 
 		_skybox.draw(queue);
 
+		gameplay.draw(queue, cam);
+
 		_post_renderer->flush();
 	}
 

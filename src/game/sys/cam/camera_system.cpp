@@ -93,9 +93,11 @@ namespace cam {
 			if(_targets.size()>0) {
 				_slow_lerp_remainder-=dt;
 				if(_slow_lerp_remainder<_slow_lerp_time*0.9f)
-					target = glm::mix(remove_units(target), remove_units(_slow_lerp_start), _slow_lerp_remainder/(_slow_lerp_time*0.9f)) * 1_m;
-				else
+					target = glm::mix(remove_units(_slow_lerp_target), remove_units(_slow_lerp_start), _slow_lerp_remainder/(_slow_lerp_time*0.9f)) * 1_m;
+				else {
+					_slow_lerp_target = target;
 					target = _slow_lerp_start;
+				}
 			}
 
 		} else if(_type == Camera_move_type::lazy) {

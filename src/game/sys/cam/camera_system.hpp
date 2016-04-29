@@ -51,6 +51,7 @@ namespace cam {
 
 			Time _slow_lerp_time {};
 			Position _slow_lerp_start {};
+			Position _slow_lerp_target {};
 			Time _slow_lerp_remainder {};
 
 			auto _calc_target() -> Position;
