@@ -107,9 +107,10 @@ namespace asset {
 		if(!PHYSFS_init(exe_name.empty() ? nullptr : exe_name.c_str()))
 			FAIL("PhysFS-Init failed for \""<<exe_name<<"\": "<< PHYSFS_getLastError());
 
+		// TODO: Windows savegames should be stored in FOLDERID_SavedGames, but the API and conventions are a pain in the ass
 		std::string write_dir_parent = append_file(PHYSFS_getUserDir(),
 #ifdef WIN
-			"%appdata%"
+			"Documents/My Games"
 #else
 			".config"
 #endif

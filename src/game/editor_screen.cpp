@@ -247,7 +247,6 @@ namespace lux {
 	auto Editor_screen::_handle_pointer_cam(util::maybe<glm::vec2> mp1,
 	                                        util::maybe<glm::vec2>) -> bool {
 		process(_last_pointer_pos,mp1) >> [&](auto last, auto curr) {
-			INFO("cam movement");
 			auto wsrc = this->_camera_world.screen_to_world(last, glm::vec3(0,0,0));
 			auto wtarget = this->_camera_world.screen_to_world(curr, glm::vec3(0,0,0));
 
