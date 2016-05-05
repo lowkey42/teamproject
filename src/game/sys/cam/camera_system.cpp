@@ -72,6 +72,12 @@ namespace cam {
 		return curr;
 	}
 
+	void Camera_system::start_slow_lerp(Time t) {
+		_slow_lerp_time = t;
+		_slow_lerp_remainder = t;
+		_slow_lerp_start = _last_target;
+	}
+
 	void Camera_system::update(Time dt) {
 		auto target = _calc_target();
 
@@ -81,7 +87,20 @@ namespace cam {
 			_type_changed = false;
 		}
 
-		if(_type == Camera_move_type::lazy) {
+
+
+		if(_slow_lerp_remainder>0_s) {
+			if(_targets.size()>0) {
+				_slow_lerp_remainder-=dt;
+				if(_slow_lerp_remainder<_slow_lerp_time*0.9f)
+					target = glm::mix(remove_units(_slow_lerp_target), remove_units(_slow_lerp_start), _slow_lerp_remainder/(_slow_lerp_time*0.9f)) * 1_m;
+				else {
+					_slow_lerp_target = target;
+					target = _slow_lerp_start;
+				}
+			}
+
+		} else if(_type == Camera_move_type::lazy) {
 			target.x = glm::mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
 			target.y = glm::mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*10.f,1.f))*1_m;
 			target = _smooth_target(target, dt);
@@ -89,6 +108,7 @@ namespace cam {
 		} else {
 			target = glm::mix(remove_units(_last_target), remove_units(target), std::min(dt.value()*30.f,1.f)) * 1_m;
 		}
+
 		_camera.position(target);
 
 		_last_target = target;

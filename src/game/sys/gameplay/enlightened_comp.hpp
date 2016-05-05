@@ -50,11 +50,14 @@ namespace gameplay {
 			float _velocity = 10.f;
 			int _air_transformations = 0;
 			float _radius = 1.f;
+			float _final_booster_distance = 1.f;
+			float _max_air_time = -1.f;
 
 			bool _was_light = false; //< state after the last update
 			State _state = State::disabled; //< state change request
 			glm::vec2 _direction;
 			int _air_transforms_left=0;
+			Time _air_time{};
 	};
 
 }

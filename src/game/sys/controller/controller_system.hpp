@@ -29,6 +29,12 @@ namespace controller {
 
 			void update(Time);
 
+			bool input_active();
+
+			void block_input(Time t) {
+				_input_block_remainder = t;
+			}
+
 		private:
 			util::Mailbox_collection _mailbox;
 			Input_controller_comp::Pool& _input_controllers;
@@ -43,6 +49,8 @@ namespace controller {
 			bool _transform_pending = false;
 			bool _transform = false;
 			bool _transform_canceled = false;
+
+			Time _input_block_remainder {};
 
 			static void _move(Input_controller_comp& c, physics::Dynamic_body_comp& body, float dir, Time dt);
 			static void _start_jump(Input_controller_comp& c, physics::Dynamic_body_comp& body, Time dt);

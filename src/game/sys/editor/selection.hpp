@@ -63,6 +63,8 @@ namespace editor {
 			renderer::Texture_ptr _icon_scale;
 
 			ecs::Entity_ptr _selected_entity;
+			bool      _curr_copy = false;
+			bool      _curr_copy_created = false;
 			glm::vec3 _curr_entity_position;
 			Angle     _curr_entity_rotation;
 			float     _curr_entity_scale = 1.f;
@@ -80,6 +82,7 @@ namespace editor {
 			Action_type _current_action = Action_type::inactive;
 			int _current_shape_index = 0;
 			bool _snap_to_grid = true;
+			bool _copy_dragging = false;
 
 
 			// all coordinates in screen space

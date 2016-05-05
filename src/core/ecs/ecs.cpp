@@ -151,12 +151,7 @@ namespace ecs {
 
 	void Entity_manager::read(std::istream& stream, bool clear, Component_filter filter) {
 		if(clear) {
-			for(auto& cp : _pools)
-				if(cp)
-					cp->clear();
-
-			_entities.clear();
-			_delete_queue.clear();
+			this->clear();
 		}
 
 		// read into dummy vector, because entity register themself when they are created
@@ -167,6 +162,15 @@ namespace ecs {
 		);
 
 		DEBUG("Loaded "<<dummy.size()<<" entities");
+	}
+
+	void Entity_manager::clear() {
+		for(auto& cp : _pools)
+			if(cp)
+				cp->clear();
+
+		_entities.clear();
+		_delete_queue.clear();
 	}
 
 } /* namespace ecs */

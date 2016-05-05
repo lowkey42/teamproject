@@ -76,6 +76,8 @@ namespace lux {
 			renderer::Skybox _skybox;
 			std::unique_ptr<Post_renderer> _post_renderer;
 
+			std::string _current_level;
+
 	};
 
 }

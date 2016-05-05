@@ -122,6 +122,8 @@ namespace ecs {
 			void write(std::ostream&, const std::vector<Entity_ptr>&, Component_filter filter={});
 			void read(std::istream&, bool clear=true, Component_filter filter={});
 
+			void clear();
+
 		private:
 			friend class Entity;
 			friend auto load_entity(Entity_manager& manager, const ETO& eto) -> Entity_ptr;

@@ -1,6 +1,7 @@
 {
     "Transform":{
     },
+	"Player_tag": {},
     "Sprite": {
         "material": "mat:player",
         "size": {"x":0.75, "y":1},
@@ -20,8 +21,10 @@
     },
     "Enlightened": {
     	"velocity": 10.0,
-    	"air_transformations": 1,
-        "radius": 0.25
+    	"air_transformations": 0,
+        "radius": 0.25,
+		"final_booster_distance": 4.0,
+		"max_air_time": 1.5
     },
     "Dynamic_body": {
     	"shape": "humanoid",

@@ -60,7 +60,9 @@ namespace renderer {
 		single_quat_tex->draw();
 	}
 
-	Texture_batch::Texture_batch(std::size_t expected_size) {
+	Texture_batch::Texture_batch(std::size_t expected_size,
+	                             bool depth_test)
+	    : _depth_test(depth_test) {
 		_vertices.reserve(expected_size*4);
 		_objects.reserve(expected_size*0.25f);
 	}
@@ -129,10 +131,13 @@ namespace renderer {
 
 		auto cmd = create_command()
 		        .shader(*tex_shader)
-		        .require_not(Gl_option::depth_test)
 		        .require_not(Gl_option::depth_write)
+		        .order_dependent()
 		        .texture(Texture_unit::color, *begin->tex)
 		        .object(_objects.at(obj_idx));
+
+		if(!_depth_test)
+			cmd.require_not(Gl_option::depth_test);
 
 		cmd.uniforms().emplace("layer", _layer);
 

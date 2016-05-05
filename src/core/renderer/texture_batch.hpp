@@ -41,7 +41,8 @@ namespace renderer {
 
 	class Texture_batch {
 		public:
-			Texture_batch(std::size_t expected_size=64);
+			Texture_batch(std::size_t expected_size=64,
+			              bool depth_test=false);
 
 			void insert(const Texture& texture, glm::vec2 pos, glm::vec2 size);
 			void flush(Command_queue&);
@@ -54,6 +55,7 @@ namespace renderer {
 			std::vector<Texture_Vertex>   _vertices;
 			std::vector<renderer::Object> _objects;
 			std::size_t                   _free_obj = 0;
+			bool _depth_test;
 
 			float _layer = 0.f;
 

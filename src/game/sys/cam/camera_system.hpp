@@ -30,6 +30,8 @@ namespace cam {
 			void reset_position(Position p);
 			void type(Camera_move_type t) {_type_changed=_type!=t; _type = t;}
 
+			void start_slow_lerp(Time t);
+
 			auto camera()const -> auto& {return _camera;}
 			auto screen_to_world(glm::vec2 screen_pos) const noexcept -> glm::vec3;
 
@@ -46,6 +48,11 @@ namespace cam {
 
 			bool _type_changed = false;
 			Camera_move_type _type = Camera_move_type::lazy;
+
+			Time _slow_lerp_time {};
+			Position _slow_lerp_start {};
+			Position _slow_lerp_target {};
+			Time _slow_lerp_remainder {};
 
 			auto _calc_target() -> Position;
 			auto _smooth_target(Position p, Time dt) -> Position;

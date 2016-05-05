@@ -71,6 +71,8 @@ namespace util {
 	void Mailbox_collection::subscribe(std::size_t queue_size, Func handler) {
 		using namespace std;
 
+		INVARIANT(_boxes.find(typeuid_of<T>())==_boxes.end(), "Listener already registered!");
+
 		auto& box = _boxes[typeuid_of<T>()];
 		box.box = make_shared<Mailbox<T>>(_bus, queue_size);
 		box.handler = [handler](Sub& s) {

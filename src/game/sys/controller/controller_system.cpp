@@ -35,10 +35,10 @@ namespace controller {
 
 				case "jump"_strid:
 					_jump = e.begin;
-					if(_jump && _transform_pending) {
-						_transform_canceled = true;
-						_transform_pending = false;
-					}
+				//	if(_jump && _transform_pending) {
+				//		_transform_canceled = true;
+				//		_transform_pending = false;
+				//	}
 					break;
 
 				case "transform"_strid:
@@ -64,6 +64,10 @@ namespace controller {
 					break;
 			}
 		});
+	}
+
+	bool Controller_system::input_active() {
+		return _input_block_remainder<=0_s && (glm::length2(_move_dir)>0.01 || _jump || _transform_pending || _move_left || _move_right);
 	}
 
 	void Controller_system::_move(Input_controller_comp& c, physics::Dynamic_body_comp& body,
@@ -96,10 +100,22 @@ namespace controller {
 			vel_target *= std::min(1.f, 0.1f+c._moving_time.value()/c._acceleration_time);
 			c._last_velocity = vel_target;
 
-			auto vel_diff = vel_target - body.velocity().x;
 
-			if(glm::sign(vel_diff)==glm::sign(vel_target) || glm::abs(vel_target)<=0.001f) {
-				move_force.x = vel_diff * body.mass() / dt.value();
+			if(grounded) {
+				auto tangent = vec2{ground_normal.y, -ground_normal.x};
+
+				auto vel_diff = vel_target*tangent - body.velocity();
+
+				if(glm::sign(vel_diff.x)==glm::sign(vel_target) || glm::abs(vel_target)<=0.001f) {
+					move_force = vel_diff * body.mass() / dt.value();
+				}
+
+			} else {
+				auto vel_diff = vel_target - body.velocity().x;
+
+				if(glm::sign(vel_diff)==glm::sign(vel_target) || glm::abs(vel_target)<=0.001f) {
+					move_force.x = vel_diff * body.mass() / dt.value();
+				}
 			}
 
 		} else {
@@ -139,6 +155,12 @@ namespace controller {
 	void Controller_system::update(Time dt) {
 		_mailbox.update_subscriptions();
 
+		if(_input_block_remainder>0_s) {
+			_input_block_remainder -= dt;
+			_transform = false;
+			return;
+		}
+
 		// TODO: AI
 
 		auto effective_move = _move_dir;
@@ -168,6 +190,7 @@ namespace controller {
 				// transforming to physical
 				if(_transform_pending && light.enabled()) {
 					light.start_transformation();
+					light.finish_transformation();
 				}
 
 				// transforming to light
