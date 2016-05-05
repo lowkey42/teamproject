@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 # include core
 add_subdirectory(core)
 
-project(teamproject)
+project(into_the_light)
 
 set(VERSION_NAME "0.2")
 
@@ -135,12 +135,12 @@ file(GLOB_RECURSE MAGNUM_SRCS
 		 game/*.cpp
 		 game/*.h*)
 
-add_executable(Teamproject main.cpp ${MAGNUM_SRCS} "${CMAKE_CURRENT_BINARY_DIR}/info.cpp")
+add_executable(IntoTheLight main.cpp ${MAGNUM_SRCS} "${CMAKE_CURRENT_BINARY_DIR}/info.cpp")
 
 if(EMSCRIPTEN)
-	target_link_libraries(Teamproject ${SDL2_LIBRARY} core)
+	target_link_libraries(IntoTheLight ${SDL2_LIBRARY} core)
 else()
-	target_link_libraries(Teamproject ${SDL2_LIBRARY} core happyhttp)
+	target_link_libraries(IntoTheLight ${SDL2_LIBRARY} core happyhttp)
 endif()
 
 

@@ -59,7 +59,7 @@ int main(int argc, char** argv, char** env) {
 }
 
 void init(int argc, char** argv, char** env) {
-	const auto app_name = "Teamproject";
+	const auto app_name = "IntoTheLight";
 
 	INFO("Game started from: "<<argv[0]<<"\n"
 	     <<"Working dir: "<<asset::pwd()<<"\n"

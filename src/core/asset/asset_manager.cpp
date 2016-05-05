@@ -109,7 +109,7 @@ namespace asset {
 
 		std::string write_dir_parent = append_file(PHYSFS_getUserDir(),
 #ifdef WIN
-			"AppData"
+			"%appdata%"
 #else
 			".config"
 #endif
