@@ -36,7 +36,7 @@ namespace light {
 
 			float a = light_cutoff;
 			float d = radius;
-			float x = 1.f;
+			float x = 0.f;
 			float y = 0.f;
 			float z = (1-a*(d*y + x))
 			          / (a*d*d);

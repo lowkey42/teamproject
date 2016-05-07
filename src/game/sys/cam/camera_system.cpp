@@ -68,7 +68,7 @@ namespace cam {
 		_target_history_curr = (_target_history_curr+1) % _target_history.size();
 		_target_history[_target_history_curr] = curr;
 
-		curr = glm::mix(remove_units(sum)/float(_target_history.size()), remove_units(curr), dt.value()*10.f)*1_m;
+		curr = glm::mix(remove_units(sum)/float(_target_history.size()), remove_units(curr), 0.5f)*1_m;
 		return curr;
 	}
 
@@ -105,7 +105,7 @@ namespace cam {
 			target.x = glm::mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
 			target.y = glm::mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*10.f,1.f))*1_m;
 			target = _smooth_target(target, dt);
-			if(glm::length2(remove_units(target-org_target))<0.01f)
+			if(glm::length2(remove_units(target-org_target))<0.005f)
 				target = org_target;
 
 		} else {

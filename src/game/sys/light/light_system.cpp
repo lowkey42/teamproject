@@ -1,3 +1,10 @@
+#ifndef ANDROID
+	#include <GL/glew.h>
+	#include <GL/gl.h>
+#else
+	#include <GLES2/gl2.h>
+#endif
+
 #define GLM_SWIZZLE
 
 #include "light_system.hpp"
@@ -16,7 +23,7 @@ namespace light {
 	using namespace renderer;
 
 	namespace {
-		constexpr auto shadowmap_size = 1024.f;
+		constexpr auto shadowmap_size = 2048.f;
 		constexpr auto shadowmap_rows = max_lights*2.f;
 	}
 
@@ -32,10 +39,11 @@ namespace light {
 	      _shadowcaster_queue(1),
 	      _shadowcaster_batch(_shadowcaster_shader, 64),
 	      _occlusion_map    (shadowmap_size,shadowmap_size, false, false),
-	      _shadow_map       (shadowmap_size,shadowmap_rows, false, true),
+	      _shadow_map       (shadowmap_size*2.f,shadowmap_rows, false, true),
 	      _sun_light(sun_light),
 	      _sun_dir(glm::normalize(sun_dir)),
 	      _ambient_brightness(ambient_brightness) {
+
 
 		entity_manager.register_component_type<Light_comp>();
 
@@ -127,6 +135,10 @@ namespace light {
 		_shadowmap_shader.set_uniform("light_positions[1]", transform(lights[1].transform));
 		_shadowmap_shader.set_uniform("light_positions[2]", transform(lights[2].transform));
 		_shadowmap_shader.set_uniform("light_positions[3]", transform(lights[3].transform));
+		_shadowmap_shader.set_uniform("light_positions[4]", transform(lights[4].transform));
+		_shadowmap_shader.set_uniform("light_positions[5]", transform(lights[5].transform));
+		_shadowmap_shader.set_uniform("light_positions[6]", transform(lights[6].transform));
+		_shadowmap_shader.set_uniform("light_positions[7]", transform(lights[7].transform));
 
 		auto fbo_cleanup = Framebuffer_binder{_shadow_map};
 		_shadow_map.clear();
@@ -182,6 +194,10 @@ namespace light {
 		SET_LIGHT_UNIFORMS(1)
 		SET_LIGHT_UNIFORMS(2)
 		SET_LIGHT_UNIFORMS(3)
+		SET_LIGHT_UNIFORMS(4)
+		SET_LIGHT_UNIFORMS(5)
+		SET_LIGHT_UNIFORMS(6)
+		SET_LIGHT_UNIFORMS(7)
 
 #undef SET_LIGHT_UNIFORMS
 	}

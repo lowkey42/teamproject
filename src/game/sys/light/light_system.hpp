@@ -24,7 +24,7 @@ namespace lux {
 namespace sys {
 namespace light {
 
-	constexpr auto max_lights = 4;
+	constexpr auto max_lights = 8;
 	constexpr auto light_uniforms = 3+6*max_lights;
 	constexpr auto light_uniforms_size = 3+1+3+(3+3+1+1+3+1)*max_lights;
 

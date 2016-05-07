@@ -33,7 +33,7 @@ uniform sampler2D last_frame_tex;
 
 uniform float light_ambient;
 uniform Dir_light light_sun;
-uniform Point_light light[4];
+uniform Point_light light[8];
 
 uniform vec3 eye;
 
@@ -104,14 +104,14 @@ float sample_shadow_ray(vec2 tc, float r) {
 float sample_shadow(float light_num, float r, vec3 dir) {
 	const float PI = 3.141;
 	float theta = atan(dir.y, dir.x) + PI;
-	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/4.0);
+	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/8.0);
 
 	//the center tex coord, which gives us hard shadows
 	float center = sample_shadow_ray(tc,r);
 
 	//we multiply the blur amount by our distance from center
 	//this leads to more blurriness as the shadow "fades away"
-	float blur = 1.0/512.0 * my_smoothstep(0.0, 1.0, r);
+	float blur = 1.0/1024.0 * my_smoothstep(0.0, 1.0, r);
 
 	//now we use a simple gaussian blur
 	float sum = 0.0;
@@ -195,7 +195,7 @@ void main() {
 	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 
 
-	for(int i=0; i<4; i++) {
+	for(int i=0; i<8; i++) {
 		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance, float(i));
 	}
 
