@@ -39,9 +39,10 @@ void main() {
 	float distance = 4.0;
 
 	float theta = uv_frag.x * 2.0 * PI; //< uv_frag.x is our current percentage of the cirlce
+	vec2 dir = vec2(cos(theta), sin(theta));
 
 	for (float r=0.0; r<2.0; r+=1.0/(1024.0*2.0)) {
-		vec2 coord = vec2(r * cos(theta), r * sin(theta)) + light_pos;
+		vec2 coord = r*dir + light_pos;
 
 		//sample the occlusion map
 		float data = texture2D(occlusions, ndc2uv(coord)).r;

@@ -39,7 +39,7 @@ namespace light {
 	      _shadowcaster_queue(1),
 	      _shadowcaster_batch(_shadowcaster_shader, 64),
 	      _occlusion_map    (shadowmap_size,shadowmap_size, false, false),
-	      _shadow_map       (shadowmap_size*2.f,shadowmap_rows, false, true),
+	      _shadow_map       (shadowmap_size/2.f,shadowmap_rows, false, true),
 	      _sun_light(sun_light),
 	      _sun_dir(glm::normalize(sun_dir)),
 	      _ambient_brightness(ambient_brightness) {
