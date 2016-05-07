@@ -23,8 +23,9 @@ namespace light {
 	using namespace renderer;
 
 	namespace {
+		constexpr auto shadowed_lights = 3;
 		constexpr auto shadowmap_size = 2048.f;
-		constexpr auto shadowmap_rows = max_lights*2.f;
+		constexpr auto shadowmap_rows = shadowed_lights*2.f;
 	}
 
 	Light_system::Light_system(
@@ -72,6 +73,10 @@ namespace light {
 		const physics::Transform_comp* transform = nullptr;
 		const Light_comp* light = nullptr;
 		float score = 0.f;
+
+		bool operator<(const Light_info& rhs)const noexcept {
+			return score>rhs.score;
+		}
 	};
 
 	namespace {
@@ -84,8 +89,9 @@ namespace light {
 			for(Light_comp& light : lights) {
 				auto& trans = light.owner().get<physics::Transform_comp>().get_or_throw();
 
+				auto r = light.radius().value();
 				auto dist = glm::distance2(remove_units(trans.position()), eye_pos);
-				auto score = glm::length2(light.color()) * 1.f/dist;
+				auto score = glm::length2(light.color())/4.f + 1.f/dist + r/2.f;
 
 				if(index<max_lights) {
 					out[index].transform = &trans;
@@ -104,6 +110,8 @@ namespace light {
 					}
 				}
 			}
+
+			std::sort(out.begin(), out.end());
 		}
 	}
 	void Light_system::prepare_draw(renderer::Command_queue& queue,

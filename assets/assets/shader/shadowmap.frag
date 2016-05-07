@@ -16,22 +16,12 @@ void main() {
 	const float PI = 3.141;
 
 	vec2 light_pos;
-	if(uv_frag.y < 1.0/8.0) {
+	if(uv_frag.y < 1.0/3.0) {
 		light_pos = light_positions[0];
-	} else if(uv_frag.y < 2.0/8.0) {
+	} else if(uv_frag.y < 2.0/3.0) {
 		light_pos = light_positions[1];
-	} else if(uv_frag.y < 3.0/8.0) {
+	} else if(uv_frag.y < 3.0/3.0) {
 		light_pos = light_positions[2];
-	} else if(uv_frag.y < 4.0/8.0) {
-		light_pos = light_positions[3];
-	} else if(uv_frag.y < 5.0/8.0) {
-		light_pos = light_positions[4];
-	} else if(uv_frag.y < 6.0/8.0) {
-		light_pos = light_positions[5];
-	} else if(uv_frag.y < 7.0/8.0) {
-		light_pos = light_positions[6];
-	} else if(uv_frag.y < 8.0/8.0) {
-		light_pos = light_positions[7];
 	} else {
 		light_pos = vec2(99999, 99999);
 	}

@@ -105,7 +105,7 @@ float sample_shadow_ray(vec2 tc, float r) {
 float sample_shadow(float light_num, float r, vec3 dir) {
 	const float PI = 3.141;
 	float theta = atan(dir.y, dir.x) + PI;
-	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/8.0);
+	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/3.0);
 
 	//the center tex coord, which gives us hard shadows
 	float center = sample_shadow_ray(tc,r);
@@ -132,19 +132,20 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 	return 1.0-clamp(sum, 0.0, 1.0);
 }
 
-vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance, float light_num) {
-	vec3 light_dir = light.pos.xyz - pos;
-	float light_dist = length(light_dir);
-	light_dir /= light_dist;
-
+float calc_shadow(Point_light light, float light_num) {
 	vec3 light_dir_linear = vec3(light.pos_ndc.xy - pos_lvp_frag.xy, 0);
 	float light_dist_linear = length(light_dir_linear);
 	light_dir_linear /= light_dist_linear;
 
+	return mix(sample_shadow(light_num, light_dist_linear, light_dir_linear), 1.0, shadow_resistence_frag*0.9);
+}
+
+vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance) {
+	vec3 light_dir = light.pos.xyz - pos;
+	float light_dist = length(light_dir);
+	light_dir /= light_dist;
 
 	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z)-0.01, 0.0, 1.0);
-
-	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir_linear), 1.0, shadow_resistence_frag*0.9);
 
 	const float PI = 3.141;
 	float theta = atan(light_dir.y, -light_dir.x)-light.dir;
@@ -196,8 +197,11 @@ void main() {
 	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 
 
-	for(int i=0; i<8; i++) {
-		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance, float(i));
+	for(int i=0; i<2; i++) {
+		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance) * calc_shadow(light[i], float(i));
+	}
+	for(int i=2; i<8; i++) {
+		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 	}
 
 	// remove saturation of objects further away
