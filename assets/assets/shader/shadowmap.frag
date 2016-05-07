@@ -37,7 +37,7 @@ void main() {
 
 	float theta = uv_frag.x * 2.0 * PI; //< uv_frag.x is our current percentage of the cirlce
 
-	for (float r=0.0; r<4.0; r+=1.0/1024.0*2.0) {
+	for (float r=0.0; r<4.0; r+=1.0/(1024.0*4.0)) {
 		vec2 coord = vec2(r * cos(theta), r * sin(theta)) + light_pos;
 
 		//sample the occlusion map

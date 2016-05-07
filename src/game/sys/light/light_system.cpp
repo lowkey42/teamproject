@@ -16,8 +16,8 @@ namespace light {
 	using namespace renderer;
 
 	namespace {
-		constexpr auto shadowmap_size = 512.f;
-		constexpr auto shadowmap_rows = max_lights*4.f;
+		constexpr auto shadowmap_size = 1024.f;
+		constexpr auto shadowmap_rows = max_lights*2.f;
 	}
 
 	Light_system::Light_system(
