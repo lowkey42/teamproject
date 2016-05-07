@@ -62,9 +62,10 @@ namespace light {
 			Rgb _sun_light;
 			glm::vec3 _sun_dir;
 			float _ambient_brightness;
+			glm::vec2 _light_cam_pos;
 
 
-			void _setup_uniforms(renderer::IUniform_map& uniforms, const renderer::Camera& camera,
+			void _setup_uniforms(renderer::IUniform_map& uniforms, const glm::mat4& vp,
 			                     gsl::span<Light_info>);
 			void _draw_occlusion_map(std::shared_ptr<renderer::IUniform_map> uniforms);
 	};
