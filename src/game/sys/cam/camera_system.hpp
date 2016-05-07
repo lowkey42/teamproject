@@ -43,7 +43,7 @@ namespace cam {
 			bool _first_target = true;
 			Position _last_target;
 			std::array<Position, 4> _target_history;
-			int _target_history_curr;
+			int _target_history_curr = 0;
 			bool _moving = false;
 
 			bool _type_changed = false;

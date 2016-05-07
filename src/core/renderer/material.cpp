@@ -9,7 +9,7 @@ namespace renderer {
 	namespace {
 		struct Material_desc {
 			std::string albedo, normal, material, height;
-			bool alpha;
+			bool alpha = false;
 		};
 
 		sf2_structDef(Material_desc, albedo, normal, material, height, alpha)
