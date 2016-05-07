@@ -114,11 +114,17 @@ namespace light {
 
 		auto uniforms = queue.shared_uniforms();
 
-		_setup_uniforms(*uniforms, camera, lights);
-
-
-		auto& vp = camera.vp();
+		auto view = camera.view();
+		constexpr auto lcf = 1.0f; // removes low-frequency changes (jitter)
+		view[3].x = ((int32_t)(view[3].x*lcf))/lcf;
+		view[3].y = ((int32_t)(view[3].y*lcf))/lcf;
+		view[3].z -= 2.f; // compensates for screen-space technique limitations
+		auto vp = camera.proj() * view;
 		uniforms->emplace("vp", vp);
+		uniforms->emplace("vp_light", vp);
+
+		_setup_uniforms(*uniforms, vp, lights);
+
 		_draw_occlusion_map(uniforms);
 
 		_shadowmap_shader.bind();
@@ -130,7 +136,6 @@ namespace light {
 			return p.xy() / p.w;
 		};
 
-		_shadowmap_shader.set_uniform("VP_inv", glm::inverse(vp));
 		_shadowmap_shader.set_uniform("light_positions[0]", transform(lights[0].transform));
 		_shadowmap_shader.set_uniform("light_positions[1]", transform(lights[1].transform));
 		_shadowmap_shader.set_uniform("light_positions[2]", transform(lights[2].transform));
@@ -161,7 +166,7 @@ namespace light {
 		_shadowcaster_queue.flush();
 	}
 
-	void Light_system::_setup_uniforms(IUniform_map& uniforms, const renderer::Camera& camera,
+	void Light_system::_setup_uniforms(IUniform_map& uniforms, const glm::mat4& vp,
 	                                   gsl::span<Light_info> lights) {
 
 		uniforms.emplace("light_ambient",   _ambient_brightness);
@@ -170,7 +175,7 @@ namespace light {
 
 		auto transform = [&](auto p) {
 			p.z = 0.f;
-			auto ps = camera.vp()*glm::vec4(p, 1.f);
+			auto ps = vp*glm::vec4(p, 1.f);
 			return ps.xy() / ps.w;
 		};
 

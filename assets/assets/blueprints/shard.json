@@ -10,7 +10,7 @@
 	"Light": {
         "color": {"r":1.0, "g":1.0, "b":5.0},
         "radius": 6,
-		"offset": {"z":1.0}
+		"offset": {"z":0.0}
     },
     "Editor": {
         "bounds": {"x":1, "y":1, "z":1}

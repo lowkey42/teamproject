@@ -8,13 +8,8 @@ uniform sampler2D occlusions;
 uniform vec2 light_positions[8];
 
 
-uniform mat4 VP_inv;
-
 vec2 ndc2uv(vec2 p) {
 	return clamp(p*0.5 + 0.5, vec2(0.0, 0.0), vec2(1.0, 1.0));
-}
-vec3 pos2World(vec3 p) {
-	return vec3(VP_inv * vec4(p, 1.0));
 }
 
 void main() {
@@ -52,8 +47,6 @@ void main() {
 		float data = texture2D(occlusions, ndc2uv(coord)).r;
 
 		if(data>=0.1) {
-			//vec3 delta = pos2World(vec3(light_pos, 0.0)) - pos2World(vec3(coord, 0.0));
-			//float d = length(delta.xy);
 			distance = min(distance, r);
 			break;
 		}

@@ -18,6 +18,7 @@ varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
 varying vec3 pos_vp_frag;
+varying vec3 pos_lvp_frag;
 varying float shadow_resistence_frag;
 varying mat3 TBN;
 
@@ -111,7 +112,7 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 
 	//we multiply the blur amount by our distance from center
 	//this leads to more blurriness as the shadow "fades away"
-	float blur = 1.0/1024.0 * my_smoothstep(0.0, 1.0, r);
+	float blur = 1.0/1024.0 * min(r + 0.25, 1.0);
 
 	//now we use a simple gaussian blur
 	float sum = 0.0;
@@ -133,15 +134,16 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 
 vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance, float light_num) {
 	vec3 light_dir = light.pos.xyz - pos;
+	light_dir.z*=2.0;
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
 
-	vec3 light_dir_linear = vec3(light.pos_ndc.xy - pos_vp_frag.xy, 0);
+	vec3 light_dir_linear = vec3(light.pos_ndc.xy - pos_lvp_frag.xy, 0);
 	float light_dist_linear = length(light_dir_linear);
 	light_dir_linear /= light_dist_linear;
 
 
-	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z), 0.0, 1.0);
+	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z)-0.01, 0.0, 1.0);
 
 	attenuation *= mix(sample_shadow(light_num, light_dist_linear, light_dir_linear), 1.0, shadow_resistence_frag*0.9);
 
