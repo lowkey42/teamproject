@@ -152,8 +152,6 @@ namespace light {
 		_shadowmap_shader.set_uniform("light_positions[3]", transform(lights[3].transform));
 		_shadowmap_shader.set_uniform("light_positions[4]", transform(lights[4].transform));
 		_shadowmap_shader.set_uniform("light_positions[5]", transform(lights[5].transform));
-		_shadowmap_shader.set_uniform("light_positions[6]", transform(lights[6].transform));
-		_shadowmap_shader.set_uniform("light_positions[7]", transform(lights[7].transform));
 
 		auto fbo_cleanup = Framebuffer_binder{_shadow_map};
 		_shadow_map.clear();
@@ -211,8 +209,6 @@ namespace light {
 		SET_LIGHT_UNIFORMS(3)
 		SET_LIGHT_UNIFORMS(4)
 		SET_LIGHT_UNIFORMS(5)
-		SET_LIGHT_UNIFORMS(6)
-		SET_LIGHT_UNIFORMS(7)
 
 #undef SET_LIGHT_UNIFORMS
 	}

@@ -169,7 +169,6 @@ void main() {
 		normal = normalize(normal*2.0 - 1.0);
 	}
 	normal = TBN * normal;
-	normal = vec3(0,0,1);
 
 	vec3 material = texture2D(material_tex, uv).xyz;
 	float emmision = material.r;
@@ -192,7 +191,7 @@ void main() {
 	for(int i=0; i<2; i++) {
 		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance) * calc_shadow(light[i], float(i));
 	}
-	for(int i=2; i<8; i++) {
+	for(int i=2; i<6; i++) {
 		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
 	}
 
