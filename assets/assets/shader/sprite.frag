@@ -134,7 +134,6 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 
 vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance, float light_num) {
 	vec3 light_dir = light.pos.xyz - pos;
-	light_dir.z*=2.0;
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
 
