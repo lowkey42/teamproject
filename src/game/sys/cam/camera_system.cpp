@@ -15,6 +15,11 @@ namespace cam {
 
 	namespace {
 		constexpr auto cam_distance = 5_m;
+
+		template<class T>
+		T save_mix(const T& x, const T& y, float a) {
+			return glm::mix(x,y, glm::clamp(a, 0.f, 1.f));
+		}
 	}
 
 	Camera_system::Camera_system(Engine& engine, ecs::Entity_manager& ecs)
@@ -68,7 +73,7 @@ namespace cam {
 		_target_history_curr = (_target_history_curr+1) % _target_history.size();
 		_target_history[_target_history_curr] = curr;
 
-		curr = glm::mix(remove_units(sum)/float(_target_history.size()), remove_units(curr), 0.5f)*1_m;
+		curr = save_mix(remove_units(sum)/float(_target_history.size()), remove_units(curr), 0.5f)*1_m;
 		return curr;
 	}
 
@@ -93,7 +98,7 @@ namespace cam {
 			if(_targets.size()>0) {
 				_slow_lerp_remainder-=dt;
 				if(_slow_lerp_remainder<_slow_lerp_time*0.9f)
-					target = glm::mix(remove_units(_slow_lerp_target), remove_units(_slow_lerp_start), _slow_lerp_remainder/(_slow_lerp_time*0.9f)) * 1_m;
+					target = save_mix(remove_units(_slow_lerp_target), remove_units(_slow_lerp_start), _slow_lerp_remainder/(_slow_lerp_time*0.9f)) * 1_m;
 				else {
 					_slow_lerp_target = target;
 					target = _slow_lerp_start;
@@ -102,14 +107,14 @@ namespace cam {
 
 		} else if(_type == Camera_move_type::lazy) {
 			auto org_target = target;
-			target.x = glm::mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
-			target.y = glm::mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*10.f,1.f))*1_m;
+			target.x = save_mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
+			target.y = save_mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*10.f,1.f))*1_m;
 			target = _smooth_target(target, dt);
 			if(glm::length2(remove_units(target-org_target))<0.005f)
 				target = org_target;
 
 		} else {
-			target = glm::mix(remove_units(_last_target), remove_units(target), std::min(dt.value()*30.f,1.f)) * 1_m;
+			target = save_mix(remove_units(_last_target), remove_units(target), std::min(dt.value()*30.f,1.f)) * 1_m;
 		}
 
 		_camera.position(target);
