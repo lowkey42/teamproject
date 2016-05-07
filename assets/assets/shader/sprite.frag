@@ -93,13 +93,12 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 al
 
 float my_smoothstep(float edge0, float edge1, float x) {
 	x = clamp((x-edge0)/(edge1-edge0), 0.0, 1.0);
-	return x*x*(3.0-2.0*x);
+	return x*x*x*(x*(x*6.0 -15.0) + 10.0);
 }
 
 float sample_shadow_ray(vec2 tc, float r) {
 	float d = texture2D(shadowmaps_tex, tc).r*4.0;
-	if(r>d) return 1.0;
-	return my_smoothstep(0.1, 0.2, r-d); // TODO: causes light bleeding
+	return step(r, d);
 }
 
 float sample_shadow(float light_num, float r, vec3 dir) {
@@ -107,29 +106,21 @@ float sample_shadow(float light_num, float r, vec3 dir) {
 	float theta = atan(dir.y, dir.x) + PI;
 	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/3.0);
 
-	//the center tex coord, which gives us hard shadows
-	float center = sample_shadow_ray(tc,r);
 
 	//we multiply the blur amount by our distance from center
 	//this leads to more blurriness as the shadow "fades away"
-	float blur = 1.0/1024.0 * min(r + 0.25, 1.0);
+	float blur = 1.0/1024.0 * (my_smoothstep(0.0, 1.0, r)+0.5);
 
 	//now we use a simple gaussian blur
 	float sum = 0.0;
 
-	sum += sample_shadow_ray(vec2(tc.x - 4.0*blur, tc.y), r) * 0.05;
-	sum += sample_shadow_ray(vec2(tc.x - 3.0*blur, tc.y), r) * 0.09;
-	sum += sample_shadow_ray(vec2(tc.x - 2.0*blur, tc.y), r) * 0.12;
-	sum += sample_shadow_ray(vec2(tc.x - 1.0*blur, tc.y), r) * 0.15;
+	// gausian blur based on hardware interpolation
+	sum += sample_shadow_ray(vec2(tc.x - 2.06278*blur, tc.y), r) * 0.05092;
+	sum += sample_shadow_ray(vec2(tc.x - 0.53805*blur, tc.y), r) * 0.44908;
+	sum += sample_shadow_ray(vec2(tc.x + 0.53805*blur, tc.y), r) * 0.44908;
+	sum += sample_shadow_ray(vec2(tc.x + 2.06278*blur, tc.y), r) * 0.05092;
 
-	sum += center * 0.18;
-
-	sum += sample_shadow_ray(vec2(tc.x + 1.0*blur, tc.y), r) * 0.15;
-	sum += sample_shadow_ray(vec2(tc.x + 2.0*blur, tc.y), r) * 0.12;
-	sum += sample_shadow_ray(vec2(tc.x + 3.0*blur, tc.y), r) * 0.09;
-	sum += sample_shadow_ray(vec2(tc.x + 4.0*blur, tc.y), r) * 0.05;
-
-	return 1.0-clamp(sum, 0.0, 1.0);
+	return clamp(sum, 0.0, 1.0);
 }
 
 float calc_shadow(Point_light light, float light_num) {
@@ -178,6 +169,7 @@ void main() {
 		normal = normalize(normal*2.0 - 1.0);
 	}
 	normal = TBN * normal;
+	normal = vec3(0,0,1);
 
 	vec3 material = texture2D(material_tex, uv).xyz;
 	float emmision = material.r;
