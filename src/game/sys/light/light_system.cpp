@@ -23,7 +23,7 @@ namespace light {
 	using namespace renderer;
 
 	namespace {
-		constexpr auto shadowed_lights = 3;
+		constexpr auto shadowed_lights = 2;
 		constexpr auto shadowmap_size = 2048.f;
 		constexpr auto shadowmap_rows = shadowed_lights*2.f;
 	}

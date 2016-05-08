@@ -34,7 +34,7 @@ uniform sampler2D last_frame_tex;
 
 uniform float light_ambient;
 uniform Dir_light light_sun;
-uniform Point_light light[8];
+uniform Point_light light[6];
 
 uniform vec3 eye;
 
@@ -104,7 +104,7 @@ float sample_shadow_ray(vec2 tc, float r) {
 float sample_shadow(float light_num, float r, vec3 dir) {
 	const float PI = 3.141;
 	float theta = atan(dir.y, dir.x) + PI;
-	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/3.0);
+	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/2.0);
 
 
 	//we multiply the blur amount by our distance from center

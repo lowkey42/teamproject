@@ -16,14 +16,10 @@ void main() {
 	const float PI = 3.141;
 
 	vec2 light_pos;
-	if(uv_frag.y < 1.0/3.0) {
+	if(uv_frag.y < 1.0/2.0) {
 		light_pos = light_positions[0];
-	} else if(uv_frag.y < 2.0/3.0) {
-		light_pos = light_positions[1];
-	} else if(uv_frag.y < 3.0/3.0) {
-		light_pos = light_positions[2];
 	} else {
-		light_pos = vec2(99999, 99999);
+		light_pos = light_positions[1];
 	}
 
 	float distance = 4.0;
@@ -45,5 +41,5 @@ void main() {
 
 	distance = clamp(distance/4.0, 0.0, 1.0);
 
-	gl_FragColor = vec4(distance, distance, distance, 1.0);
+	gl_FragColor = vec4(distance, 0.0, 0.0, 1.0);
 }

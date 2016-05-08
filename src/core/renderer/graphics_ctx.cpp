@@ -100,6 +100,7 @@ namespace renderer {
 			bool fullscreen;
 			float gamma;
 			bool bloom;
+			float supersampling;
 
 			Graphics_cfg();
 		};
@@ -109,15 +110,16 @@ namespace renderer {
 			height,
 			fullscreen,
 			gamma,
-			bloom
+			bloom,
+			supersampling
 		)
 
 	#ifndef EMSCRIPTEN
 		Graphics_cfg::Graphics_cfg() : width(1920), height(1080), fullscreen(true), // TODO: read defaults from SDL instead
-		   gamma(2.2f), bloom(true) {}
+		   gamma(2.2f), bloom(true), supersampling(1.f) {}
 	#else
 		Graphics_cfg::Graphics_cfg() : width(1024), height(512), fullscreen(false),
-		    gamma(2.3f), bloom(false) {}
+		    gamma(2.3f), bloom(false), supersampling(1.f) {}
 	#endif
 
 	}
@@ -137,6 +139,7 @@ namespace renderer {
 		_fullscreen = cfg.fullscreen;
 		_gamma = cfg.gamma;
 		_bloom = cfg.bloom;
+		_supersampling = cfg.supersampling;
 
 		if(&cfg==&default_cfg) {
 			assets.save<Graphics_cfg>("cfg:graphics"_aid, cfg);
@@ -220,7 +223,7 @@ namespace renderer {
 			_clear_color_dirty = false;
 		}
 
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		glClear(GL_DEPTH_BUFFER_BIT);
 
 		_frame_start_time = SDL_GetTicks() / 1000.0f;
 	}
@@ -252,13 +255,15 @@ namespace renderer {
 		_clear_color_dirty = true;
 	}
 
-	void Graphics_ctx::settings(int width, int height, bool fullscreen, float gamma, bool bloom) {
+	void Graphics_ctx::settings(int width, int height, bool fullscreen, float gamma,
+	                            bool bloom, float supersampling) {
 		auto cfg = *_assets.load<Graphics_cfg>("cfg:graphics"_aid);
 		cfg.width = width;
 		cfg.height = height;
 		cfg.fullscreen = fullscreen;
 		cfg.gamma = gamma;
 		cfg.bloom = bloom;
+		cfg.supersampling = supersampling;
 		_assets.save<Graphics_cfg>("cfg:graphics"_aid, cfg);
 
 		// TODO: apply changes

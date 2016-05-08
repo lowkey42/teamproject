@@ -37,8 +37,10 @@ namespace renderer {
 			auto viewport()const noexcept {return glm::vec4{0, 0, _win_width, _win_height};}
 			auto gamma()const noexcept {return _gamma;}
 			auto bloom()const noexcept {return _bloom;}
+			auto supersampling()const noexcept {return _supersampling;}
 
-			void settings(int width, int height, bool fullscreen, float gamma, bool bloom);
+			void settings(int width, int height, bool fullscreen, float gamma,
+			              bool bloom, float supersampling);
 
 		private:
 			asset::Asset_manager& _assets;
@@ -46,6 +48,7 @@ namespace renderer {
 			int _win_width, _win_height;
 			bool _fullscreen;
 			float _gamma;
+			float _supersampling;
 			bool _bloom;
 
 			std::unique_ptr<SDL_Window,void(*)(SDL_Window*)> _window;

@@ -24,8 +24,8 @@ namespace lux {
 
 		auto create_framebuffer(Engine& engine) {
 			return Framebuffer{
-				engine.graphics_ctx().win_width(),
-				engine.graphics_ctx().win_height(),
+				static_cast<int>(engine.graphics_ctx().win_width() * engine.graphics_ctx().supersampling()),
+				static_cast<int>(engine.graphics_ctx().win_height() * engine.graphics_ctx().supersampling()),
 				true, true};
 		}
 		auto create_blur_framebuffer(Engine& engine) {
@@ -56,6 +56,7 @@ namespace lux {
 				                "texture", int(Texture_unit::last_frame),
 				                "texture_glow", int(Texture_unit::temporary),
 				                "gamma", 2.2f,
+				                "texture_size", glm::vec2{engine.graphics_ctx().win_width() * engine.graphics_ctx().supersampling(),engine.graphics_ctx().win_height() * engine.graphics_ctx().supersampling()},
 				                "exposure", 1.0f,
 				                "bloom", (graphics_ctx.bloom() ? 1.f : 0.f)
 				            ));
