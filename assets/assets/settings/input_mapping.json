@@ -53,7 +53,17 @@
                 "Up": {"type":"continuous", "action":"scroll_u"},
                 "F5": {"type":"once", "action":"save"},
                 "F9": {"type":"once", "action":"load"},
-                "F6": {"type":"once", "action":"start"}
+                "F6": {"type":"once", "action":"start"},
+
+                "T_1": {"type":"once", "action":"new_a"},
+				"T_2": {"type":"once", "action":"new_b"},
+				"T_3": {"type":"once", "action":"new_c"},
+				"T_4": {"type":"once", "action":"new_d"},
+				"T_5": {"type":"once", "action":"new_e"},
+				"T_6": {"type":"once", "action":"new_f"},
+				"T_7": {"type":"once", "action":"new_g"},
+				"T_8": {"type":"once", "action":"new_h"},
+				"T_9": {"type":"once", "action":"new_i"}
             },
             "mouse_wheel_up": {"type":"once", "action": "zoom_in"},
             "mouse_wheel_down": {"type":"once", "action": "zoom_out"},

@@ -48,7 +48,6 @@ namespace lux {
 			input::Input_manager& _input_manager;
 
 			Meta_system _systems;
-			sys::editor::Editor_system _editor_sys;
 
 			// TODO: sidebar for blueprints
 			// TODO: entity placement
@@ -72,6 +71,7 @@ namespace lux {
 			renderer::Command_queue _render_queue;
 
 			sys::editor::Selection _selection;
+			sys::editor::Editor_system _editor_sys;
 			util::maybe<std::string> _clipboard;
 			util::maybe<glm::vec2> _last_pointer_pos;
 

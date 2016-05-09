@@ -17,6 +17,8 @@
 
 #include <core/ecs/ecs.hpp>
 
+#include <core/utils/command.hpp>
+
 
 namespace lux {
 	namespace renderer {
@@ -31,10 +33,15 @@ namespace editor {
 		renderer::Texture_ptr icon;
 	};
 	struct Editor_conf;
+	class Selection;
 
+	// TODO: refactor/rename => Blueprint_selection
 	class Editor_system {
 		public:
-			Editor_system(ecs::Entity_manager& entity_manager, asset::Asset_manager& assets);
+			Editor_system(Engine&, util::Command_manager& commands, Selection& selection,
+			              ecs::Entity_manager& entity_manager, asset::Asset_manager& assets);
+
+			void update(Time dt);
 
 			void draw_blueprint_list(renderer::Command_queue& queue, glm::vec2 offset);
 			auto find_blueprint(glm::vec2 click_position,
@@ -44,10 +51,17 @@ namespace editor {
 			// TODO: list categories
 
 		private:
+			Engine& _engine;
+			util::Mailbox_collection _mailbox;
+			util::Command_manager& _commands;
+			Selection& _selection;
+			ecs::Entity_manager& _entity_manager;
 			asset::Ptr<Editor_conf> _conf;
 			std::string _current_category;
 
 			renderer::Texture_batch _icon_batch;
+
+			void _spawn_new(std::size_t index, glm::vec2 pos);
 	};
 
 }

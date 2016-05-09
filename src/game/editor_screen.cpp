@@ -106,12 +106,12 @@ namespace lux {
 	      _mailbox(engine.bus()),
 	      _input_manager(engine.input()),
 	      _systems(engine),
-	      _editor_sys(_systems.entity_manager, engine.assets()),
 	      _camera_menu(engine.graphics_ctx().viewport(),
 	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
 	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, 5_m, 100_m),
 	      _debug_Text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _selection(engine, _systems.entity_manager, _camera_world, _commands),
+	      _editor_sys(engine, _commands, _selection, _systems.entity_manager, engine.assets()),
 	      _clipboard(util::nothing()),
 	      _last_pointer_pos(util::nothing())
 	{
@@ -143,13 +143,11 @@ namespace lux {
 					break;
 
 				case "zoom_in"_strid:
-					DEBUG("zoom in: "<<_camera_world.position().z.value());
 					if(_camera_world.position().z.value()  >= 2.5f)
 						_camera_world.move(glm::vec3{0,0,-0.5} * 1_m);
 					break;
 
 				case "zoom_out"_strid:
-					DEBUG("zoom out: "<<_camera_world.position().z.value());
 					if(_camera_world.position().z.value()  <= 50.f)
 						_camera_world.move(glm::vec3{0,0,0.5} * 1_m);
 					break;
@@ -221,12 +219,18 @@ namespace lux {
 	}
 
 	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {
+		_engine.input().screen_to_world_coords([&](auto p) {
+			return _camera_world.screen_to_world(p, glm::vec3(0,0,0)).xy();
+		});
 		_engine.input().enable_context("editor"_strid);
 		_mailbox.enable();
 	}
 
 	void Editor_screen::_on_leave(util::maybe<Screen&> next) {
 		_mailbox.disable();
+		_engine.input().screen_to_world_coords([](auto p) {
+			return p;
+		});
 	}
 
 	auto Editor_screen::_handle_pointer_menu(util::maybe<glm::vec2> mp1,
@@ -261,6 +265,7 @@ namespace lux {
 
 		_systems.update(dt, Update::animations);
 		_selection.update();
+		_editor_sys.update(dt);
 
 		if(_selection.selection()) {
 			auto& transform = _selection.selection()->get<sys::physics::Transform_comp>().get_or_throw();

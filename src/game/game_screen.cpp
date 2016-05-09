@@ -71,7 +71,7 @@ namespace lux {
 			_ui_text.set("");
 
 
-		//_ui_text.set(util::to_string(dt.value()*1000));
+		_ui_text.set(util::to_string(dt.value()*1000));
 	}
 
 

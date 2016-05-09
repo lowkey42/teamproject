@@ -31,7 +31,7 @@ namespace lux {
 		Rgb environment_light_color;
 		glm::vec3 environment_light_direction;
 		float ambient_brightness;
-		std::string entity_data;
+		Rgba background_tint {1,1,1,0};
 	};
 	using Level_data_ptr = std::shared_ptr<const Level_data>;
 

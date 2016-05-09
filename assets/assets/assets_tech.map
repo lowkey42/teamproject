@@ -4,4 +4,5 @@ tex:black = textures/default_black.png
 tex:white = textures/default_white.png
 tex:normal = textures/default_normal.png
 tex:material = textures/default_material.png
+tex:blueprint_icon_dummy = textures/blueprint_icon_dummy.png
 

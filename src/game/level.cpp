@@ -34,7 +34,8 @@ namespace lux {
 		environment_id,
 		environment_light_color,
 		environment_light_direction,
-		ambient_brightness
+		ambient_brightness,
+		background_tint
 	)
 
 	namespace {
