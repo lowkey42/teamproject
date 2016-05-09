@@ -154,12 +154,12 @@ namespace input {
 				auto idx        = 0;
 				auto screen_pos = glm::vec2{event.motion.x, event.motion.y};
 				auto world_pos  = _screen_to_world_coords(screen_pos);
-				auto world_diff = world_pos - _pointer_world_pos[idx];
+				auto screen_diff = screen_pos - _pointer_screen_pos[idx];
 
 				_pointer_screen_pos[idx] = screen_pos;
 				_pointer_world_pos[idx]  = world_pos;
 
-				_mapper->on_mouse_pos_change(world_diff, world_pos);
+				_mapper->on_mouse_pos_change(screen_diff, screen_pos);
 				break;
 			}
 
@@ -196,7 +196,7 @@ namespace input {
 					}
 
 					auto world_pos  = _screen_to_world_coords(screen_pos);
-					auto world_diff = world_pos - _pointer_world_pos[idx];
+					auto screen_diff = screen_pos - _pointer_screen_pos[idx];
 
 					_pointer_finger_id[idx]  = event.tfinger.fingerId;
 					_pointer_screen_pos[idx] = screen_pos;
@@ -204,7 +204,7 @@ namespace input {
 					_pointer_active[idx]     = event.type!=SDL_FINGERUP;
 
 					if(idx==0) { //< mouse emulation
-						_mapper->on_mouse_pos_change(world_diff, world_pos);
+						_mapper->on_mouse_pos_change(screen_diff, screen_pos);
 
 						if(event.tfinger.type==SDL_FINGERDOWN)
 							_mapper->on_mouse_button_pressed(1, event.tfinger.pressure);
