@@ -143,7 +143,7 @@ namespace lux {
 					break;
 
 				case "zoom_in"_strid:
-					if(_camera_world.position().z.value()  >= 2.5f)
+					if(_camera_world.position().z.value()  >= 1.5f)
 						_camera_world.move(glm::vec3{0,0,-0.5} * 1_m);
 					break;
 
