@@ -10,7 +10,6 @@ attribute float shadow_resistence;
 varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
-varying vec3 pos_vp_frag;
 varying vec2 shadowmap_uv_frag;
 varying float shadow_resistence_frag;
 
@@ -24,7 +23,6 @@ void main() {
 	vec4 pos_lvp = vp_light * vec4(position, 1);
 	gl_Position = pos_vp;
 
-	pos_vp_frag = pos_vp.xyz / pos_vp.w;
 	shadowmap_uv_frag = pos_lvp.xy/pos_lvp.w/2.0+0.5;
 	uv_frag = uv;
 	uv_clip_frag = uv_clip;

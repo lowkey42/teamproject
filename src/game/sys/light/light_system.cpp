@@ -29,7 +29,7 @@ namespace light {
 		static_assert(NUM_LIGHTS_MACRO==max_lights, "Update the NUM_LIGHTS_MACRO macro!");
 
 		constexpr auto shadowed_lights = 2;
-		constexpr auto shadowmap_size = 2048.f;
+		constexpr auto shadowmap_size = 1024.f;
 		constexpr auto shadowmap_rows = shadowed_lights;
 	}
 
@@ -254,7 +254,6 @@ namespace light {
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
 			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
-			uniforms.emplace("light["#N"].pos_ndc", lights[N].flat_pos);\
 \
 			uniforms.emplace("light["#N"].dir", lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\

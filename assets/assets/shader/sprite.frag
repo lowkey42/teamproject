@@ -7,7 +7,6 @@ struct Dir_light {
 };
 struct Point_light {
 	vec3 pos;
-	vec2 pos_ndc;
 	float dir;
 	float angle;
 	vec3 color;
@@ -17,7 +16,6 @@ struct Point_light {
 varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
-varying vec3 pos_vp_frag;
 varying vec2 shadowmap_uv_frag;
 varying float shadow_resistence_frag;
 varying mat3 TBN;
@@ -41,12 +39,11 @@ uniform vec3 eye;
 float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);
 }
-vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
+vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
 
 	// TODO: cleanup this mess and replace experiments with real formulas
-
 	vec3 N = normal;
-	vec3 V = normalize(pos-eye*vec3(1,1,-1));
+	vec3 V = normalize(pos_frag-eye*vec3(1,1,-1));
 
 	float alpha = roughness*roughness;
 	vec3 L = normalize(light_dir);
@@ -102,8 +99,8 @@ float calc_shadow(int light_num) {
 	return mix(shadow.r, 1.0, shadow_resistence_frag*0.9);
 }
 
-vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
-	vec3 light_dir = light.pos.xyz - pos;
+vec3 calc_point_light(Point_light light, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
+	vec3 light_dir = light.pos.xyz - pos_frag;
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
 
@@ -116,10 +113,10 @@ vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, vec
 	float max_angle = (light.angle + my_smoothstep(1.8*PI, 2.0*PI, light.angle)*0.2) / 2.0;
 	attenuation *= my_smoothstep(0.0, 0.1, clamp(max_angle-abs(theta), -1.0, 1.0));
 
-	return calc_light(light_dir, light.color, pos, normal, albedo, view_dir, roughness, metalness, reflectance) * attenuation;
+	return calc_light(light_dir, light.color, normal, albedo, view_dir, roughness, metalness, reflectance) * attenuation;
 }
-vec3 calc_dir_light(Dir_light light, vec3 pos, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
-	return calc_light(light.dir, light.color, pos, normal, albedo, view_dir, roughness, metalness, reflectance);
+vec3 calc_dir_light(Dir_light light, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
+	return calc_light(light.dir, light.color, normal, albedo, view_dir, roughness, metalness, reflectance);
 }
 
 vec3 saturation(vec3 c, float change) {
@@ -158,14 +155,14 @@ void main() {
 	vec3 ambient = (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
 	vec3 color = albedo.rgb * ambient;
 
-	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
+	color += calc_dir_light(light_sun, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 
 
 	for(int i=0; i<2; i++) {
-		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, view_dir, roughness, metalness, reflectance) * calc_shadow(i);
+		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance) * calc_shadow(i);
 	}
 	for(int i=2; i<6; i++) {
-		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
+		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 	}
 
 	vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,normal), 6.0*roughness).rgb, vec3(2.2));
