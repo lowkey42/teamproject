@@ -110,7 +110,7 @@ namespace lux {
 
 					blur_shader.bind();
 
-					constexpr auto steps = 16;
+					constexpr auto steps = 1;
 					for(auto i : util::range(steps*2)) {
 						auto src = i%2;
 						auto dest = src>0?0:1;
@@ -137,7 +137,7 @@ namespace lux {
 	      physics(engine, entity_manager),
 	      controller(engine, entity_manager, physics),
 	      camera(engine, entity_manager),
-	      lights(engine.bus(), entity_manager, engine.assets()),
+	      lights(engine.bus(), entity_manager, engine.assets(), engine.graphics_ctx()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
 	      gameplay(engine, entity_manager, physics, camera, controller, [&]{load_level(_current_level);}),
 

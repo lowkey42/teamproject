@@ -101,6 +101,7 @@ namespace renderer {
 			float gamma;
 			bool bloom;
 			float supersampling;
+			float shadow_softness;
 
 			Graphics_cfg();
 		};
@@ -111,15 +112,16 @@ namespace renderer {
 			fullscreen,
 			gamma,
 			bloom,
-			supersampling
+			supersampling,
+			shadow_softness
 		)
 
 	#ifndef EMSCRIPTEN
 		Graphics_cfg::Graphics_cfg() : width(1920), height(1080), fullscreen(true), // TODO: read defaults from SDL instead
-		   gamma(2.2f), bloom(true), supersampling(1.f) {}
+		   gamma(2.2f), bloom(true), supersampling(1.f), shadow_softness(1.f) {}
 	#else
 		Graphics_cfg::Graphics_cfg() : width(1024), height(512), fullscreen(false),
-		    gamma(2.3f), bloom(false), supersampling(1.f) {}
+		    gamma(2.3f), bloom(false), supersampling(1.f), shadow_softness(0.0f) {}
 	#endif
 
 	}
@@ -140,6 +142,7 @@ namespace renderer {
 		_gamma = cfg.gamma;
 		_bloom = cfg.bloom;
 		_supersampling = cfg.supersampling;
+		_shadow_softness = cfg.shadow_softness;
 
 		if(&cfg==&default_cfg) {
 			assets.save<Graphics_cfg>("cfg:graphics"_aid, cfg);
@@ -256,7 +259,7 @@ namespace renderer {
 	}
 
 	void Graphics_ctx::settings(int width, int height, bool fullscreen, float gamma,
-	                            bool bloom, float supersampling) {
+	                            bool bloom, float supersampling, float shadow_softness) {
 		auto cfg = *_assets.load<Graphics_cfg>("cfg:graphics"_aid);
 		cfg.width = width;
 		cfg.height = height;
@@ -264,6 +267,7 @@ namespace renderer {
 		cfg.gamma = gamma;
 		cfg.bloom = bloom;
 		cfg.supersampling = supersampling;
+		cfg.shadow_softness = shadow_softness;
 		_assets.save<Graphics_cfg>("cfg:graphics"_aid, cfg);
 
 		// TODO: apply changes
@@ -281,6 +285,13 @@ namespace renderer {
 	}
 	Disable_depthwrite::~Disable_depthwrite() {
 		glDepthMask(GL_TRUE);
+	}
+
+	Disable_blend::Disable_blend() {
+		glDisable(GL_BLEND);
+	}
+	Disable_blend::~Disable_blend() {
+		glEnable(GL_BLEND);
 	}
 }
 }

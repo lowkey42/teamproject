@@ -38,9 +38,10 @@ namespace renderer {
 			auto gamma()const noexcept {return _gamma;}
 			auto bloom()const noexcept {return _bloom;}
 			auto supersampling()const noexcept {return _supersampling;}
+			auto shadow_softness()const noexcept {return _shadow_softness;}
 
 			void settings(int width, int height, bool fullscreen, float gamma,
-			              bool bloom, float supersampling);
+			              bool bloom, float supersampling, float shadow_softness);
 
 		private:
 			asset::Asset_manager& _assets;
@@ -50,6 +51,7 @@ namespace renderer {
 			float _gamma;
 			float _supersampling;
 			bool _bloom;
+			float _shadow_softness;
 
 			std::unique_ptr<SDL_Window,void(*)(SDL_Window*)> _window;
 			SDL_GLContext _gl_ctx;
@@ -69,6 +71,10 @@ namespace renderer {
 	struct Disable_depthwrite {
 		Disable_depthwrite();
 		~Disable_depthwrite();
+	};
+	struct Disable_blend {
+		Disable_blend();
+		~Disable_blend();
 	};
 }
 }

@@ -14,7 +14,10 @@
 #include <core/renderer/command_queue.hpp>
 #include <core/renderer/primitives.hpp>
 #include <core/renderer/texture_batch.hpp>
+#include <core/renderer/graphics_ctx.hpp>
 
+
+#define NUM_LIGHTS_MACRO 6
 
 namespace lux {
 namespace sys {
@@ -23,23 +26,28 @@ namespace light {
 	using namespace renderer;
 
 	namespace {
+		static_assert(NUM_LIGHTS_MACRO==max_lights, "Update the NUM_LIGHTS_MACRO macro!");
+
 		constexpr auto shadowed_lights = 2;
 		constexpr auto shadowmap_size = 2048.f;
-		constexpr auto shadowmap_rows = shadowed_lights*2.f;
+		constexpr auto shadowmap_rows = shadowed_lights;
 	}
 
 	Light_system::Light_system(
 	             util::Message_bus& bus,
 	             ecs::Entity_manager& entity_manager,
 	             asset::Asset_manager& asset_manager,
+	             renderer::Graphics_ctx&  graphics_ctx,
 	             Rgb sun_light,
 	             glm::vec3 sun_dir,
 	             float ambient_brightness)
 	    : _mailbox(bus),
+	      _graphics_ctx(graphics_ctx),
 	      _lights(entity_manager.list<Light_comp>()),
 	      _shadowcaster_queue(1),
 	      _shadowcaster_batch(_shadowcaster_shader, 64),
-	      _occlusion_map    (shadowmap_size,shadowmap_size, false, false),
+	      _occlusion_map    {Framebuffer(shadowmap_size,shadowmap_size, false, false),
+	                         Framebuffer(shadowmap_size,shadowmap_size, false, false)},
 	      _shadow_map       (shadowmap_size/2.f,shadowmap_rows, false, true),
 	      _sun_light(sun_light),
 	      _sun_dir(glm::normalize(sun_dir)),
@@ -66,6 +74,23 @@ namespace light {
 		                "occlusions", 0,
 		                "shadowmap_size", shadowmap_size
 		            ));
+
+		_finalize_shader.attach_shader(asset_manager.load<Shader>("vert_shader:shadowfinal"_aid))
+		        .attach_shader(asset_manager.load<Shader>("frag_shader:shadowfinal"_aid))
+		            .bind_all_attribute_locations(renderer::simple_vertex_layout)
+		            .build()
+		            .uniforms(make_uniform_map(
+		                "shadowmaps_tex", 0
+		            ));
+
+		_blur_shader.attach_shader(asset_manager.load<Shader>("vert_shader:shadow_blur"_aid))
+		        .attach_shader(asset_manager.load<Shader>("frag_shader:shadow_blur"_aid))
+		            .bind_all_attribute_locations(renderer::simple_vertex_layout)
+		            .build()
+		            .uniforms(make_uniform_map(
+		                "texture", 0,
+		                "texture_size", glm::vec2(shadowmap_size,shadowmap_size)
+		            ));
 	}
 
 
@@ -73,6 +98,7 @@ namespace light {
 		const physics::Transform_comp* transform = nullptr;
 		const Light_comp* light = nullptr;
 		float score = 0.f;
+		glm::vec2 flat_pos;
 
 		bool operator<(const Light_info& rhs)const noexcept {
 			return score>rhs.score;
@@ -113,52 +139,71 @@ namespace light {
 
 			std::sort(out.begin(), out.end());
 		}
+
+		void bind_light_positions(renderer::Shader_program& prog, gsl::span<Light_info> lights) {
+#define SET_LIGHT_UNIFORM(I) prog.set_uniform("light_positions["#I"]", lights[I].flat_pos);
+			M_REPEAT(NUM_LIGHTS_MACRO, SET_LIGHT_UNIFORM);
+#undef SET_LIGHT_UNIFORM
+		}
 	}
 	void Light_system::prepare_draw(renderer::Command_queue& queue,
 	                                const renderer::Camera& camera) {
-		std::array<Light_info, max_lights> lights{};
 
+		std::array<Light_info, max_lights> lights{};
 		fill_with_relevant_lights(camera, _lights, lights);
 
 		auto uniforms = queue.shared_uniforms();
-
-		auto view = camera.view();
-		if(glm::length2(view[3].xy()-_light_cam_pos)>2.f) {
-			_light_cam_pos = view[3].xy();
-		}
-		view[3].x = _light_cam_pos.x;
-		view[3].y = _light_cam_pos.y;
-		view[3].z -= 2.f; // compensates for screen-space technique limitations
-		auto vp = camera.proj() * view;
-		uniforms->emplace("vp", vp);
-		uniforms->emplace("vp_light", vp);
-
-		_setup_uniforms(*uniforms, vp, lights);
+		_setup_uniforms(*uniforms, camera, lights);
 
 		_draw_occlusion_map(uniforms);
+		_draw_shadow_map(lights);
+		_draw_final(lights);
+		_blur_shadows();
 
+		_occlusion_map[0].bind((int) Texture_unit::shadowmaps);
+	}
+	void Light_system::_draw_shadow_map(gsl::span<Light_info> lights) {
 		_shadowmap_shader.bind();
-		auto transform = [&vp](auto* transform) {
-			if(!transform) return glm::vec2(1000,0);
-			auto p_in = remove_units(transform->position());
-			p_in.z = 0.f;
-			auto p = vp*glm::vec4(p_in, 1.f);
-			return p.xy() / p.w;
-		};
 
-		_shadowmap_shader.set_uniform("light_positions[0]", transform(lights[0].transform));
-		_shadowmap_shader.set_uniform("light_positions[1]", transform(lights[1].transform));
-		_shadowmap_shader.set_uniform("light_positions[2]", transform(lights[2].transform));
-		_shadowmap_shader.set_uniform("light_positions[3]", transform(lights[3].transform));
-		_shadowmap_shader.set_uniform("light_positions[4]", transform(lights[4].transform));
-		_shadowmap_shader.set_uniform("light_positions[5]", transform(lights[5].transform));
+		bind_light_positions(_shadowmap_shader, lights);
 
 		auto fbo_cleanup = Framebuffer_binder{_shadow_map};
 		_shadow_map.clear();
 
-		renderer::draw_fullscreen_quad(_occlusion_map);
+		renderer::draw_fullscreen_quad(_occlusion_map[0]);
+	}
 
-		_shadow_map.bind((int) Texture_unit::shadowmaps);
+	void Light_system::_draw_final(gsl::span<Light_info> lights) {
+		_finalize_shader.bind();
+		bind_light_positions(_finalize_shader, lights);
+		// TODO: bind dir and angle
+
+		auto fbo_cleanup = Framebuffer_binder{_occlusion_map[0]};
+		auto depth_cleanup = renderer::Disable_depthtest{};
+		auto blend_cleanup = renderer::Disable_blend{};
+
+		renderer::draw_fullscreen_quad(_shadow_map);
+	}
+	void Light_system::_blur_shadows() {
+		auto passes = static_cast<int>(std::ceil(16.f*_graphics_ctx.shadow_softness()));
+
+		if(passes<=0.f) {
+			return;
+		}
+
+		auto depth_cleanup = renderer::Disable_depthtest{};
+		auto blend_cleanup = renderer::Disable_blend{};
+		_blur_shader.bind();
+
+		for(auto i : util::range(passes*2)) {
+			auto src = i%2;
+			auto dest = src>0?0:1;
+
+			auto fbo_cleanup = Framebuffer_binder{_occlusion_map[dest]};
+
+			_blur_shader.set_uniform("horizontal", i%2==0);
+			renderer::draw_fullscreen_quad(_occlusion_map[src], Texture_unit::temporary);
+		}
 	}
 
 	void Light_system::update(Time) {
@@ -167,31 +212,49 @@ namespace light {
 	void Light_system::_draw_occlusion_map(std::shared_ptr<IUniform_map> uniforms) {
 		_shadowcaster_queue.shared_uniforms(uniforms);
 
-		auto fbo_cleanup = Framebuffer_binder{_occlusion_map};
-		_occlusion_map.clear();
+		auto fbo_cleanup = Framebuffer_binder{_occlusion_map[0]};
+		_occlusion_map[0].clear();
 
 		_shadowcaster_batch.flush(_shadowcaster_queue);
 		_shadowcaster_queue.flush();
 	}
 
-	void Light_system::_setup_uniforms(IUniform_map& uniforms, const glm::mat4& vp,
+	void Light_system::_setup_uniforms(IUniform_map& uniforms, const renderer::Camera& camera,
 	                                   gsl::span<Light_info> lights) {
+
+
+		auto view = camera.view();
+		if(glm::length2(view[3].xy()-_light_cam_pos)>0.5f) {
+			_light_cam_pos = view[3].xy();
+		}
+		view[3].x = _light_cam_pos.x;
+		view[3].y = _light_cam_pos.y;
+		view[3].z -= 2.f; // compensates for screen-space technique limitations
+		auto vp = camera.proj() * view;
+		uniforms.emplace("vp", vp);
+		uniforms.emplace("vp_light", vp);
 
 		uniforms.emplace("light_ambient",   _ambient_brightness);
 		uniforms.emplace("light_sun.color", _sun_light);
 		uniforms.emplace("light_sun.dir",   _sun_dir);
 
-		auto transform = [&](auto p) {
-			p.z = 0.f;
-			auto ps = vp*glm::vec4(p, 1.f);
-			return ps.xy() / ps.w;
-		};
+		for(Light_info& l : lights) {
+			if(!l.transform) {
+				l.flat_pos = glm::vec2(1000,1000);
+				continue;
+			}
+
+			auto pos = remove_units(l.transform->position()) + l.light->offset();
+			pos.z = 0.f;
+			auto p = vp*glm::vec4(pos, 1.f);
+			l.flat_pos = p.xy() / p.w;
+		}
 
 		// TODO: fade out light color, when they left the screen
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
-	uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
-	uniforms.emplace("light["#N"].pos_ndc", transform(remove_units(lights[N].transform->position())+lights[N].light->offset()));\
+			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
+			uniforms.emplace("light["#N"].pos_ndc", lights[N].flat_pos);\
 \
 			uniforms.emplace("light["#N"].dir", lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\
@@ -203,13 +266,7 @@ namespace light {
 			uniforms.emplace("light["#N"].color", glm::vec3(0,0,0));\
 		}
 
-		SET_LIGHT_UNIFORMS(0)
-		SET_LIGHT_UNIFORMS(1)
-		SET_LIGHT_UNIFORMS(2)
-		SET_LIGHT_UNIFORMS(3)
-		SET_LIGHT_UNIFORMS(4)
-		SET_LIGHT_UNIFORMS(5)
-
+		M_REPEAT(NUM_LIGHTS_MACRO, SET_LIGHT_UNIFORMS);
 #undef SET_LIGHT_UNIFORMS
 	}
 

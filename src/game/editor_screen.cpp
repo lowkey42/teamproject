@@ -222,12 +222,14 @@ namespace lux {
 		_engine.input().screen_to_world_coords([&](auto p) {
 			return _camera_world.screen_to_world(p, glm::vec3(0,0,0)).xy();
 		});
+		_engine.input().world_space_events(false);
 		_engine.input().enable_context("editor"_strid);
 		_mailbox.enable();
 	}
 
 	void Editor_screen::_on_leave(util::maybe<Screen&> next) {
 		_mailbox.disable();
+		_engine.input().world_space_events(true);
 		_engine.input().screen_to_world_coords([](auto p) {
 			return p;
 		});

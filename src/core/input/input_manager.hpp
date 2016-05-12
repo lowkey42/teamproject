@@ -64,6 +64,8 @@ namespace input {
 
 			void enable_context(Context_id id);
 
+			void world_space_events(bool e) {_world_space_events=e;}
+
 		private:
 			void _add_gamepad(int joystick_id);
 			void _remove_gamepad(int instance_id);
@@ -74,6 +76,7 @@ namespace input {
 			util::Mailbox_collection _mailbox;
 
 			glm::vec4 _viewport;
+			bool _world_space_events = true;
 			std::function<glm::vec2(glm::vec2)> _screen_to_world_coords;
 			std::vector<std::unique_ptr<Gamepad>> _gamepads;
 

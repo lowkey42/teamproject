@@ -18,7 +18,7 @@ varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
 varying vec3 pos_vp_frag;
-varying vec3 pos_lvp_frag;
+varying vec2 shadowmap_uv_frag;
 varying float shadow_resistence_frag;
 varying mat3 TBN;
 
@@ -41,11 +41,10 @@ uniform vec3 eye;
 float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);
 }
-vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance) {
+vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
 
 	// TODO: cleanup this mess and replace experiments with real formulas
 
-	vec3 view_dir = normalize(pos-eye);
 	vec3 N = normal;
 	vec3 V = normalize(pos-eye*vec3(1,1,-1));
 
@@ -82,9 +81,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 pos, vec3 normal, vec3 al
 	vec3 diffuse = (albedo * invPi);
 
 
-	diffuse*=1.0-metalness;
-	vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,N), 6.0*roughness).rgb, vec3(2.2)) * 0.25;
-	diffuse = mix(diffuse, refl, reflectance);
+	diffuse = mix(diffuse, diffuse*0.1, metalness);
 
 	light_color = mix(light_color, light_color*albedo, metalness);
 
@@ -96,42 +93,16 @@ float my_smoothstep(float edge0, float edge1, float x) {
 	return x*x*x*(x*(x*6.0 -15.0) + 10.0);
 }
 
-float sample_shadow_ray(vec2 tc, float r) {
-	float d = texture2D(shadowmaps_tex, tc).r*4.0;
-	return step(r, d);
+float calc_shadow(int light_num) {
+	vec4 shadow = texture2D(shadowmaps_tex, shadowmap_uv_frag);
+	if(light_num>0) {
+		shadow.r = shadow.b;
+	}
+
+	return mix(shadow.r, 1.0, shadow_resistence_frag*0.9);
 }
 
-float sample_shadow(float light_num, float r, vec3 dir) {
-	const float PI = 3.141;
-	float theta = atan(dir.y, dir.x) + PI;
-	vec2 tc = vec2(theta /(2.0*PI),(light_num+0.5)/2.0);
-
-
-	//we multiply the blur amount by our distance from center
-	//this leads to more blurriness as the shadow "fades away"
-	float blur = 1.0/1024.0 * (my_smoothstep(0.0, 1.0, r)+0.5);
-
-	//now we use a simple gaussian blur
-	float sum = 0.0;
-
-	// gausian blur based on hardware interpolation
-	sum += sample_shadow_ray(vec2(tc.x - 2.06278*blur, tc.y), r) * 0.05092;
-	sum += sample_shadow_ray(vec2(tc.x - 0.53805*blur, tc.y), r) * 0.44908;
-	sum += sample_shadow_ray(vec2(tc.x + 0.53805*blur, tc.y), r) * 0.44908;
-	sum += sample_shadow_ray(vec2(tc.x + 2.06278*blur, tc.y), r) * 0.05092;
-
-	return clamp(sum, 0.0, 1.0);
-}
-
-float calc_shadow(Point_light light, float light_num) {
-	vec3 light_dir_linear = vec3(light.pos_ndc.xy - pos_lvp_frag.xy, 0);
-	float light_dist_linear = length(light_dir_linear);
-	light_dir_linear /= light_dist_linear;
-
-	return mix(sample_shadow(light_num, light_dist_linear, light_dir_linear), 1.0, shadow_resistence_frag*0.9);
-}
-
-vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance) {
+vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
 	vec3 light_dir = light.pos.xyz - pos;
 	float light_dist = length(light_dir);
 	light_dir /= light_dist;
@@ -145,10 +116,10 @@ vec3 calc_point_light(Point_light light, vec3 pos, vec3 normal, vec3 albedo, flo
 	float max_angle = (light.angle + my_smoothstep(1.8*PI, 2.0*PI, light.angle)*0.2) / 2.0;
 	attenuation *= my_smoothstep(0.0, 0.1, clamp(max_angle-abs(theta), -1.0, 1.0));
 
-	return calc_light(light_dir, light.color, pos, normal, albedo, roughness, metalness, reflectance) * attenuation;
+	return calc_light(light_dir, light.color, pos, normal, albedo, view_dir, roughness, metalness, reflectance) * attenuation;
 }
-vec3 calc_dir_light(Dir_light light, vec3 pos, vec3 normal, vec3 albedo, float roughness, float metalness, float reflectance) {
-	return calc_light(light.dir, light.color, pos, normal, albedo, roughness, metalness, reflectance);
+vec3 calc_dir_light(Dir_light light, vec3 pos, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
+	return calc_light(light.dir, light.color, pos, normal, albedo, view_dir, roughness, metalness, reflectance);
 }
 
 vec3 saturation(vec3 c, float change) {
@@ -182,18 +153,24 @@ void main() {
 		discard;
 	}
 
+	vec3 view_dir = normalize(pos_frag-eye);
+
 	vec3 ambient = (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
 	vec3 color = albedo.rgb * ambient;
 
-	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
+	color += calc_dir_light(light_sun, pos_frag, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 
 
 	for(int i=0; i<2; i++) {
-		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance) * calc_shadow(light[i], float(i));
+		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, view_dir, roughness, metalness, reflectance) * calc_shadow(i);
 	}
 	for(int i=2; i<6; i++) {
-		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, roughness, metalness, reflectance);
+		color += calc_point_light(light[i], pos_frag, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 	}
+
+	vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,normal), 6.0*roughness).rgb, vec3(2.2));
+	refl *= mix(vec3(1,1,1), albedo.rgb, metalness);
+	color += refl*reflectance*0.1;
 
 	// remove saturation of objects further away
 	float fade_out = clamp(-pos_frag.z*0.025, 0.0, 0.5);

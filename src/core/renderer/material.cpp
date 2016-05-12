@@ -43,6 +43,8 @@ namespace renderer {
 		cmd.texture(Texture_unit::normal,    *_normal);
 		cmd.texture(Texture_unit::material,  *_material);
 		cmd.texture(Texture_unit::height,    *_height);
+		if(_alpha)
+			cmd.order_dependent();
 	}
 
 	void init_materials(asset::Asset_manager& assets) {

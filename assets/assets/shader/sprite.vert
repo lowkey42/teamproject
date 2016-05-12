@@ -11,7 +11,7 @@ varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
 varying vec3 pos_vp_frag;
-varying vec3 pos_lvp_frag;
+varying vec2 shadowmap_uv_frag;
 varying float shadow_resistence_frag;
 
 varying mat3 TBN;
@@ -25,7 +25,7 @@ void main() {
 	gl_Position = pos_vp;
 
 	pos_vp_frag = pos_vp.xyz / pos_vp.w;
-	pos_lvp_frag = pos_lvp.xyz / pos_lvp.w;
+	shadowmap_uv_frag = pos_lvp.xy/pos_lvp.w/2.0+0.5;
 	uv_frag = uv;
 	uv_clip_frag = uv_clip;
 	pos_frag = position;

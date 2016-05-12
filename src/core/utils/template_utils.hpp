@@ -263,3 +263,27 @@ namespace util {
 }
 }
 
+#define M_REPEAT_1(X) X(0)
+#define M_REPEAT_2(X) M_REPEAT_1(X) X(1)
+#define M_REPEAT_3(X) M_REPEAT_2(X) X(2)
+#define M_REPEAT_4(X) M_REPEAT_3(X) X(3)
+#define M_REPEAT_5(X) M_REPEAT_4(X) X(4)
+#define M_REPEAT_6(X) M_REPEAT_5(X) X(5)
+#define M_REPEAT_7(X) M_REPEAT_6(X) X(6)
+#define M_REPEAT_8(X) M_REPEAT_7(X) X(7)
+#define M_REPEAT_9(X) M_REPEAT_8(X) X(8)
+#define M_REPEAT_10(X) M_REPEAT_9(X) X(9)
+#define M_REPEAT_11(X) M_REPEAT_10(X) X(10)
+#define M_REPEAT_12(X) M_REPEAT_11(X) X(11)
+#define M_REPEAT_13(X) M_REPEAT_12(X) X(12)
+#define M_REPEAT_14(X) M_REPEAT_13(X) X(13)
+#define M_REPEAT_15(X) M_REPEAT_14(X) X(14)
+#define M_REPEAT_16(X) M_REPEAT_15(X) X(15)
+#define M_REPEAT_17(X) M_REPEAT_16(X) X(16)
+
+#define M_EXPAND(...) __VA_ARGS__
+
+#define M_REPEAT__(N, X) M_EXPAND(M_REPEAT_ ## N)(X)
+#define M_REPEAT_(N, X) M_REPEAT__(N, X)
+#define M_REPEAT(N, X) do{M_REPEAT_(M_EXPAND(N), X)}while(false)
+
