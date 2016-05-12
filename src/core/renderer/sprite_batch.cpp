@@ -12,7 +12,7 @@ namespace renderer {
 	namespace {
 		std::unique_ptr<Shader_program> sprite_shader;
 		const auto def_uv_clip = glm::vec4{0,0,1,1};
-		const Sprite_vertex single_sprite_vert[] {
+		const std::vector<Sprite_vertex> single_sprite_vert {
 			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0},0, nullptr},
 			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, {1,0},0, nullptr},
 			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0},0, nullptr},
@@ -74,6 +74,40 @@ namespace renderer {
 		_objects.reserve(expected_size*0.25f);
 	}
 
+	auto Sprite_batch::_reserve_space(float z, const renderer::Material* material,
+	                                  std::size_t count) -> Vertex_iter {
+		// reserve enough space (first operation because of possible iterator invalidation)
+		auto initial_size = _vertices.size();
+		if(_vertices.capacity() < initial_size+count) {
+			constexpr auto extra_space = 16;
+			_vertices.reserve(initial_size + count + extra_space);
+		}
+
+		// locate the insertion point
+		auto ip = std::lower_bound(_vertices.begin(), _vertices.end(), std::tie(z,material));
+		auto ip_end = _vertices.end();
+		auto end_len = static_cast<std::size_t>(std::distance(ip,ip_end));
+		/* // FIXME: produces wrong results compared with the simpler/slower solution
+		if(end_len < count) {
+			// make enough room between ip and the new position of *ip for all new elements
+			_vertices.resize(_vertices.size() + (count-end_len));
+		}
+
+		auto begin_insert_part = end_len>=count ? ip+(end_len-count) : ip_end;
+
+		std::move(begin_insert_part, ip_end, std::back_inserter(_vertices));
+		std::move_backward(ip, begin_insert_part, ip_end);
+
+		*/
+		_vertices.resize(_vertices.size() + count);
+		std::move_backward(ip, ip_end, _vertices.end());
+
+
+		INVARIANT(_vertices.size()==initial_size+count,
+		          "Resize error. "<<_vertices.size()<<" instead of "<<initial_size<<"+"<<count<<" with end_len="<<end_len);
+
+		return ip;
+	}
 	void Sprite_batch::insert(const Sprite& sprite) {
 		auto scale = vec3 {
 			sprite.size.x,
@@ -99,19 +133,27 @@ namespace renderer {
 
 		auto uv_size = sprite_clip.zw() - sprite_clip.xy();
 
+		auto iter = _reserve_space(sprite.position.z, sprite.material, single_sprite_vert.size());
+
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
-			_vertices.emplace_back(transform(vert.position), uv, vert.uv_clip,
-			                       tangent, sprite.shadow_resistence, sprite.material);
+			*iter = Sprite_vertex{transform(vert.position), uv, vert.uv_clip,
+			                      tangent, sprite.shadow_resistence, sprite.material};
+			iter++;
 		}
 	}
 	void Sprite_batch::insert(glm::vec3 position,
 	                          const std::vector<Sprite_vertex>& vertices) {
-		_vertices.reserve(_vertices.size() + vertices.size());
+		if(vertices.empty())
+			return;
+
+		auto first = vertices.front();
+		auto iter = _reserve_space(position.z, first.material, vertices.size());
 
 		for(auto& v : vertices) {
-			_vertices.emplace_back(v.position + position,
-			                       v.uv, v.uv_clip, v.tangent, v.shadow_resistence, v.material);
+			*iter = Sprite_vertex{v.position + position,
+			                      v.uv, v.uv_clip, v.tangent, v.shadow_resistence, v.material};
+			iter++;
 		}
 	}
 
@@ -122,9 +164,6 @@ namespace renderer {
 	}
 
 	void Sprite_batch::_draw(Command_queue& queue) {
-		// partition _vertices by texture
-		std::stable_sort(_vertices.begin(), _vertices.end());
-
 		// draw one batch for each partition
 		auto last = _vertices.begin();
 		for(auto current = _vertices.begin(); current!=_vertices.end(); ++current) {
@@ -139,7 +178,8 @@ namespace renderer {
 	}
 
 	auto Sprite_batch::_draw_part(Vertex_citer begin, Vertex_citer end) -> Command {
-		INVARIANT(begin!=end && begin->material, "Invalid iterators");
+		INVARIANT(begin!=end, "Invalid iterators");
+		INVARIANT(begin->material, "Invalid material");
 
 		auto obj_idx = _free_obj++;
 

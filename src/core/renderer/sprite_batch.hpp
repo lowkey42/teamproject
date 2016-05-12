@@ -46,13 +46,23 @@ namespace renderer {
 		float shadow_resistence;
 		const renderer::Material* material;
 
+		Sprite_vertex() : shadow_resistence(false), material(nullptr) {}
 		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
 		              glm::vec2 tangent, float shadow_resistence, const renderer::Material*);
 
-		bool operator<(const Sprite_vertex& rhs)const noexcept {
-			auto lhs_z = -position.z;
+		bool operator<(std::tuple<float&, const renderer::Material*> rhs)const noexcept {
+			auto lhs_z = -std::floor(position.z*100.f);
 			auto lhs_alpha = material ? material->alpha() : false;
-			auto rhs_z = -rhs.position.z;
+			auto rhs_z = -std::floor(std::get<0>(rhs)*100.f);
+			auto rhs_alpha = std::get<1>(rhs) ? std::get<1>(rhs)->alpha() : false;
+
+			return std::tie(lhs_alpha, material, lhs_z)
+			     < std::tie(rhs_alpha, std::get<1>(rhs), rhs_z);
+		}
+		bool operator<(const Sprite_vertex& rhs)const noexcept {
+			auto lhs_z = -std::floor(position.z*100.f);
+			auto lhs_alpha = material ? material->alpha() : false;
+			auto rhs_z = -std::floor(rhs.position.z*100.f);
 			auto rhs_alpha = rhs.material ? rhs.material->alpha() : false;
 
 			return std::tie(lhs_alpha, material, lhs_z)
@@ -76,6 +86,7 @@ namespace renderer {
 
 		private:
 			using Vertex_citer = std::vector<Sprite_vertex>::const_iterator;
+			using Vertex_iter = std::vector<Sprite_vertex>::iterator;
 
 			Shader_program& _shader;
 
@@ -85,6 +96,7 @@ namespace renderer {
 
 			void _draw(Command_queue&);
 			auto _draw_part(Vertex_citer begin, Vertex_citer end) -> Command;
+			auto _reserve_space(float z, const renderer::Material* material, std::size_t count) -> Vertex_iter;
 	};
 
 }
