@@ -52,11 +52,11 @@ namespace renderer {
 
 		// TODO: mipmapping for sprites
 
-		glBindTexture(tex_type, _handle);
+		bind(0);
 		glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, _cubemap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 		glTexParameteri(tex_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, CLAMP_TO_EDGE);
+		glTexParameteri(tex_type, GL_TEXTURE_WRAP_S, CLAMP_TO_EDGE);
+		glTexParameteri(tex_type, GL_TEXTURE_WRAP_T, CLAMP_TO_EDGE);
 		glBindTexture(tex_type, 0);
 	}
 	Texture::Texture(int width, int height, int bpp) : _width(width), _height(height) {
@@ -84,8 +84,8 @@ namespace renderer {
 		}
 #endif
 
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, CLAMP_TO_EDGE);
 	}
