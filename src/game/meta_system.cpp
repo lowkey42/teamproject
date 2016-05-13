@@ -22,16 +22,24 @@ namespace lux {
 		using Global_uniform_map = renderer::Uniform_map<global_uniforms,
 		                                                 global_uniforms_avg_size*sizeof(float)>;
 
+		auto shadowbuffer_size(Engine& engine) {
+			return glm::vec2{
+				engine.graphics_ctx().settings().width * engine.graphics_ctx().settings().supersampling,
+				engine.graphics_ctx().settings().height * engine.graphics_ctx().settings().supersampling};
+		}
+
 		auto create_framebuffer(Engine& engine) {
+			auto size = shadowbuffer_size(engine);
 			return Framebuffer{
-				static_cast<int>(engine.graphics_ctx().win_width() * engine.graphics_ctx().supersampling()),
-				static_cast<int>(engine.graphics_ctx().win_height() * engine.graphics_ctx().supersampling()),
+				static_cast<int>(size.x),
+				static_cast<int>(size.y),
 				true, true};
 		}
 		auto create_blur_framebuffer(Engine& engine) {
+			auto size = shadowbuffer_size(engine) / 2.f;
 			return Framebuffer{
-				engine.graphics_ctx().win_width()/2,
-				engine.graphics_ctx().win_height()/2,
+				static_cast<int>(size.x),
+				static_cast<int>(size.y),
 				false, false};
 		}
 	}
@@ -45,8 +53,7 @@ namespace lux {
 			{
 				render_queue.shared_uniforms(std::make_unique<Global_uniform_map>());
 
-				auto blur_size = glm::vec2{engine.graphics_ctx().win_width()/2,
-				                           engine.graphics_ctx().win_height()/2};
+				auto blur_size = shadowbuffer_size(engine) / 2.f;
 
 				post_shader.attach_shader(engine.assets().load<Shader>("vert_shader:post"_aid))
 				            .attach_shader(engine.assets().load<Shader>("frag_shader:post"_aid))
@@ -56,9 +63,9 @@ namespace lux {
 				                "texture", int(Texture_unit::last_frame),
 				                "texture_glow", int(Texture_unit::temporary),
 				                "gamma", 2.2f,
-				                "texture_size", glm::vec2{engine.graphics_ctx().win_width() * engine.graphics_ctx().supersampling(),engine.graphics_ctx().win_height() * engine.graphics_ctx().supersampling()},
+				                "texture_size", shadowbuffer_size(engine),
 				                "exposure", 1.0f,
-				                "bloom", (graphics_ctx.bloom() ? 1.f : 0.f)
+				                "bloom", (graphics_ctx.settings().bloom ? 1.f : 0.f)
 				            ));
 
 				blur_shader.attach_shader(engine.assets().load<Shader>("vert_shader:blur"_aid))
@@ -101,7 +108,7 @@ namespace lux {
 					render_queue.flush();
 				}
 
-				if(graphics_ctx.bloom()) {
+				if(graphics_ctx.settings().bloom) {
 					auto fbo_cleanup = Framebuffer_binder{blur_canvas[0]};
 					blur_canvas[0].clear();
 
@@ -124,6 +131,7 @@ namespace lux {
 					blur_canvas[0].bind(int(Texture_unit::temporary));
 				}
 
+				graphics_ctx.reset_viewport();
 				post_shader.bind().set_uniform("exposure", 1.0f);
 				renderer::draw_fullscreen_quad(active_canvas(), Texture_unit::last_frame);
 

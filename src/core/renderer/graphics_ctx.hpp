@@ -21,6 +21,21 @@ namespace lux {
 	}
 
 namespace renderer {
+
+	struct Graphics_settings {
+		int width;
+		int height;
+		int display;
+		bool fullscreen;
+		bool borderless_fullscreen;
+		float gamma;
+		bool bloom;
+		float supersampling;
+		float shadow_softness;
+	};
+
+	extern auto default_settings(int display=0) -> Graphics_settings;
+
 	class Graphics_ctx {
 		public:
 			Graphics_ctx(const std::string& name, asset::Asset_manager& assets);
@@ -34,24 +49,17 @@ namespace renderer {
 
 			auto win_width()const noexcept{return _win_width;}
 			auto win_height()const noexcept{return _win_height;}
-			auto viewport()const noexcept {return glm::vec4{0, 0, _win_width, _win_height};}
-			auto gamma()const noexcept {return _gamma;}
-			auto bloom()const noexcept {return _bloom;}
-			auto supersampling()const noexcept {return _supersampling;}
-			auto shadow_softness()const noexcept {return _shadow_softness;}
+			auto viewport()const noexcept {return _viewport;}
 
-			void settings(int width, int height, bool fullscreen, float gamma,
-			              bool bloom, float supersampling, float shadow_softness);
+			auto settings()const noexcept -> const Graphics_settings& {return *_settings;}
+			bool settings(Graphics_settings);
 
 		private:
 			asset::Asset_manager& _assets;
 			std::string _name;
 			int _win_width, _win_height;
-			bool _fullscreen;
-			float _gamma;
-			float _supersampling;
-			bool _bloom;
-			float _shadow_softness;
+			glm::vec4 _viewport;
+			std::shared_ptr<const Graphics_settings> _settings;
 
 			std::unique_ptr<SDL_Window,void(*)(SDL_Window*)> _window;
 			SDL_GLContext _gl_ctx;

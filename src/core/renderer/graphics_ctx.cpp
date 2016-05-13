@@ -93,83 +93,97 @@ namespace renderer {
 		}
 	#endif
 #endif
-
-		struct Graphics_cfg {
-			int width;
-			int height;
-			bool fullscreen;
-			float gamma;
-			bool bloom;
-			float supersampling;
-			float shadow_softness;
-
-			Graphics_cfg();
-		};
-
-		sf2_structDef(Graphics_cfg,
-			width,
-			height,
-			fullscreen,
-			gamma,
-			bloom,
-			supersampling,
-			shadow_softness
-		)
-
-	#ifndef EMSCRIPTEN
-		Graphics_cfg::Graphics_cfg() : width(1920), height(1080), fullscreen(true), // TODO: read defaults from SDL instead
-		   gamma(2.2f), bloom(true), supersampling(1.f), shadow_softness(1.f) {}
-	#else
-		Graphics_cfg::Graphics_cfg() : width(1024), height(512), fullscreen(false),
-		    gamma(2.3f), bloom(false), supersampling(1.f), shadow_softness(0.0f) {}
-	#endif
-
 	}
 
+	sf2_structDef(Graphics_settings,
+		width,
+		height,
+		display,
+		fullscreen,
+		borderless_fullscreen,
+		gamma,
+		bloom,
+		supersampling,
+		shadow_softness
+	)
+
+	auto default_settings(int display) -> Graphics_settings {
+#ifndef EMSCRIPTEN
+		SDL_DisplayMode native_mode;
+		if(SDL_GetDesktopDisplayMode(display, &native_mode)!=0) {
+			INFO("Couldn't detect the native resolution => using default 1920x1080");
+			native_mode.w = 1920;
+			native_mode.h = 1080;
+		}
+
+		Graphics_settings s;
+		s.width = native_mode.w;
+		s.height = native_mode.h;
+		s.display = display;
+		s.fullscreen = true;
+		s.borderless_fullscreen = true;
+		s.gamma = 2.2f;
+		s.bloom = true;
+		s.supersampling = 1.f;
+		s.shadow_softness = 0.5f;
+
+		return s;
+
+#else
+		Graphics_settings s;
+		s.width = 1024;
+		s.height = 512;
+		s.display = 0;
+		s.fullscreen = false;
+		s.borderless_fullscreen = false;
+		s.gamma = 2.2f;
+		s.bloom = false;
+		s.supersampling = 1.f;
+		s.shadow_softness = 0.0f;
+
+		return s;
+#endif
+	}
 
 	Graphics_ctx::Graphics_ctx(const std::string& name, asset::Asset_manager& assets)
 	 : _assets(assets), _name(name), _window(nullptr, SDL_DestroyWindow) {
 
-		auto default_cfg = Graphics_cfg{};
-
-		auto& cfg = asset::unpack(assets.load_maybe<Graphics_cfg>("cfg:graphics"_aid)).get_or_other(
-			default_cfg
-		);
-
-		_win_width = cfg.width;
-		_win_height = cfg.height;
-		_fullscreen = cfg.fullscreen;
-		_gamma = cfg.gamma;
-		_bloom = cfg.bloom;
-		_supersampling = cfg.supersampling;
-		_shadow_softness = cfg.shadow_softness;
-
-		if(&cfg==&default_cfg) {
-			assets.save<Graphics_cfg>("cfg:graphics"_aid, cfg);
+		auto maybe_settings = assets.load_maybe<Graphics_settings>("cfg:graphics"_aid);
+		if(maybe_settings.is_nothing()) {
+			if(!settings(default_settings())) {
+				FAIL("Invalid graphics settings");
+			}
+		} else {
+			_settings = maybe_settings.get_or_throw();
 		}
+
 
 #ifndef EMSCRIPTEN
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 #endif
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-		int win_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
-		if(_fullscreen)
-			win_flags|=SDL_WINDOW_FULLSCREEN_DESKTOP;
+		int win_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
 
-		_window.reset( SDL_CreateWindow(_name.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-							_win_width, _win_height, win_flags) );
+		auto display = _settings->display;
+		_window.reset(SDL_CreateWindow(_name.c_str(),
+		                               SDL_WINDOWPOS_CENTERED_DISPLAY(display), SDL_WINDOWPOS_CENTERED_DISPLAY(display),
+		                               800, 600, win_flags) );
 
 		if (!_window)
 			FAIL("Unable to create window");
 
 		sdl_error_check();
 
-		SDL_GetWindowSize(_window.get(), &_win_width, &_win_height);
+		if(!settings(*_settings)) { //< apply actual size/settings
+			FAIL("Couldn't apply graphics settings");
+		}
+
+		sdl_error_check();
 
 		try {
 			_gl_ctx = SDL_GL_CreateContext(_window.get());
@@ -181,7 +195,7 @@ namespace renderer {
 			FAIL("Failure to create OpenGL context. This application requires a OpenGL ES 2.0 capable GPU. Error was: "<< ex.what());
 		}
 
-		if(SDL_GL_SetSwapInterval(-1)) SDL_GL_SetSwapInterval(1);
+		if(SDL_GL_SetSwapInterval(-1)!=0) SDL_GL_SetSwapInterval(1);
 
 #ifndef ANDROID
 		glewExperimental = GL_TRUE;
@@ -217,7 +231,7 @@ namespace renderer {
 	}
 
 	void Graphics_ctx::reset_viewport()const noexcept {
-		glViewport(0,0, win_width(), win_height());
+		glViewport(_viewport.x, _viewport.y, _viewport.z, _viewport.w);
 	}
 
 	void Graphics_ctx::start_frame() {
@@ -258,19 +272,47 @@ namespace renderer {
 		_clear_color_dirty = true;
 	}
 
-	void Graphics_ctx::settings(int width, int height, bool fullscreen, float gamma,
-	                            bool bloom, float supersampling, float shadow_softness) {
-		auto cfg = *_assets.load<Graphics_cfg>("cfg:graphics"_aid);
-		cfg.width = width;
-		cfg.height = height;
-		cfg.fullscreen = fullscreen;
-		cfg.gamma = gamma;
-		cfg.bloom = bloom;
-		cfg.supersampling = supersampling;
-		cfg.shadow_softness = shadow_softness;
-		_assets.save<Graphics_cfg>("cfg:graphics"_aid, cfg);
+	bool Graphics_ctx::settings(Graphics_settings new_settings) {
+		SDL_DisplayMode target, closest;
+		target.w = new_settings.width;
+		target.h = new_settings.height;
+		target.format       = 0;
+		target.refresh_rate = 0;
+		target.driverdata   = 0;
 
-		// TODO: apply changes
+		if(new_settings.fullscreen) {
+			if(SDL_GetClosestDisplayMode(new_settings.display, &target, &closest) == nullptr) {
+				return false;
+			}
+
+			new_settings.width = closest.w;
+			new_settings.height = closest.h;
+		}
+
+		INFO("Using resolution "<<new_settings.width<<"x"<<new_settings.height);
+
+		_assets.save<Graphics_settings>("cfg:graphics"_aid, new_settings);
+		_settings = _assets.load<Graphics_settings>("cfg:graphics"_aid);
+
+		// update existing window
+		if(_window) {
+			SDL_SetWindowSize(_window.get(), _settings->width, _settings->height);
+
+			if(_settings->fullscreen) {
+				auto fs_type = _settings->borderless_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : SDL_WINDOW_FULLSCREEN;
+				SDL_SetWindowFullscreen(_window.get(), fs_type);
+				SDL_SetWindowDisplayMode(_window.get(), &closest);
+			}
+
+			SDL_GetWindowSize(_window.get(), &_win_width, &_win_height);
+			int drawable_width, drawable_height;
+			SDL_GL_GetDrawableSize(_window.get(), &drawable_width, &drawable_height);
+			_viewport = glm::vec4{0,0,drawable_width,drawable_height};
+
+			reset_viewport();
+		}
+
+		return true;
 	}
 
 	Disable_depthtest::Disable_depthtest() {

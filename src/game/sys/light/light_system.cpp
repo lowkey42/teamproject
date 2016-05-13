@@ -185,7 +185,7 @@ namespace light {
 		renderer::draw_fullscreen_quad(_shadow_map);
 	}
 	void Light_system::_blur_shadows() {
-		auto passes = static_cast<int>(std::ceil(16.f*_graphics_ctx.shadow_softness()));
+		auto passes = static_cast<int>(std::ceil(16.f*_graphics_ctx.settings().shadow_softness));
 
 		if(passes<=0.f) {
 			return;
