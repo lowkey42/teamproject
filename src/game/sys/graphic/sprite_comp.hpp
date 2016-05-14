@@ -34,6 +34,8 @@ namespace graphic {
 			renderer::Material_ptr _material;
 			glm::vec2 _size;
 			bool _shadowcaster = true;
+			Angle _hue_change_target {0};
+			Angle _hue_change_replacement {0};
 	};
 
 }

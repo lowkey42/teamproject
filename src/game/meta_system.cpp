@@ -165,7 +165,8 @@ namespace lux {
 		_skybox.texture(_engine.assets().load<Texture>({"tex_cube"_strid, level_meta_data.environment_id}));
 		lights.config(level_meta_data.environment_light_color,
 		              level_meta_data.environment_light_direction,
-		              level_meta_data.ambient_brightness);
+		              level_meta_data.ambient_brightness,
+		              level_meta_data.background_tint);
 
 		return level_meta_data;
 	}

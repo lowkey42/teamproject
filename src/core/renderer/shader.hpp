@@ -55,11 +55,10 @@ namespace renderer {
 
 	class Shader_program {
 		public:
-			Shader_program();
-			Shader_program(Shader_program&&) = delete;
+			Shader_program() = default;
+			Shader_program(Shader_program&&)noexcept = default;
+			Shader_program& operator=(Shader_program&&)noexcept = default;
 			~Shader_program()noexcept;
-
-			Shader_program& operator=(Shader_program&&) = delete;
 
 			Shader_program& attach_shader(std::shared_ptr<const Shader> shader);
 			Shader_program& bind_all_attribute_locations(const Vertex_layout&);
@@ -90,7 +89,16 @@ namespace renderer {
 			template<class T>
 			using Uniform_cache = std::unordered_map<std::string, Uniform_entry<T>>;
 
-			unsigned int _handle;
+			struct Prog_handle {
+				int v;
+				Prog_handle();
+				Prog_handle(Prog_handle&&)noexcept;
+				Prog_handle& operator=(Prog_handle&&)noexcept;
+				~Prog_handle();
+				operator int()const noexcept;
+			};
+
+			Prog_handle _handle;
 			std::vector<std::shared_ptr<const Shader>> _attached_shaders;
 			std::unique_ptr<IUniform_map> _uniforms;
 

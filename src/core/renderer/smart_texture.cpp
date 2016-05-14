@@ -174,7 +174,8 @@ namespace renderer {
 			auto add_vertex = [&](auto v) {
 				auto uv_clip = vec4{0.f, 0.f, 0.75f-pc, 0.75f-pc};
 				auto uv = vec2{v.x,-v.y}*0.5f;
-				vertices.emplace_back(vec3(v,-0.04f), uv, uv_clip, vec2{1.f,0.f}, shadowcaster ? 1.f : 0.f, &mat);
+				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
+				vertices.emplace_back(vec3(v,-0.04f), uv, uv_clip, vec2{1.f,0.f}, hc, shadowcaster ? 1.f : 0.f, &mat);
 			};
 			auto error = [&](auto left) {
 				INFO("Polygon is not valid. "<<left<<" vertices left");
@@ -220,16 +221,17 @@ namespace renderer {
 
 				auto top_right = right + normal_r*hh;
 				auto bottom_right = right - normal_r*hh;
+				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
 
 				auto& v = later ? vertex_tmp_buffer : vertices;
 
-				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, shadow_res, &mat);
-				v.emplace_back(vec3(top_left,     d), uv_tl, uv_clip, tangent, shadow_res, &mat);
-				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, shadow_res, &mat);
+				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, hc, shadow_res, &mat);
+				v.emplace_back(vec3(top_left,     d), uv_tl, uv_clip, tangent, hc, shadow_res, &mat);
+				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, hc, shadow_res, &mat);
 
-				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, shadow_res, &mat);
-				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, shadow_res, &mat);
-				v.emplace_back(vec3(bottom_right, d), uv_br, uv_clip, tangent, shadow_res, &mat);
+				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, hc, shadow_res, &mat);
+				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, hc, shadow_res, &mat);
+				v.emplace_back(vec3(bottom_right, d), uv_br, uv_clip, tangent, hc, shadow_res, &mat);
 			};
 
 			auto i_offset = 0u;

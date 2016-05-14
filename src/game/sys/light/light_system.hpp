@@ -38,12 +38,15 @@ namespace light {
 			             renderer::Graphics_ctx&  graphics_ctx,
 			             Rgb sun_light = Rgb{0.5, 0.5, 0.5},
 			             glm::vec3 sun_dir = {0.1, -0.8, 0.4},
-			             float ambient_brightness = 0.1f);
+			             float ambient_brightness = 0.1f,
+			             Rgba background_tint = {0.02,0.02,0.02, 0.8});
 
-			void config(Rgb sun_light, glm::vec3 sun_dir, float ambient_brightness) {
+			void config(Rgb sun_light, glm::vec3 sun_dir, float ambient_brightness,
+			            Rgba background_tint) {
 				_sun_light = sun_light;
 				_sun_dir = sun_dir;
 				_ambient_brightness = ambient_brightness;
+				_background_tint = background_tint;
 			}
 
 			auto shadowcaster_batch() -> auto& {return _shadowcaster_batch;}
@@ -67,6 +70,7 @@ namespace light {
 			glm::vec3 _sun_dir;
 			float _ambient_brightness;
 			glm::vec2 _light_cam_pos;
+			Rgba _background_tint;
 
 
 			void _setup_uniforms(renderer::IUniform_map& uniforms, const renderer::Camera& camera,

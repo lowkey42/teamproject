@@ -5,11 +5,13 @@ attribute vec3 position;
 attribute vec2 uv;
 attribute vec4 uv_clip;
 attribute vec2 tangent;
+attribute vec2 hue_change;
 attribute float shadow_resistence;
 
 varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
 varying vec3 pos_frag;
+varying vec2 hue_change_frag;
 varying vec2 shadowmap_uv_frag;
 varying float shadow_resistence_frag;
 
@@ -27,6 +29,7 @@ void main() {
 	uv_frag = uv;
 	uv_clip_frag = uv_clip;
 	pos_frag = position;
+	hue_change_frag = hue_change;
 	shadow_resistence_frag = shadow_resistence;
 
 	vec3 T = normalize(vec3(tangent,0.0));

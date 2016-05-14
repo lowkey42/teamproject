@@ -118,14 +118,29 @@ namespace renderer {
 		return *this;
 	}
 
-	Shader_program::Shader_program() {
-		_handle = glCreateProgram();
+	Shader_program::Prog_handle::Prog_handle() {
+		v = glCreateProgram();
+	}
+	Shader_program::Prog_handle::Prog_handle(Prog_handle&& rhs)noexcept : v(rhs.v) {
+		rhs.v = 0;
+	}
+	auto Shader_program::Prog_handle::operator=(Prog_handle&& rhs)noexcept -> Prog_handle& {
+		v = rhs.v;
+		rhs.v = 0;
+		return *this;
+	}
+	Shader_program::Prog_handle::~Prog_handle() {
+		if(v!=0) {
+			glDeleteProgram(v);
+		}
+	}
+	Shader_program::Prog_handle::operator int()const noexcept {
+		INVARIANT(v!=0, "Access to moved from shader_program");
+		return v;
 	}
 
 	Shader_program::~Shader_program()noexcept {
 		detach_all();
-
-		glDeleteProgram(_handle);
 	}
 
 	Shader_program& Shader_program::attach_shader(std::shared_ptr<const Shader> shader) {

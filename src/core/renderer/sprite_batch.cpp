@@ -13,13 +13,13 @@ namespace renderer {
 		std::unique_ptr<Shader_program> sprite_shader;
 		const auto def_uv_clip = glm::vec4{0,0,1,1};
 		const std::vector<Sprite_vertex> single_sprite_vert {
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0},0, nullptr},
-			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, {1,0},0, nullptr},
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0},0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
 
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0},0, nullptr},
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0},0, nullptr},
-			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, {1,0},0, nullptr}
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, {1,0}, {0,0}, 0, nullptr}
 		};
 	}
 
@@ -28,6 +28,7 @@ namespace renderer {
 		vertex("position",  &Sprite_vertex::position),
 		vertex("uv",        &Sprite_vertex::uv),
 		vertex("uv_clip",   &Sprite_vertex::uv_clip),
+		vertex("hue_change",&Sprite_vertex::hue_change),
 		vertex("tangent",   &Sprite_vertex::tangent),
 		vertex("shadow_resistence", &Sprite_vertex::shadow_resistence)
 	};
@@ -40,9 +41,9 @@ namespace renderer {
 	}
 
 	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
-	                             glm::vec2 tangent, float shadow_resistence,
+	                             glm::vec2 tangent, glm::vec2 hue_change, float shadow_resistence,
 	                             const renderer::Material* material)
-	    : position(pos), uv(uv_coords), uv_clip(uv_clip), tangent(tangent),
+	    : position(pos), uv(uv_coords), uv_clip(uv_clip), tangent(tangent), hue_change(hue_change),
 	      shadow_resistence(shadow_resistence), material(material) {
 	}
 
@@ -138,7 +139,7 @@ namespace renderer {
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
 			*iter = Sprite_vertex{transform(vert.position), uv, vert.uv_clip,
-			                      tangent, sprite.shadow_resistence, sprite.material};
+			                      tangent, sprite.hue_change, sprite.shadow_resistence, sprite.material};
 			iter++;
 		}
 	}
@@ -152,7 +153,8 @@ namespace renderer {
 
 		for(auto& v : vertices) {
 			*iter = Sprite_vertex{v.position + position,
-			                      v.uv, v.uv_clip, v.tangent, v.shadow_resistence, v.material};
+			                      v.uv, v.uv_clip, v.tangent, v.hue_change,
+			                      v.shadow_resistence, v.material};
 			iter++;
 		}
 	}

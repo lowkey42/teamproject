@@ -30,6 +30,7 @@ namespace renderer {
 		Angle rotation;
 		glm::vec2 size;
 		glm::vec4 uv;
+		glm::vec2 hue_change;
 		float shadow_resistence;
 		const renderer::Material* material = nullptr;
 
@@ -43,12 +44,14 @@ namespace renderer {
 		glm::vec2 uv;
 		glm::vec4 uv_clip;
 		glm::vec2 tangent;
+		glm::vec2 hue_change;
 		float shadow_resistence;
 		const renderer::Material* material;
 
 		Sprite_vertex() : shadow_resistence(false), material(nullptr) {}
 		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
-		              glm::vec2 tangent, float shadow_resistence, const renderer::Material*);
+		              glm::vec2 tangent, glm::vec2 hue_change,
+		              float shadow_resistence, const renderer::Material*);
 
 		bool operator<(std::tuple<float&, const renderer::Material*> rhs)const noexcept {
 			auto lhs_z = -std::floor(position.z*100.f);

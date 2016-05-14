@@ -3,6 +3,7 @@
 #include "../physics/transform_comp.hpp"
 
 #include <core/units.hpp>
+#include <core/renderer/command_queue.hpp>
 
 
 namespace lux {
@@ -12,15 +13,36 @@ namespace graphic {
 	using namespace renderer;
 	using namespace unit_literals;
 
+	namespace {
+		constexpr auto background_boundary = -10.f;
+
+		auto build_background_shader(asset::Asset_manager& asset_manager) -> Shader_program {
+			Shader_program prog;
+			prog.attach_shader(asset_manager.load<Shader>("vert_shader:sprite"_aid))
+			    .attach_shader(asset_manager.load<Shader>("frag_shader:sprite_bg"_aid))
+			    .bind_all_attribute_locations(sprite_layout)
+			    .build()
+			    .uniforms(make_uniform_map(
+			                  "albedo_tex", int(Texture_unit::color),
+			                  "normal_tex", int(Texture_unit::normal),
+			                  "material_tex", int(Texture_unit::material),
+			                  "environment_tex", int(Texture_unit::environment)
+			    ));
+
+			return prog;
+		}
+	}
 
 	Graphic_system::Graphic_system(
 	        util::Message_bus& bus,
 	        ecs::Entity_manager& entity_manager,
 	        asset::Asset_manager& asset_manager)
-	    : _mailbox(bus),
+	    : _background_shader(build_background_shader(asset_manager)),
+	      _mailbox(bus),
 	      _sprites(entity_manager.list<Sprite_comp>()),
 	      _terrains(entity_manager.list<Terrain_comp>()),
-	      _sprite_batch()
+	      _sprite_batch(512),
+	      _sprite_batch_bg(_background_shader, 256)
 	{
 		entity_manager.register_component_type<Sprite_comp>();
 		entity_manager.register_component_type<Terrain_comp>();
@@ -36,20 +58,36 @@ namespace graphic {
 			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
 
 			auto position = remove_units(trans.position());
+			auto sprite_data = renderer::Sprite{
+			                   position, trans.rotation(),
+			                   sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
+			                   *sprite._material};
 
-			_sprite_batch.insert(renderer::Sprite{position, trans.rotation(),
-			                     sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
-			                     *sprite._material});
+			sprite_data.hue_change = {
+			    sprite._hue_change_target / 360_deg,
+			    sprite._hue_change_replacement / 360_deg
+			};
+
+			if(position.z<background_boundary) {
+				_sprite_batch_bg.insert(sprite_data);
+			} else {
+				_sprite_batch.insert(sprite_data);
+			}
 		}
 
 		for(Terrain_comp& terrain : _terrains) {
 			auto& trans = terrain.owner().get<physics::Transform_comp>().get_or_throw();
 			auto position = remove_units(trans.position());
 
-			terrain._smart_texture.draw(position, _sprite_batch);
+			if(position.z<background_boundary) {
+				terrain._smart_texture.draw(position, _sprite_batch_bg);
+			} else {
+				terrain._smart_texture.draw(position, _sprite_batch);
+			}
 		}
 
 		_sprite_batch.flush(queue);
+		_sprite_batch_bg.flush(queue);
 	}
 	void Graphic_system::draw_shadowcaster(renderer::Sprite_batch& batch,
 	                                       const renderer::Camera&)const {

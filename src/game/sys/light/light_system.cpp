@@ -40,7 +40,8 @@ namespace light {
 	             renderer::Graphics_ctx&  graphics_ctx,
 	             Rgb sun_light,
 	             glm::vec3 sun_dir,
-	             float ambient_brightness)
+	             float ambient_brightness,
+	             Rgba background_tint)
 	    : _mailbox(bus),
 	      _graphics_ctx(graphics_ctx),
 	      _lights(entity_manager.list<Light_comp>()),
@@ -51,7 +52,8 @@ namespace light {
 	      _shadow_map       (shadowmap_size/2.f,shadowmap_rows, false, true),
 	      _sun_light(sun_light),
 	      _sun_dir(glm::normalize(sun_dir)),
-	      _ambient_brightness(ambient_brightness) {
+	      _ambient_brightness(ambient_brightness),
+	      _background_tint(background_tint) {
 
 
 		entity_manager.register_component_type<Light_comp>();
@@ -176,7 +178,6 @@ namespace light {
 	void Light_system::_draw_final(gsl::span<Light_info> lights) {
 		_finalize_shader.bind();
 		bind_light_positions(_finalize_shader, lights);
-		// TODO: bind dir and angle
 
 		auto fbo_cleanup = Framebuffer_binder{_occlusion_map[0]};
 		auto depth_cleanup = renderer::Disable_depthtest{};
@@ -237,6 +238,7 @@ namespace light {
 		uniforms.emplace("light_ambient",   _ambient_brightness);
 		uniforms.emplace("light_sun.color", _sun_light);
 		uniforms.emplace("light_sun.dir",   _sun_dir);
+		uniforms.emplace("background_tint", _background_tint);
 
 		for(Light_info& l : lights) {
 			if(!l.transform) {

@@ -34,12 +34,14 @@ namespace graphic {
 		private:
 			void _on_state_change(const State_change&);
 
+			renderer::Shader_program _background_shader;
 
 			util::Mailbox_collection _mailbox;
 			Sprite_comp::Pool& _sprites;
 			Terrain_comp::Pool& _terrains;
 
 			mutable renderer::Sprite_batch _sprite_batch;
+			mutable renderer::Sprite_batch _sprite_batch_bg;
 	};
 
 }
