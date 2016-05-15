@@ -24,7 +24,6 @@ namespace physics {
 
 		_position = position_f * 1_m;
 		_rotation = rotation_f * 1_deg;
-		_dirty = State::uninitialized;
 	}
 	void Transform_comp::save(sf2::JsonSerializer& state)const {
 		state.write_virtual(
@@ -37,12 +36,12 @@ namespace physics {
 
 	void Transform_comp::position(Position pos)noexcept {
 		_position=pos;
-		if(_dirty==State::clear)
-			_dirty=State::dirty;
+		_revision++;
 	}
 	void Transform_comp::rotation(Angle a)noexcept {
-		if(!_rotation_fixed)
+		if(!_rotation_fixed) {
 			_rotation = a;
+		}
 	}
 
 }

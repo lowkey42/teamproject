@@ -102,12 +102,10 @@ namespace controller {
 
 
 			if(grounded) {
-				auto tangent = vec2{ground_normal.y, -ground_normal.x};
+				auto vel_diff = vel_target - body.velocity().x;
 
-				auto vel_diff = vel_target*tangent - body.velocity();
-
-				if(glm::sign(vel_diff.x)==glm::sign(vel_target) || glm::abs(vel_target)<=0.001f) {
-					move_force = vel_diff * body.mass() / dt.value();
+				if(glm::sign(vel_diff)==glm::sign(vel_target) || glm::abs(vel_target)<=0.001f) {
+					move_force.x = vel_diff * body.mass() / dt.value();
 				}
 
 			} else {

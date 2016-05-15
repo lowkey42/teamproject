@@ -7,28 +7,15 @@
 
 #pragma once
 
-#include "../../../core/ecs/ecs.hpp"
-#include "../../../core/units.hpp"
+#include <core/ecs/ecs.hpp>
+#include <core/units.hpp>
+
 
 namespace lux {
 namespace sys {
 namespace physics {
 
 	class Transform_system;
-
-	struct Cell_key {
-		int32_t x,y;
-
-		bool operator<(const Cell_key& rhs)const noexcept {
-			return std::tie(x,y) < std::tie(rhs.x,rhs.y);
-		}
-		bool operator==(const Cell_key& rhs)const noexcept {
-			return std::tie(x,y) == std::tie(rhs.x,rhs.y);
-		}
-		bool operator!=(const Cell_key& rhs)const noexcept {
-			return !(*this==rhs);
-		}
-	};
 
 	class Transform_comp : public ecs::Component<Transform_comp> {
 		public:
@@ -50,32 +37,21 @@ namespace physics {
 			auto rotation()const noexcept {return _rotation;}
 			void rotation(Angle a)noexcept;
 
+			auto changed_since(uint_fast32_t expected)const noexcept {return _revision!=expected;}
+			auto revision()const noexcept {return _revision;}
+
 			struct Persisted_state;
 			friend struct Persisted_state;
+
 		private:
-			friend class Transform_system;
-
-			enum class State {
-				clear, dirty, uninitialized
-			};
-
 			Position _position;
 			float _scale = 1.f;
 			Angle _rotation;
 			bool _rotation_fixed = false;
-
-			Cell_key _cell_idx;
-			State _dirty = State::uninitialized;
+			uint_fast32_t _revision = 1;
 	};
 
 }
 }
 }
 
-namespace std {
-	template <> struct hash<lux::sys::physics::Cell_key> {
-		auto operator()(lux::sys::physics::Cell_key key)const noexcept -> size_t {
-			return static_cast<size_t>(key.x)*31 + key.y;
-		}
-	};
-}

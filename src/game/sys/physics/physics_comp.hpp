@@ -74,6 +74,8 @@ namespace physics {
 			glm::vec2 _size;
 			bool _grounded = true;
 			glm::vec2 _ground_normal{0,1};
+			glm::vec2 _last_body_position;
+			uint_fast32_t _transform_revision = 0;
 
 			void _update_body(b2World& world);
 			void _update_ground_info(Physics_system&);
@@ -96,6 +98,7 @@ namespace physics {
 			Body_definition _def;
 			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
 			bool _active = true;
+			uint_fast32_t _transform_revision = 0;
 
 			void _update_body(b2World& world);
 	};

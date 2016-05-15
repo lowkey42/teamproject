@@ -63,12 +63,17 @@ namespace physics {
 		_dt_acc -= steps*time_step;
 
 		_get_positions();
-		for(auto i=0; i<steps; ++i) {
-			_world->Step(time_step, velocity_iterations, position_iterations);
+
+		if(steps>0) {
+			for(auto i=0; i<steps; ++i) {
+				_reset_smooth_state();
+
+				_world->Step(time_step, velocity_iterations, position_iterations);
+			}
 		}
+
 		_world->ClearForces();
-		//_set_positions(steps/(steps+1.f) + _dt_acc / time_step);// TODO: interpolation causes inconsistent slow-downs
-		_set_positions(1.f);
+		_smooth_positions(_dt_acc / time_step);
 	}
 
 	void Physics_system::_get_positions() {
@@ -79,10 +84,16 @@ namespace physics {
 
 			auto& transform = comp.owner().get<Transform_comp>().get_or_throw();
 			auto pos = remove_units(transform.position());
-			auto rot = comp._def.fixed_rotation ? 0.f : transform.rotation().value();
-			comp._body->SetTransform(b2Vec2{pos.x, pos.y}, rot);
 
-			comp._body->SetActive(comp._active && std::abs(pos.z) <= max_depth_offset);
+			auto active = comp._active && std::abs(pos.z) <= max_depth_offset;
+
+			if(transform.changed_since(comp._transform_revision) || comp._body->IsActive()!=active) {
+				comp._transform_revision = transform.revision();
+
+				auto rot = comp._def.fixed_rotation ? 0.f : transform.rotation().value();
+				comp._body->SetTransform(b2Vec2{pos.x, pos.y}, rot);
+				comp._body->SetActive(active);
+			}
 		}
 
 		for(auto& comp : _bodies_static) {
@@ -91,24 +102,36 @@ namespace physics {
 			}
 
 			auto& transform = comp.owner().get<Transform_comp>().get_or_throw();
-			auto pos = remove_units(transform.position());
-			comp._body->SetTransform(b2Vec2{pos.x, pos.y}, transform.rotation().value());
+			if(transform.changed_since(comp._transform_revision)) {
+				comp._transform_revision = transform.revision();
 
-			comp._body->SetActive(comp._active && std::abs(pos.z) <= max_depth_offset);
+				auto& transform = comp.owner().get<Transform_comp>().get_or_throw();
+				auto pos = remove_units(transform.position());
+				comp._body->SetTransform(b2Vec2{pos.x, pos.y}, transform.rotation().value());
+				comp._body->SetActive(comp._active && std::abs(pos.z) <= max_depth_offset);
+			}
 		}
 	}
-	void Physics_system::_set_positions(float alpha) {
+	void Physics_system::_reset_smooth_state() {
+		for(auto& comp : _bodies_dynamic) {
+			auto b2_pos = comp._body->GetPosition();
+			comp._last_body_position = glm::vec2{b2_pos.x, b2_pos.y};
+		}
+	}
+
+	void Physics_system::_smooth_positions(float alpha) {
 		for(Dynamic_body_comp& comp : _bodies_dynamic) {
 			auto& transform = comp.owner().get<Transform_comp>().get_or_throw();
 
 			auto b2_pos = comp._body->GetPosition();
 			auto pos = glm::vec2{b2_pos.x, b2_pos.y};
-			pos = glm::mix(remove_units(transform.position()).xy(), pos, alpha);
+			pos = glm::mix(comp._last_body_position, pos, alpha);
 			transform.position({pos.x*1_m, pos.y*1_m, transform.position().z});
 			if(!comp._def.fixed_rotation) {
 				transform.rotation(Angle{comp._body->GetAngle()});
 			}
 
+			comp._transform_revision = transform.revision();
 			comp._update_ground_info(*this);
 		}
 	}

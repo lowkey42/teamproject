@@ -58,10 +58,10 @@ namespace physics {
 			std::unique_ptr<Contact_listener> _listener;
 			std::unique_ptr<b2World> _world;
 			float _dt_acc = 0.f;
-			// TODO
 
 			void _get_positions();
-			void _set_positions(float alpha);
+			void _reset_smooth_state();
+			void _smooth_positions(float alpha);
 	};
 
 }
