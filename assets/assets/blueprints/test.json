@@ -2,10 +2,12 @@
     "Transform":{
     },
     "Terrain": {
-        "material": "mat:test_smart_tex"
+        "material": "mat:test_smart_tex",
+        "decals_intensity": 1.0
     },
     "Terrain_data": {
     },
+    "Paintable": {},
     "Editor": {
         "bounds": {"x":2, "y":2, "z":1}
     },

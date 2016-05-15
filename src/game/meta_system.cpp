@@ -35,6 +35,13 @@ namespace lux {
 				static_cast<int>(size.y),
 				true, true};
 		}
+		auto create_decals_framebuffer(Engine& engine) {
+			auto size = shadowbuffer_size(engine) / 2.f;
+			return Framebuffer{
+				static_cast<int>(size.x),
+				static_cast<int>(size.y),
+				false, false};
+		}
 		auto create_blur_framebuffer(Engine& engine) {
 			auto size = shadowbuffer_size(engine) / 2.f;
 			return Framebuffer{
@@ -49,7 +56,8 @@ namespace lux {
 			Post_renderer(Engine& engine) :
 			    graphics_ctx(engine.graphics_ctx()),
 			    canvas{create_framebuffer(engine), create_framebuffer(engine)},
-			    blur_canvas{create_blur_framebuffer(engine), create_blur_framebuffer(engine)}
+			    blur_canvas{create_blur_framebuffer(engine), create_blur_framebuffer(engine)},
+			    decals_canvas(create_decals_framebuffer(engine))
 			{
 				render_queue.shared_uniforms(std::make_unique<Global_uniform_map>());
 
@@ -95,6 +103,8 @@ namespace lux {
 			renderer::Framebuffer canvas[2];
 			renderer::Framebuffer blur_canvas[2];
 			bool                  canvas_first_active = true;
+
+			renderer::Framebuffer decals_canvas;
 
 			auto& active_canvas() {
 				return canvas[canvas_first_active ? 0: 1];
@@ -195,10 +205,21 @@ namespace lux {
 		const renderer::Camera& cam = cam_mb.get_or_other(camera.camera());
 
 		auto& queue = _post_renderer->render_queue;
+		_post_renderer->decals_canvas.bind(int(Texture_unit::decals));
+
 		auto uniforms = queue.shared_uniforms();
 
 		renderer.draw_shadowcaster(lights.shadowcaster_batch(), cam);
 		lights.prepare_draw(queue, cam);
+
+		{
+			// reuses the shadow/light camera, that is further away from the scene,
+			//  so this has to be drawn before the vp is reset
+			auto fbo_cleanup = Framebuffer_binder{_post_renderer->decals_canvas};
+			_post_renderer->decals_canvas.clear();
+			gameplay.draw_blood(queue, cam);
+			queue.flush();
+		}
 
 		uniforms->emplace("vp", cam.vp());
 		uniforms->emplace("vp_inv", glm::inverse(cam.vp()));
@@ -207,8 +228,6 @@ namespace lux {
 		renderer.draw(queue, cam);
 
 		_skybox.draw(queue);
-
-		gameplay.draw(queue, cam);
 
 		_post_renderer->flush();
 	}

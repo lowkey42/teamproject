@@ -13,13 +13,13 @@ namespace renderer {
 		std::unique_ptr<Shader_program> sprite_shader;
 		const auto def_uv_clip = glm::vec4{0,0,1,1};
 		const std::vector<Sprite_vertex> single_sprite_vert {
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
-			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
 
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, nullptr},
-			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, {1,0}, {0,0}, 0, nullptr}
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr}
 		};
 	}
 
@@ -30,21 +30,23 @@ namespace renderer {
 		vertex("uv_clip",   &Sprite_vertex::uv_clip),
 		vertex("hue_change",&Sprite_vertex::hue_change),
 		vertex("tangent",   &Sprite_vertex::tangent),
-		vertex("shadow_resistence", &Sprite_vertex::shadow_resistence)
+		vertex("shadow_resistence", &Sprite_vertex::shadow_resistence),
+		vertex("decals_intensity", &Sprite_vertex::decals_intensity)
 	};
 
 	Sprite::Sprite(glm::vec3 position, Angle rotation, glm::vec2 size,
-	               glm::vec4 uv, float shadow_resistence,
+	               glm::vec4 uv, float shadow_resistence, float decals_intensity,
 	               const renderer::Material& material)noexcept
 	    : position(position), rotation(rotation), size(size),
-	      uv(uv), shadow_resistence(shadow_resistence), material(&material) {
+	      uv(uv), shadow_resistence(shadow_resistence), decals_intensity(decals_intensity),
+	      material(&material) {
 	}
 
 	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
 	                             glm::vec2 tangent, glm::vec2 hue_change, float shadow_resistence,
-	                             const renderer::Material* material)
+	                             float decals_intensity, const renderer::Material* material)
 	    : position(pos), uv(uv_coords), uv_clip(uv_clip), tangent(tangent), hue_change(hue_change),
-	      shadow_resistence(shadow_resistence), material(material) {
+	      shadow_resistence(shadow_resistence), decals_intensity(decals_intensity), material(material) {
 	}
 
 
@@ -61,7 +63,8 @@ namespace renderer {
 		                  "height_tex", int(Texture_unit::height),
 		                  "shadowmaps_tex", int(Texture_unit::shadowmaps),
 		                  "environment_tex", int(Texture_unit::environment),
-		                  "last_frame_tex", int(Texture_unit::last_frame)
+		                  "last_frame_tex", int(Texture_unit::last_frame),
+		                  "decals_tex", int(Texture_unit::decals)
 		              ));
 	}
 
@@ -139,7 +142,8 @@ namespace renderer {
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
 			*iter = Sprite_vertex{transform(vert.position), uv, vert.uv_clip,
-			                      tangent, sprite.hue_change, sprite.shadow_resistence, sprite.material};
+			                      tangent, sprite.hue_change, sprite.shadow_resistence,
+			                      sprite.decals_intensity, sprite.material};
 			iter++;
 		}
 	}
@@ -154,7 +158,7 @@ namespace renderer {
 		for(auto& v : vertices) {
 			*iter = Sprite_vertex{v.position + position,
 			                      v.uv, v.uv_clip, v.tangent, v.hue_change,
-			                      v.shadow_resistence, v.material};
+			                      v.shadow_resistence, v.decals_intensity, v.material};
 			iter++;
 		}
 	}

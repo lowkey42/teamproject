@@ -4,8 +4,10 @@
     "Sprite": {
         "material": "mat:test",
         "size": {"x":20, "y":20},
-        "shadowcaster": false
+        "shadowcaster": false,
+        "decals_intensity": 1.0
     },
+    "Paintable": {},
     "Editor": {
         "bounds": {"x":20, "y":20, "z":1}
     }

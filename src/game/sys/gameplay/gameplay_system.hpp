@@ -9,12 +9,14 @@
 
 #include "enlightened_comp.hpp"
 #include "player_tag_comp.hpp"
+#include "light_tag_comps.hpp"
 
 #include <core/renderer/camera.hpp>
 #include <core/renderer/texture_batch.hpp>
 #include <core/engine.hpp>
 #include <core/units.hpp>
 #include <core/ecs/ecs.hpp>
+#include <core/utils/random.hpp>
 
 #include <functional>
 
@@ -47,25 +49,32 @@ namespace gameplay {
 			                std::function<void()> reload);
 
 			void update(Time);
-			void draw(renderer::Command_queue&, const renderer::Camera& camera)const;
+			void draw_blood(renderer::Command_queue&, const renderer::Camera& camera)const;
 
 			auto game_time()const {return _game_timer;}
 
 		private:
 			struct Blood_stain {
 				glm::vec2 position;
+				Light_color color;
+				Angle rotation;
+				float scale;
+
 				Blood_stain() = default;
-				Blood_stain(glm::vec2 p) : position(p) {}
+				Blood_stain(glm::vec2 p, Light_color c, Angle r, float s)
+				    : position(p), color(c), rotation(r), scale(s) {}
 			};
 
 			Engine& _engine;
 			util::Mailbox_collection _mailbox;
 			Enlightened_comp::Pool& _enlightened;
 			Player_tag_comp::Pool& _players;
+			Lamp_comp::Pool& _lamps;
 			physics::Physics_system& _physics_world;
 			cam::Camera_system& _camera_sys;
 			controller::Controller_system& _controller_sys;
 			std::function<void()> _reload;
+			util::random_generator _rng;
 
 			Time _light_timer{0};
 
@@ -76,7 +85,8 @@ namespace gameplay {
 			mutable renderer::Texture_batch _blood_batch;
 
 			void _update_light(Time);
-			bool _is_reflective(glm::vec2 p);
+			auto _is_reflective(glm::vec2 p, Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res;
+			auto _is_solid(Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res;
 			void _on_smashed(ecs::Entity& e);
 	};
 

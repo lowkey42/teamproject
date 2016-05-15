@@ -134,7 +134,7 @@ namespace ecs {
 			std::vector<Entity_ptr> _delete_queue;
 			unsigned int _unoptimized_deletions;
 
-			std::unique_ptr<Component_pool_base> _pools[details::max_comp_type];
+			std::unique_ptr<Component_pool_base> _pools[details::max_comp_type+1];
 			std::unordered_map<std::string, details::Component_type_info> _types;
 	};
 

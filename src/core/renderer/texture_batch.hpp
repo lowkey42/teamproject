@@ -44,7 +44,7 @@ namespace renderer {
 			Texture_batch(std::size_t expected_size=64,
 			              bool depth_test=false);
 
-			void insert(const Texture& texture, glm::vec2 pos, glm::vec2 size);
+			void insert(const Texture& texture, glm::vec2 pos, glm::vec2 size, Angle rotation=Angle{0});
 			void flush(Command_queue&);
 
 			void layer(float layer) {_layer = layer;}

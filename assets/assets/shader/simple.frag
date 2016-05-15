@@ -8,9 +8,9 @@ uniform vec4 color;
 uniform vec4 clip;
 
 void main() {
-	vec4 c = texture2D(texture, uvl*clip.zw + clip.xy);
+	vec4 c = pow(texture2D(texture, uvl*clip.zw + clip.xy), vec4(2.2));
 
-	if(c.a>0.1) {
+	if(c.a>0.01) {
 		gl_FragColor = c * color;
 	} else
 		discard;

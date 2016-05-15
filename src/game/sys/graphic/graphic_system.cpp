@@ -61,7 +61,7 @@ namespace graphic {
 			auto sprite_data = renderer::Sprite{
 			                   position, trans.rotation(),
 			                   sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
-			                   *sprite._material};
+			                   sprite._decals_intensity, *sprite._material};
 
 			sprite_data.hue_change = {
 			    sprite._hue_change_target / 360_deg,
@@ -99,7 +99,7 @@ namespace graphic {
 			if(sprite._shadowcaster && std::abs(position.z) < 1.0f) {
 				batch.insert(renderer::Sprite{position, trans.rotation(),
 				             sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
-				             *sprite._material});
+				             sprite._decals_intensity, *sprite._material});
 			}
 		}
 

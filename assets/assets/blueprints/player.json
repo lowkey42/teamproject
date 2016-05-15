@@ -5,7 +5,9 @@
     "Sprite": {
         "material": "mat:player",
         "size": {"x":0.75, "y":1},
-        "shadowcaster": false
+        "shadowcaster": false,
+        "hue_change_target": 300,
+        "hue_change_replacement": 0
     },
     "Editor": {
         "bounds": {"x":1, "y":1, "z":1}
@@ -20,6 +22,7 @@
     	"jump_cooldown": 0.025
     },
     "Enlightened": {
+        "color": "red",
     	"velocity": 15.0,
     	"air_transformations": 0,
         "radius": 0.25,

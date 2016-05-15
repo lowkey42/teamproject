@@ -35,6 +35,8 @@ namespace renderer {
 
 		shadowmaps=7,
 
+		decals = 8, // e.g. blood stains
+
 		environment = 11, //< used for reflections
 		last_frame = 12 //< used for reflections
 	};

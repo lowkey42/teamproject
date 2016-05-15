@@ -20,13 +20,16 @@ namespace graphic {
 	                       asset::Asset_manager& assets){
 		std::string material = _smart_texture.material() ? _smart_texture.material().aid().str() : "";
 		auto shadowcaster = _smart_texture.shadowcaster();
+		auto decals_intensity = _smart_texture.decals_intensity();
 
 		state.read_virtual(
 			sf2::vmember("material", material),
-			sf2::vmember("shadowcaster", shadowcaster)
+			sf2::vmember("shadowcaster", shadowcaster),
+			sf2::vmember("decals_intensity", decals_intensity)
 		);
 
 		_smart_texture.shadowcaster(shadowcaster);
+		_smart_texture.decals_intensity(decals_intensity);
 		_smart_texture.material(assets.load<renderer::Material>(asset::AID(material)));
 		INVARIANT(_smart_texture.material(), "Material '"<<material<<"' not found");
 	}
@@ -36,7 +39,8 @@ namespace graphic {
 
 		state.write_virtual(
 			sf2::vmember("material", material),
-			sf2::vmember("shadowcaster", _smart_texture.shadowcaster())
+			sf2::vmember("shadowcaster", _smart_texture.shadowcaster()),
+			sf2::vmember("decals_intensity", _smart_texture.decals_intensity())
 		);
 	}
 

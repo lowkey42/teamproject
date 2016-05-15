@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include <core/renderer/camera.hpp>
+#include "light_tag_comps.hpp"
+
 #include <core/engine.hpp>
 #include <core/units.hpp>
 #include <core/ecs/ecs.hpp>
@@ -61,6 +62,7 @@ namespace gameplay {
 			float _radius = 1.f;
 			float _final_booster_time = 0.f;
 			float _max_air_time = -1.f;
+			Light_color _color;
 
 			bool _was_light = false; //< state after the last update
 			State _state = State::disabled; //< state change request

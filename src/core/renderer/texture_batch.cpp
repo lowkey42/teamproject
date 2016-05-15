@@ -67,14 +67,14 @@ namespace renderer {
 		_objects.reserve(expected_size*0.25f);
 	}
 
-	void Texture_batch::insert(const Texture& texture, glm::vec2 pos, glm::vec2 size) {
+	void Texture_batch::insert(const Texture& texture, glm::vec2 pos, glm::vec2 size, Angle rotation) {
 		auto scale = vec2 {
 			size.x,
 			size.y
 		};
 
 		auto transform = [&](vec2 p) {
-			return pos + p*scale;
+			return pos + rotate(p*scale, rotation);
 		};
 
 		auto tex_clip = texture.clip_rect();

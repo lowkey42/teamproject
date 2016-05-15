@@ -167,7 +167,8 @@ namespace renderer {
 
 		void triangulate_background(const std::vector<glm::vec2>& points,
 		                            std::vector<Sprite_vertex>& vertices,
-		                            bool shadowcaster, const renderer::Material& mat) {
+		                            bool shadowcaster, bool decals_intensity,
+		                            const renderer::Material& mat) {
 
 			const auto pc = 0.5f / mat.albedo().width();
 
@@ -175,7 +176,8 @@ namespace renderer {
 				auto uv_clip = vec4{0.f, 0.f, 0.75f-pc, 0.75f-pc};
 				auto uv = vec2{v.x,-v.y}*0.5f;
 				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
-				vertices.emplace_back(vec3(v,-0.04f), uv, uv_clip, vec2{1.f,0.f}, hc, shadowcaster ? 1.f : 0.f, &mat);
+				vertices.emplace_back(vec3(v,-0.04f), uv, uv_clip, vec2{1.f,0.f}, hc,
+				                      shadowcaster ? 1.f : 0.f, decals_intensity, &mat);
 			};
 			auto error = [&](auto left) {
 				INFO("Polygon is not valid. "<<left<<" vertices left");
@@ -186,7 +188,8 @@ namespace renderer {
 		}
 		void triangulate_border(const std::vector<glm::vec2>& points,
 		                        std::vector<Sprite_vertex>& vertices,
-		                        bool shadowcaster, const renderer::Material& mat) {
+		                        bool shadowcaster, bool decals_intensity,
+		                        const renderer::Material& mat) {
 
 			const auto pc = 0.5f / mat.albedo().width();
 
@@ -225,13 +228,13 @@ namespace renderer {
 
 				auto& v = later ? vertex_tmp_buffer : vertices;
 
-				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, hc, shadow_res, &mat);
-				v.emplace_back(vec3(top_left,     d), uv_tl, uv_clip, tangent, hc, shadow_res, &mat);
-				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, hc, shadow_res, &mat);
+				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(top_left,     d), uv_tl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
 
-				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, hc, shadow_res, &mat);
-				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, hc, shadow_res, &mat);
-				v.emplace_back(vec3(bottom_right, d), uv_br, uv_clip, tangent, hc, shadow_res, &mat);
+				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(bottom_right, d), uv_br, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
 			};
 
 			auto i_offset = 0u;
@@ -400,8 +403,8 @@ namespace renderer {
 	void Smart_texture::_update_vertices() {
 		_vertices.clear();
 
-		triangulate_background(_points, _vertices, _shadowcaster, *_material);
-		triangulate_border(_points, _vertices, _shadowcaster, *_material);
+		triangulate_background(_points, _vertices, _shadowcaster, _decals_intensity, *_material);
+		triangulate_border(_points, _vertices, _shadowcaster, _decals_intensity, *_material);
 	}
 
 	auto Smart_texture::vertices()const -> std::vector<glm::vec2> {

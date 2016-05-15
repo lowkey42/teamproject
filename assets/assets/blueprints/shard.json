@@ -12,6 +12,9 @@
         "radius": 6,
 		"offset": {"z":0.0}
     },
+    "Transparent": {
+        "color": "white"
+    },
     "Editor": {
         "bounds": {"x":1, "y":1, "z":1}
     },

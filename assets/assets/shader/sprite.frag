@@ -15,10 +15,12 @@ struct Point_light {
 
 varying vec2 uv_frag;
 varying vec4 uv_clip_frag;
+varying vec2 decals_uv_frag;
 varying vec3 pos_frag;
 varying vec2 shadowmap_uv_frag;
 varying vec2 hue_change_frag;
 varying float shadow_resistence_frag;
+varying float decals_intensity_frag;
 varying mat3 TBN;
 
 uniform sampler2D albedo_tex;
@@ -28,6 +30,7 @@ uniform sampler2D height_tex;
 
 uniform sampler2D shadowmaps_tex;
 
+uniform sampler2D decals_tex;
 uniform samplerCube environment_tex;
 uniform sampler2D last_frame_tex;
 
@@ -164,12 +167,20 @@ void main() {
 	float metalness = material.g;
 	float smoothness = 1.0-material.b;
 
-	float roughness = 1.0 - smoothness*smoothness;
-	float reflectance = clamp((0.9-roughness)*1.1 + metalness*0.2, 0.0, 1.0);
-
 	if(albedo.a < 0.01) {
 		discard;
 	}
+
+	float decals_fade = clamp(1.0+pos_frag.z/2.0, 0.25, 1.0) * decals_intensity_frag;
+	vec4 decals = texture2D(decals_tex, decals_uv_frag);
+	albedo.rgb = mix(albedo.rgb, decals.rgb * decals_fade, decals.a * decals_fade);
+	emmision = mix(emmision, 0.1, max(0.0, decals.a * decals_fade - 0.45));
+	smoothness = mix(smoothness, 0.4, decals.a * decals_fade);
+	metalness = mix(metalness, 0.6, decals.a * decals_fade);
+
+
+	float roughness = 1.0 - smoothness*smoothness;
+	float reflectance = clamp((0.9-roughness)*1.1 + metalness*0.2, 0.0, 1.0);
 
 	vec3 view_dir = normalize(pos_frag-eye);
 

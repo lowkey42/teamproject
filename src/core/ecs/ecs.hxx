@@ -48,6 +48,12 @@ namespace ecs {
 						  [pool](Entity& e){pool->create(e);},
 						  [pool](Entity& e){return details::get_component(e, T::type());}
 		});
+
+		static auto first_call = true;
+		if(first_call) {
+			DEBUG("Registered component type '"<<T::name()<<"' with id "<<T::type());
+			first_call = false;
+		}
 	}
 
 	// entity

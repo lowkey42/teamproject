@@ -23,7 +23,8 @@ namespace graphic {
 			sf2::vmember("size", _size),
 			sf2::vmember("shadowcaster", _shadowcaster),
 			sf2::vmember("hue_change_target", hc_target_deg),
-			sf2::vmember("hue_change_replacement", hc_replacement_deg)
+			sf2::vmember("hue_change_replacement", hc_replacement_deg),
+			sf2::vmember("decals_intensity", _decals_intensity)
 		);
 
 		_material = assets.load<renderer::Material>(asset::AID(aid));
@@ -40,7 +41,8 @@ namespace graphic {
 			sf2::vmember("size", _size),
 			sf2::vmember("shadowcaster", _shadowcaster),
 			sf2::vmember("hue_change_target", _hue_change_target.in_degrees()),
-			sf2::vmember("hue_change_replacement", _hue_change_replacement.in_degrees())
+			sf2::vmember("hue_change_replacement", _hue_change_replacement.in_degrees()),
+			sf2::vmember("decals_intensity", _decals_intensity)
 		);
 	}
 

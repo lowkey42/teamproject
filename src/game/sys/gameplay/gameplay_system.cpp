@@ -23,7 +23,7 @@ namespace gameplay {
 
 
 	namespace {
-		constexpr auto blood_stain_radius = 1.0f;
+		constexpr auto blood_stain_radius = 1.5f;
 
 		float dot(vec2 a, vec2 b) {
 			return a.x*b.x + a.y*b.y;
@@ -47,13 +47,19 @@ namespace gameplay {
 	      _mailbox(engine.bus()),
 	      _enlightened(ecs.list<Enlightened_comp>()),
 	      _players(ecs.list<Player_tag_comp>()),
+	      _lamps(ecs.list<Lamp_comp>()),
 	      _physics_world(physics_world),
 	      _camera_sys(camera_sys),
 	      _controller_sys(controller_sys),
 	      _reload(reload),
+	      _rng(util::create_random_generator()),
 	      _blood_batch(64,true) {
 
 		ecs.register_component_type<Collectable_comp>();
+		ecs.register_component_type<Reflective_comp>();
+		ecs.register_component_type<Paintable_comp>();
+		ecs.register_component_type<Transparent_comp>();
+		ecs.register_component_type<Lamp_comp>();
 
 		_mailbox.subscribe_to([&](sys::physics::Collision& c){
 			ecs::Entity* player = nullptr;
@@ -94,11 +100,11 @@ namespace gameplay {
 		});
 	}
 
-	void Gameplay_system::draw(renderer::Command_queue& q, const renderer::Camera&)const {
-		// TODO: add magic to draw the blood stains
-		_blood_batch.layer(0.09f);
+	void Gameplay_system::draw_blood(renderer::Command_queue& q, const renderer::Camera&)const {
 		for(auto& bs : _blood_stains) {
-			_blood_batch.insert(*_engine.assets().load<renderer::Texture>("tex:blood_stain.png"_aid), bs.position, glm::vec2{blood_stain_radius*2,blood_stain_radius*2});
+			_blood_batch.insert(*_engine.assets().load<renderer::Texture>("tex:blood_stain.png"_aid),
+			                    bs.position, glm::vec2{blood_stain_radius,blood_stain_radius}*2.f*bs.scale,
+			                    bs.rotation);
 		}
 
 		_blood_batch.flush(q);
@@ -127,22 +133,68 @@ namespace gameplay {
 		}
 	}
 
-	bool Gameplay_system::_is_reflective(glm::vec2 p) {
-		for(auto& bs : _blood_stains) {
-			if(glm::length2(bs.position-p)<blood_stain_radius*blood_stain_radius)
-				return true;
+	namespace {
+		auto build_lopr(Light_color filter, Light_color pred) {
+			return Light_op_res {
+				interactive_color(filter, pred),
+				not_interactive_color(filter, pred)
+			};
 		}
-		return false;
 	}
+
+	auto Gameplay_system::_is_reflective(glm::vec2 pos, Enlightened_comp& light,
+	                                     ecs::Entity* hit) -> Light_op_res {
+		if(hit==nullptr)
+			return Light_op_res{Light_color::black, Light_color::white};;
+
+		auto ref_res = hit->get<Reflective_comp>().process(Light_op_res{Light_color::black, Light_color::black},
+		                                                   [&](auto& r) {
+			return build_lopr(r.color(), light._color);
+		});
+
+		auto paint_res = hit->get<Paintable_comp>().process(Light_op_res{Light_color::black, Light_color::black},
+		                                                   [&](auto& p) {
+			auto res = Light_op_res{Light_color::black, Light_color::black};
+
+			for(auto& bs : _blood_stains) {
+				if(glm::length2(bs.position-pos)<blood_stain_radius*blood_stain_radius) {
+					res = std::max(res, build_lopr(bs.color, light._color));
+				}
+			}
+
+			return res;
+		});
+
+
+		return std::max(ref_res, paint_res);
+	}
+	auto Gameplay_system::_is_solid(Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res {
+		if(hit!=nullptr) {
+			auto transparent = hit->get<Transparent_comp>();
+			if(transparent.is_some()) {
+				return !build_lopr(transparent.get_or_throw().color(), light._color);
+			}
+		}
+
+		return Light_op_res{Light_color::white, Light_color::black};
+	}
+
 	void Gameplay_system::_on_smashed(ecs::Entity& e) {
 		// TODO: play death animation
 		// TODO: play sound
-
 		_engine.audio_ctx().play_static(*_engine.assets().load<audio::Sound>("sound:slime"_aid));
 
+
 		// TODO: when done => spawn Blood_stain, delete entity
-		auto& transform = e.get<physics::Transform_comp>().get_or_throw();
-		_blood_stains.emplace_back(remove_units(transform.position()).xy());
+		auto light = e.get<Enlightened_comp>();
+		if(light.is_some()) {
+			auto& transform = e.get<physics::Transform_comp>().get_or_throw();
+			auto pos = remove_units(transform.position()).xy();
+			_blood_stains.emplace_back(pos, light.get_or_throw()._color,
+			                           Angle::from_degrees(util::random_real(_rng, 0.f, 360.f)),
+			                           util::random_real(_rng, 0.8f, 1.2f));
+
+		}
 
 		e.manager().erase(e.shared_from_this());
 	}
@@ -212,21 +264,38 @@ namespace gameplay {
 					auto move_distance = std::abs(c._velocity * dt.value());
 					auto direction = c._direction;
 
-					auto ray = _physics_world.raycast(pos.xy(), direction, c._radius*2.f+move_distance, c.owner());
+					float max_ray_dist = c._radius*2.f+move_distance;
+					if(max_ray_dist>0.01f) {
+						auto ray = _physics_world.raycast(pos.xy(), direction, max_ray_dist, c.owner());
 
-					// TODO: check if hit object is solid for light
-					if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius) {
-						move_distance = ray.get_or_throw().distance - c._radius;
+						// TODO: check if hit object is solid for light
+						if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius) {
+							auto solid = _is_solid(c, ray.get_or_throw().entity);
+							if(solid.interactive!=Light_color::black) {
+								if(solid.passive!=Light_color::black) {
+									// TODO: split player
+								}
 
-						if(_is_reflective(pos.xy()+direction*move_distance)) {
-							auto normal = ray.get_or_throw().normal;
-							c._direction = c._direction - 2.f*normal*dot(normal, c._direction);
-							c._air_time = 0_s;
+								move_distance = ray.get_or_throw().distance - c._radius;
 
-						} else {
-							// TODO: set animation, stop effects, ...
-							c._state = Enlightened_comp::State::disabled;
-							c._was_light = false;
+								auto collision_point = pos.xy()+direction*move_distance;
+								auto reflective = _is_reflective(collision_point, c, ray.get_or_throw().entity);
+
+								if(reflective.interactive!=Light_color::black) {
+									if(reflective.passive!=Light_color::black) {
+										// TODO: split player
+									}
+
+									auto normal = ray.get_or_throw().normal;
+									c._direction = c._direction - 2.f*normal*dot(normal, c._direction);
+									c._air_time = 0_s;
+
+								} else {
+									// TODO: set animation, stop effects, ...
+									c._state = Enlightened_comp::State::disabled;
+									c._was_light = false;
+								}
+							}
 						}
 					}
 

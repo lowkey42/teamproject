@@ -10,6 +10,7 @@ namespace gameplay {
 
 	void Enlightened_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
 		state.read_virtual(
+			sf2::vmember("color", _color),
 			sf2::vmember("direction", _direction),
 			sf2::vmember("velocity", _velocity),
 			sf2::vmember("air_transformations", _air_transformations),
@@ -21,6 +22,7 @@ namespace gameplay {
 
 	void Enlightened_comp::save(sf2::JsonSerializer& state)const {
 		state.write_virtual(
+			sf2::vmember("color", _color),
 			sf2::vmember("direction", _direction),
 			sf2::vmember("velocity", _velocity),
 			sf2::vmember("air_transformations", _air_transformations),

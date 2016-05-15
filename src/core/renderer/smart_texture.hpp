@@ -50,6 +50,11 @@ namespace renderer {
 				_shadowcaster = b;
 				_dirty = true;
 			}
+			auto decals_intensity()const {return _decals_intensity;}
+			void decals_intensity(bool b) {
+				_decals_intensity = b;
+				_dirty = true;
+			}
 
 			auto points()const -> auto& {return _points;}
 			void points(std::vector<glm::vec2> p) {_points=p; _dirty=true;}
@@ -69,6 +74,7 @@ namespace renderer {
 		private:
 			Material_ptr _material;
 			bool _shadowcaster=true;
+			float _decals_intensity=0.f;
 			std::vector<glm::vec2> _points;
 			std::vector<Sprite_vertex> _vertices;
 			bool _dirty;

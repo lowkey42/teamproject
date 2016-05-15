@@ -75,6 +75,6 @@ vec3 sample_fxaa() {
 
 void main() {
 	vec3 color = sample_fxaa() + texture2D(texture_glow, uv_frag).rgb*bloom;
-	
+
 	gl_FragColor = vec4(tone_mapping(color), 1.0);
 }
