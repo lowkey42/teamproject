@@ -28,6 +28,14 @@ namespace gameplay {
 		float dot(vec2 a, vec2 b) {
 			return a.x*b.x + a.y*b.y;
 		}
+
+		auto round_player_pos(physics::Transform_comp& transform, float alpha) {
+			auto pos = remove_units(transform.position());
+			auto npos = pos;
+			npos.x = std::round(pos.x*10.0f) / 10.f;
+			npos.y = std::ceil(pos.y*10.0f) / 10.f;
+			transform.position(glm::mix(pos, npos, alpha) * 1_m);
+		}
 	}
 
 	Gameplay_system::Gameplay_system(Engine& engine, ecs::Entity_manager& ecs,
@@ -66,9 +74,22 @@ namespace gameplay {
 				return;
 			}
 
-			if(c.impact>=40.f && player) {
-				DEBUG("Smashed to death: "<<c.a<<" <=>"<<c.b<<" | "<<c.impact);
-				_on_smashed(*player);
+
+			auto smashable = [&](ecs::Entity* e) {
+				return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
+					return (elc._final_booster_left>0_s || c.impact>=40.f) && elc.smash();
+				});
+			};
+
+			if(smashable(c.a)) {
+				_on_smashed(*c.a);
+				if(c.a==player)
+					player = nullptr;
+			}
+			if(smashable(c.b)) {
+				_on_smashed(*c.b);
+				if(c.b==player)
+					player = nullptr;
 			}
 		});
 	}
@@ -145,12 +166,17 @@ namespace gameplay {
 					if(body.grounded()) {
 						c._air_transforms_left = c._air_transformations;
 					}
+					if(c._final_booster_left>0_s) {
+						body.velocity(c._direction * c._velocity);
+						c._final_booster_left -= dt;
+					}
 					break;
 
 				case Enlightened_comp::State::pending:
 					if(!c._was_light) {
 						auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
 						transform.rotation(angle);
+						round_player_pos(transform, std::min(dt/0.1_s, 1.f));
 					}
 					// TODO: set animation, start effects, ...
 					break;
@@ -166,23 +192,14 @@ namespace gameplay {
 						// TODO: change animation/effect
 						c._state = Enlightened_comp::State::disabled;
 						c._was_light = false;
-
-						auto pos = remove_units(transform.position());
-						auto ray = _physics_world.raycast(pos.xy(), c._direction, c._final_booster_distance, c.owner());
-						if(ray.is_some() && ray.get_or_throw().distance <= c._final_booster_distance) {
-							pos.x += c._direction.x * (ray.get_or_throw().distance-c._radius);
-							pos.y += c._direction.y * (ray.get_or_throw().distance-c._radius);
-							transform.position(pos * 1_m);
-							_on_smashed(c.owner());
-						} else {
-							body.velocity(c._direction * c._velocity);
-							body.apply_force(c._direction * c._velocity * 20.f);
-						}
+						c._final_booster_left = c._final_booster_time * 1_s;
+						body.velocity(c._direction * c._velocity);
 
 					} else { // to light
 						// TODO: change animation/effect
 						c._state = Enlightened_comp::State::enabled;
 						c._was_light = true;
+						round_player_pos(transform, 1.f);
 						if(!body.grounded()) {
 							c._air_transforms_left--;
 						}
@@ -226,6 +243,7 @@ namespace gameplay {
 							// TODO: set animation, stop effects, ...
 							c._state = Enlightened_comp::State::disabled;
 							c._was_light = false;
+							body.velocity(c._direction * c._velocity);
 						}
 					}
 
@@ -234,7 +252,7 @@ namespace gameplay {
 			}
 
 			body.active(c.disabled());
-			transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug onyl => delete
+			transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
 
 			any_one_lighted |= c.enabled();
 			any_one_not_grounded |= !body.grounded();

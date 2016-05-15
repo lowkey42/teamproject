@@ -14,7 +14,7 @@ namespace gameplay {
 			sf2::vmember("velocity", _velocity),
 			sf2::vmember("air_transformations", _air_transformations),
 			sf2::vmember("radius", _radius),
-			sf2::vmember("final_booster_distance", _final_booster_distance),
+			sf2::vmember("final_booster_time", _final_booster_time),
 			sf2::vmember("max_air_time", _max_air_time)
 		);
 	}
@@ -25,7 +25,7 @@ namespace gameplay {
 			sf2::vmember("velocity", _velocity),
 			sf2::vmember("air_transformations", _air_transformations),
 			sf2::vmember("radius", _radius),
-			sf2::vmember("final_booster_distance", _final_booster_distance),
+			sf2::vmember("final_booster_time", _final_booster_time),
 			sf2::vmember("max_air_time", _max_air_time)
 		);
 	}

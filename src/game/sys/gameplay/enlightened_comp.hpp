@@ -44,13 +44,22 @@ namespace gameplay {
 			auto enabled()const noexcept {return _state==State::enabled;}
 			bool was_light()const noexcept {return _was_light;}
 
+			bool smash() {
+				if(!_smashed){
+					_smashed = true;
+					return true;
+				} else {
+					return false;
+				}
+			}
+
 		private:
 			friend class Gameplay_system;
 
 			float _velocity = 10.f;
 			int _air_transformations = 0;
 			float _radius = 1.f;
-			float _final_booster_distance = 1.f;
+			float _final_booster_time = 0.f;
 			float _max_air_time = -1.f;
 
 			bool _was_light = false; //< state after the last update
@@ -58,6 +67,8 @@ namespace gameplay {
 			glm::vec2 _direction;
 			int _air_transforms_left=0;
 			Time _air_time{};
+			Time _final_booster_left{};
+			bool _smashed = false;
 	};
 
 }

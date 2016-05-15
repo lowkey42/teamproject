@@ -35,10 +35,10 @@ namespace controller {
 
 				case "jump"_strid:
 					_jump = e.begin;
-				//	if(_jump && _transform_pending) {
-				//		_transform_canceled = true;
-				//		_transform_pending = false;
-				//	}
+					if(_jump && _transform_pending) {
+						_transform_canceled = true;
+						_transform_pending = false;
+					}
 					break;
 
 				case "transform"_strid:
@@ -179,6 +179,15 @@ namespace controller {
 			if(!_mouse_look) {
 				dir.y*=-1.0f;
 			}
+
+			// normalize dir to N° steps
+			if(glm::length2(dir)>0.01f) {
+				constexpr auto dir_step_size = 22.5_deg;
+				auto dir_angle = Angle{glm::atan(dir.y, dir.x)};
+				dir_angle = Angle::from_degrees(std::round(dir_angle.in_degrees() / dir_step_size.in_degrees()) * dir_step_size.in_degrees());
+				dir = glm::rotate(glm::vec2{1,0}, dir_angle.value());
+			}
+
 			// TODO: apply dir to sprite
 
 			auto enlightened_comp = c.owner().get<gameplay::Enlightened_comp>();
@@ -195,9 +204,10 @@ namespace controller {
 				if(_transform_pending && transformation_allowed && light.disabled()) {
 					light.start_transformation();
 				}
-				if(!light.was_light()) {
-					if(glm::length2(dir)>0.01f)
+				if(_transform_pending && transformation_allowed && !light.was_light()) {
+					if(glm::length2(dir)>0.01f) {
 						light.direction(dir);
+					}
 				}
 
 				// jump to cancel

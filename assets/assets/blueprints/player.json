@@ -20,11 +20,11 @@
     	"jump_cooldown": 0.025
     },
     "Enlightened": {
-    	"velocity": 10.0,
+    	"velocity": 15.0,
     	"air_transformations": 0,
         "radius": 0.25,
-		"final_booster_distance": 4.0,
-		"max_air_time": 1.5
+		"max_air_time": 0.5,
+        "final_booster_time": 0.25
     },
     "Dynamic_body": {
     	"shape": "humanoid",
