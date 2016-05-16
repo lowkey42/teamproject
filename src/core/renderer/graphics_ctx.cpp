@@ -170,6 +170,7 @@ namespace renderer {
 		int win_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
 
 		auto display = _settings->display;
+#ifndef EMSCRIPTEN
 		_window.reset(SDL_CreateWindow(_name.c_str(),
 		                               SDL_WINDOWPOS_CENTERED_DISPLAY(display), SDL_WINDOWPOS_CENTERED_DISPLAY(display),
 		                               800, 600, win_flags) );
@@ -182,6 +183,21 @@ namespace renderer {
 		if(!settings(*_settings)) { //< apply actual size/settings
 			FAIL("Couldn't apply graphics settings");
 		}
+#else
+		_window.reset(SDL_CreateWindow(_name.c_str(),
+		                               SDL_WINDOWPOS_CENTERED_DISPLAY(display), SDL_WINDOWPOS_CENTERED_DISPLAY(display),
+		                               _settings->width, _settings->height, win_flags) );
+
+		if (!_window)
+			FAIL("Unable to create window");
+
+		sdl_error_check();
+
+		_win_width = _settings->width;
+		_win_height = _settings->height;
+		_viewport = glm::vec4{0,0,_settings->width, _settings->height};
+		reset_viewport();
+#endif
 
 		sdl_error_check();
 
@@ -231,7 +247,7 @@ namespace renderer {
 	}
 
 	void Graphics_ctx::reset_viewport()const noexcept {
-		glViewport(_viewport.x, _viewport.y, _viewport.z, _viewport.w);
+		//glViewport(_viewport.x, _viewport.y, _viewport.z, _viewport.w);
 	}
 
 	void Graphics_ctx::start_frame() {
@@ -294,6 +310,7 @@ namespace renderer {
 		_assets.save<Graphics_settings>("cfg:graphics"_aid, new_settings);
 		_settings = _assets.load<Graphics_settings>("cfg:graphics"_aid);
 
+#ifndef EMSCRIPTEN
 		// update existing window
 		if(_window) {
 			SDL_SetWindowSize(_window.get(), _settings->width, _settings->height);
@@ -311,6 +328,7 @@ namespace renderer {
 
 			reset_viewport();
 		}
+#endif
 
 		return true;
 	}
