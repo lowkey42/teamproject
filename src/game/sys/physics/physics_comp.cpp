@@ -32,7 +32,8 @@ namespace physics {
 	              friction,
 	              resitution,
 	              density,
-	              size)
+	              size,
+	              sensor)
 
 	sf2_enumDef(Body_shape, polygon, humanoid, circle)
 
@@ -65,7 +66,7 @@ namespace physics {
 			main_fixture.friction = def.friction;
 			main_fixture.restitution = def.resitution;
 
-			auto size = def.size;
+			auto size = def.size * transform_comp.scale();
 			if(glm::length2(size)<0.01f) {
 				size = owner.get<graphic::Sprite_comp>().process(size, [&](auto& s){
 					return s.size() * transform_comp.scale();
@@ -80,6 +81,9 @@ namespace physics {
 						b2PolygonShape shape;
 						shape.SetAsBox(half_size.x, half_size.y);
 						main_fixture.shape = &shape;
+						if(def.sensor) {
+							main_fixture.isSensor = true;
+						}
 						body->CreateFixture(&main_fixture);
 						break;
 					}
@@ -88,6 +92,9 @@ namespace physics {
 						b2CircleShape shape;
 						shape.m_radius = std::min(half_size.x, half_size.y);
 						main_fixture.shape = &shape;
+						if(def.sensor) {
+							main_fixture.isSensor = true;
+						}
 						body->CreateFixture(&main_fixture);
 						break;
 					}
@@ -103,6 +110,9 @@ namespace physics {
 						};
 						shape.Set(body_shape, 4);
 						main_fixture.shape = &shape;
+						if(def.sensor) {
+							main_fixture.isSensor = true;
+						}
 						body->CreateFixture(&main_fixture);
 
 						b2Vec2 foot_shape[] {
@@ -115,6 +125,9 @@ namespace physics {
 						main_fixture.shape = &shape;
 						main_fixture.friction = def_foot_friction;
 						main_fixture.restitution = 0.01f;
+						if(def.sensor) {
+							main_fixture.isSensor = true;
+						}
 						fixture_foot = body->CreateFixture(&main_fixture);
 						break;
 				}
@@ -202,6 +215,8 @@ namespace physics {
 
 		if(_def.shape==Body_shape::humanoid && _body) {
 			auto pos = remove_units(owner().get<Transform_comp>().get_or_throw().position()).xy();
+			INVARIANT(!std::isnan(pos.x) && !std::isnan(pos.y), "Position is nan");
+			INVARIANT(!std::isnan(_size.x) && !std::isnan(_size.y), "Size is nan");
 
 			auto ground = world.raycast(pos, vec2{0,-1}, 20.f, owner());
 			auto ground_dist   = ground.process(999.f, [](auto& m) {return m.distance;});

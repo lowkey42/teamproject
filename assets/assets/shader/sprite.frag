@@ -180,7 +180,7 @@ void main() {
 
 
 	float roughness = 1.0 - smoothness*smoothness;
-	float reflectance = clamp((0.9-roughness)*1.1 + metalness*0.2, 0.0, 1.0);
+	float reflectance = clamp((0.9-roughness)*1.1 + metalness*0.1, 0.0, 1.0);
 
 	vec3 view_dir = normalize(pos_frag-eye);
 

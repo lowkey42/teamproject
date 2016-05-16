@@ -5,9 +5,35 @@
 #include "transform_comp.hpp"
 
 #include <Box2D/Box2D.h>
+#include <glm/gtx/norm.hpp>
 
 #include <unordered_set>
 
+
+namespace lux {
+	struct Contact_key {
+		ecs::Entity* a;
+		ecs::Entity* b;
+		Contact_key() : a(nullptr), b(nullptr) {}
+		Contact_key(ecs::Entity* a, ecs::Entity* b) : a(std::min(a,b)), b(std::max(a,b)){}
+
+		auto operator<(const Contact_key& rhs)const noexcept {
+			return std::tie(a,b) < std::tie(rhs.a, rhs.b);
+		}
+		auto operator==(const Contact_key& rhs)const noexcept {
+			return std::tie(a,b) == std::tie(rhs.a, rhs.b);
+		}
+	};
+}
+
+namespace std {
+	template<>
+	struct hash<lux::Contact_key> {
+		size_t operator()(const lux::Contact_key& x) const {
+			return reinterpret_cast<size_t>(x.a) * 31 + reinterpret_cast<size_t>(x.b);
+		}
+	};
+}
 
 namespace lux {
 namespace sys {
@@ -27,8 +53,31 @@ namespace physics {
 	}
 
 	struct Physics_system::Contact_listener : public b2ContactListener {
+
 		util::Message_bus& bus;
+		std::unordered_map<Contact_key, int> _contacts;
+
 		Contact_listener(Engine& e) : bus(e.bus()) {}
+
+		void BeginContact(b2Contact* contact) override {
+			auto a = static_cast<ecs::Entity*>(contact->GetFixtureA()->GetBody()->GetUserData());
+			auto b = static_cast<ecs::Entity*>(contact->GetFixtureB()->GetBody()->GetUserData());
+
+			auto& count = _contacts[Contact_key{a,b}];
+			if(count++ == 0) {
+				bus.send<Contact>(a, b, true);
+			}
+		}
+		void EndContact(b2Contact* contact) override {
+			auto a = static_cast<ecs::Entity*>(contact->GetFixtureA()->GetBody()->GetUserData());
+			auto b = static_cast<ecs::Entity*>(contact->GetFixtureB()->GetBody()->GetUserData());
+
+			auto& count = _contacts[Contact_key{a,b}];
+			if(count-- == 1) {
+				bus.send<Contact>(a, b, true);
+				_contacts.erase(Contact_key{a,b});
+			}
+		}
 
 		void PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) override {
 			auto a = static_cast<ecs::Entity*>(contact->GetFixtureA()->GetBody()->GetUserData());
@@ -156,8 +205,8 @@ namespace physics {
 
 			float32 ReportFixture(b2Fixture* fixture, const b2Vec2& point,
 			                      const b2Vec2& normal, float32 fraction) override {
-				if(fixture->IsSensor())
-					return -1.f; // ignore
+				//if(fixture->IsSensor())
+				//	return -1.f; // ignore
 
 				auto hit_entity = static_cast<ecs::Entity*>(fixture->GetBody()->GetUserData());
 				if(exclude && hit_entity==exclude)
@@ -175,6 +224,11 @@ namespace physics {
 
 	auto Physics_system::raycast(glm::vec2 position, glm::vec2 dir,
 	                             float max_dist) -> util::maybe<Raycast_result> {
+		if(!(glm::length2(dir*max_dist)>0.f)) {
+			WARN("raycast with 0 length");
+			return util::nothing();
+		}
+
 		const auto target = position + dir*max_dist;
 
 		Simple_ray_callback callback{max_dist};
@@ -184,11 +238,63 @@ namespace physics {
 	}
 	auto Physics_system::raycast(glm::vec2 position, glm::vec2 dir, float max_dist,
 	                             ecs::Entity& exclude) -> util::maybe<Raycast_result> {
+		if(!(glm::length2(dir*max_dist)>0.f)) {
+			WARN("raycast with 0 length");
+			return util::nothing();
+		}
 		const auto target = position + dir*max_dist;
 
 		Simple_ray_callback callback{max_dist, &exclude};
 		_world->RayCast(&callback, b2Vec2{position.x, position.y}, b2Vec2{target.x, target.y});
 
+		return callback.result;
+	}
+
+	namespace {
+		struct Check_overlap_callback : b2QueryCallback{
+			const b2Body& body;
+			std::function<bool(ecs::Entity&)> filter;
+			util::maybe<ecs::Entity&> result;
+
+			Check_overlap_callback(const b2Body& body, std::function<bool(ecs::Entity&)> filter)
+			    : body(body), filter(filter) {}
+
+			bool ReportFixture(b2Fixture* fixture) override {
+				if( fixture->GetBody() == &body )
+					return true;
+
+				for(auto bf = body.GetFixtureList(); bf; bf = bf->GetNext()) {
+					auto entity = static_cast<ecs::Entity*>(fixture->GetBody()->GetUserData());
+					if(entity && b2TestOverlap(fixture->GetShape(), 0, bf->GetShape(), 0, fixture->GetBody()->GetTransform(), body.GetTransform()) && filter(*entity)) {
+						result = util::justPtr(entity);
+						return false;
+					}
+				}
+
+				return true;
+			}
+		};
+		auto calc_aabb(const b2Body& body) {
+			b2AABB result;
+			b2Transform trans = body.GetTransform();
+			const b2Fixture* first = body.GetFixtureList();
+
+			for(auto fixture = first; fixture; fixture = fixture->GetNext()) {
+				b2AABB aabb;
+				fixture->GetShape()->ComputeAABB(&aabb, trans, 0);
+				if(fixture==first)
+					result = aabb;
+				else
+					result.Combine(aabb);
+			}
+
+			return result;
+		}
+	}
+	auto Physics_system::query_intersection(Dynamic_body_comp& body,
+	                                        std::function<bool(ecs::Entity&)> filter) -> util::maybe<ecs::Entity&> {
+		Check_overlap_callback callback{*body._body, filter};
+		_world->QueryAABB(&callback, calc_aabb(*body._body));
 		return callback.result;
 	}
 

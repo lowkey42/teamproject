@@ -1,0 +1,20 @@
+{
+    "Transform":{
+    },
+    "Sprite": {
+        "material": "mat:fog_dummy",
+        "size": {"x":5, "y":5},
+        "shadowcaster": false,
+        "decals_intensity": 0.0
+    },
+    "Editor": {
+        "bounds": {"x":5, "y":5, "z":1}
+    },
+    "Static_body": {
+    	"shape": "circle",
+    	"fixed_rotation": true,
+        "size": {"x":3, "y":3},
+    	"sensor": true
+    },
+    "Light_leech": {}
+}

@@ -11,6 +11,8 @@
 #include "player_tag_comp.hpp"
 #include "light_tag_comps.hpp"
 
+#include "../physics/physics_system.hpp"
+
 #include <core/renderer/camera.hpp>
 #include <core/renderer/texture_batch.hpp>
 #include <core/engine.hpp>
@@ -33,10 +35,6 @@ namespace sys {
 	}
 	namespace controller {
 		class Controller_system;
-	}
-	namespace physics {
-		class Dynamic_body_comp;
-		class Physics_system;
 	}
 
 namespace gameplay {
@@ -89,6 +87,15 @@ namespace gameplay {
 			auto _is_reflective(glm::vec2 p, Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res;
 			auto _is_solid(Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res;
 			void _on_smashed(ecs::Entity& e);
+
+			void _on_collision(sys::physics::Collision&);
+
+			void _handle_light_pending(Time, Enlightened_comp&);
+			void _handle_light_disabled(Time, Enlightened_comp&);
+			void _handle_light_enabled(Time, Enlightened_comp&);
+
+			void _enable_light(Enlightened_comp&);
+			void _disable_light(Enlightened_comp&, bool final_impulse=true, bool boost=true);
 	};
 
 }

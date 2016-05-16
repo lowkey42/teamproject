@@ -175,13 +175,13 @@ namespace controller {
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
 			auto cpos = remove_units(ctransform.position()).xy();
-			auto dir = _mouse_look ? glm::normalize(_target_dir-cpos) : _target_dir;
-			if(!_mouse_look) {
+			auto dir = _mouse_look ? _target_dir-cpos : _target_dir;
+			if(!_mouse_look && glm::length2(dir)>0.1f) {
 				dir.y*=-1.0f;
 			}
 
 			// normalize dir to N° steps
-			if(glm::length2(dir)>0.01f) {
+			if(glm::length2(dir)>0.1f) {
 				constexpr auto dir_step_size = 22.5_deg;
 				auto dir_angle = Angle{glm::atan(dir.y, dir.x)};
 				dir_angle = Angle::from_degrees(std::round(dir_angle.in_degrees() / dir_step_size.in_degrees()) * dir_step_size.in_degrees());
@@ -205,13 +205,13 @@ namespace controller {
 					light.start_transformation();
 				}
 				if(_transform_pending && transformation_allowed && !light.was_light()) {
-					if(glm::length2(dir)>0.01f) {
-						light.direction(dir);
+					if(glm::length2(dir)>0.1f) {
+						light.direction(glm::normalize(dir));
 					}
 				}
 
 				// jump to cancel
-				if(_jump) {
+				if(_transform_canceled) {
 					light.cancel_transformation();
 				}
 

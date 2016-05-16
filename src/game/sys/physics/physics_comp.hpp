@@ -39,6 +39,7 @@ namespace physics {
 		float resitution = 0.3f;
 		float density = 2.f;
 		glm::vec2 size;
+		bool sensor = false;
 	};
 
 	class Dynamic_body_comp : public ecs::Component<Dynamic_body_comp> {

@@ -1,7 +1,6 @@
 #define GLM_SWIZZLE
 
 #include "gameplay_system.hpp"
-
 #include "collectable_comp.hpp"
 
 #include "../cam/camera_system.hpp"
@@ -69,43 +68,13 @@ namespace gameplay {
 		ecs.register_component_type<Paintable_comp>();
 		ecs.register_component_type<Transparent_comp>();
 		ecs.register_component_type<Lamp_comp>();
+		ecs.register_component_type<Light_leech_comp>();
 
-		_mailbox.subscribe_to([&](sys::physics::Collision& c){
-			ecs::Entity* player = nullptr;
-			if(c.a && c.a->has<Player_tag_comp>()) {
-				player = c.a;
-			} else if(c.b && c.b->has<Player_tag_comp>()) {
-				player = c.b;
-			}
-
-			if(c.a && c.a->has<Collectable_comp>() && !c.a->get<Collectable_comp>().get_or_throw()._collected) {
-				c.a->get<Collectable_comp>().get_or_throw()._collected = true;
-				c.a->manager().erase(c.a->shared_from_this());
-				return;
-			}
-			if(c.b && c.b->has<Collectable_comp>() && !c.b->get<Collectable_comp>().get_or_throw()._collected) {
-				c.b->get<Collectable_comp>().get_or_throw()._collected = true;
-				c.b->manager().erase(c.b->shared_from_this());
-				return;
-			}
-
-
-			auto smashable = [&](ecs::Entity* e) {
-				return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
-					return (elc._final_booster_left>0_s || c.impact>=40.f) && elc.smash();
-				});
-			};
-
-			if(smashable(c.a)) {
-				_on_smashed(*c.a);
-				if(c.a==player)
-					player = nullptr;
-			}
-			if(smashable(c.b)) {
-				_on_smashed(*c.b);
-				if(c.b==player)
-					player = nullptr;
-			}
+		_mailbox.subscribe_to([&](sys::physics::Collision& c) {
+			this->_on_collision(c);
+		});
+		_mailbox.subscribe_to([&](sys::physics::Contact& c) {
+			// TODO: check for relevant components
 		});
 	}
 
@@ -188,6 +157,113 @@ namespace gameplay {
 		return Light_op_res{Light_color::white, Light_color::black};
 	}
 
+	void Gameplay_system::_update_light(Time dt) {
+		bool any_one_lighted = false;
+		bool any_one_not_grounded = false;
+
+		for(Enlightened_comp& c : _enlightened) {
+			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+
+			c._direction = glm::normalize(c._direction);
+
+			if(c._state!=Enlightened_comp::State::enabled) {
+				c._air_time = 0_s;
+			}
+
+			switch(c._state) {
+				case Enlightened_comp::State::canceling:
+					if(c._was_light) {
+						_enable_light(c); //< re-enable
+					} else {
+						_disable_light(c, false, false); //< re-disable
+					}
+					break;
+
+				case Enlightened_comp::State::activating:
+					if(_physics_world.query_intersection(body, [](ecs::Entity& e){return e.has<Light_leech_comp>();}).is_some()) {
+						_disable_light(c, false, false);
+					} else {
+						if(c._was_light) { // to physical
+							_disable_light(c);
+
+						} else { // to light
+							_enable_light(c);
+						}
+					}
+					break;
+
+
+				case Enlightened_comp::State::pending:
+					if(_physics_world.query_intersection(body, [](ecs::Entity& e){return e.has<Light_leech_comp>();}).is_some()) {
+						_disable_light(c, false, false);
+					} else {
+						_handle_light_pending(dt, c);
+					}
+					break;
+
+				case Enlightened_comp::State::disabled:
+					_handle_light_disabled(dt, c);
+					break;
+
+				case Enlightened_comp::State::enabled:
+					_handle_light_enabled(dt, c);
+					break;
+			}
+
+			any_one_lighted |= c.enabled();
+			any_one_not_grounded |= !body.grounded();
+		}
+
+		if(any_one_lighted) {
+			_light_timer = 1_s;
+		}
+
+		if(_light_timer>0_s && !any_one_not_grounded) {
+			_light_timer -= dt;
+		}
+
+		_camera_sys.type(_light_timer>0_s ? cam::Camera_move_type::centered
+		                                  : cam::Camera_move_type::lazy);
+
+	}
+
+	void Gameplay_system::_on_collision(sys::physics::Collision& c) {
+		ecs::Entity* player = nullptr;
+		if(c.a && c.a->has<Player_tag_comp>()) {
+			player = c.a;
+		} else if(c.b && c.b->has<Player_tag_comp>()) {
+			player = c.b;
+		}
+
+		if(c.a && c.a->has<Collectable_comp>() && !c.a->get<Collectable_comp>().get_or_throw()._collected) {
+			c.a->get<Collectable_comp>().get_or_throw()._collected = true;
+			c.a->manager().erase(c.a->shared_from_this());
+			return;
+		}
+		if(c.b && c.b->has<Collectable_comp>() && !c.b->get<Collectable_comp>().get_or_throw()._collected) {
+			c.b->get<Collectable_comp>().get_or_throw()._collected = true;
+			c.b->manager().erase(c.b->shared_from_this());
+			return;
+		}
+
+
+		auto smashable = [&](ecs::Entity* e) {
+			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
+				return (elc._final_booster_left>0_s || c.impact>=40.f) && elc.smash();
+			});
+		};
+
+		if(smashable(c.a)) {
+			_on_smashed(*c.a);
+			if(c.a==player)
+				player = nullptr;
+		}
+		if(smashable(c.b)) {
+			_on_smashed(*c.b);
+			if(c.b==player)
+				player = nullptr;
+		}
+	}
 	void Gameplay_system::_on_smashed(ecs::Entity& e) {
 		// TODO: play death animation
 		// TODO: play sound
@@ -209,146 +285,118 @@ namespace gameplay {
 		e.manager().erase(e.shared_from_this());
 	}
 
-	void Gameplay_system::_update_light(Time dt) {
-		bool any_one_lighted = false;
-		bool any_one_not_grounded = false;
-
-		for(Enlightened_comp& c : _enlightened) {
+	void Gameplay_system::_handle_light_pending(Time dt, Enlightened_comp& c) {
+		if(!c._was_light) {
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
-			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
-			c._direction = glm::normalize(c._direction);
+			auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
+			transform.rotation(angle);
+			round_player_pos(transform, std::min(dt/0.1_s, 1.f));
+		}
+		// TODO: set animation, start effects, ...
+	}
+	void Gameplay_system::_handle_light_disabled(Time dt, Enlightened_comp& c) {
+		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
-			if(c._state!=Enlightened_comp::State::enabled) {
-				c._air_time = 0_s;
-			}
+		if(body.grounded()) {
+			c._air_transforms_left = c._air_transformations;
+		}
+		if(c._final_booster_left>0_s) {
+			body.velocity(c._direction * c._velocity);
+			c._final_booster_left -= dt;
+		}
+	}
+	void Gameplay_system::_handle_light_enabled(Time dt, Enlightened_comp& c) {
+		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 
-			switch(c._state) {
-				case Enlightened_comp::State::disabled:
-					if(body.grounded()) {
-						c._air_transforms_left = c._air_transformations;
+		auto pos = remove_units(transform.position());
+
+		auto move_distance = std::abs(c._velocity * dt.value());
+		auto direction = c._direction;
+
+		float max_ray_dist = c._radius*2.f+move_distance;
+		if(max_ray_dist>0.01f) {
+			auto ray = _physics_world.raycast(pos.xy(), direction, max_ray_dist, c.owner());
+
+			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius) {
+				auto solid = _is_solid(c, ray.get_or_throw().entity);
+				if(solid.interactive!=Light_color::black) {
+					if(solid.passive!=Light_color::black) {
+						// TODO: split player
 					}
-					if(c._final_booster_left>0_s) {
-						body.velocity(c._direction * c._velocity);
-						c._final_booster_left -= dt;
-					}
-					break;
 
-				case Enlightened_comp::State::pending:
-					if(!c._was_light) {
-						auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
-						transform.rotation(angle);
-						round_player_pos(transform, std::min(dt/0.1_s, 1.f));
-					}
-					// TODO: set animation, start effects, ...
-					break;
+					move_distance = ray.get_or_throw().distance - c._radius;
 
-				case Enlightened_comp::State::canceling:
-					c._state = c._was_light ? Enlightened_comp::State::enabled
-					                        : Enlightened_comp::State::disabled;
-					// TODO: set animation, stop effects, ...
-					break;
+					auto collision_point = pos.xy()+direction*move_distance;
+					auto reflective = _is_reflective(collision_point, c, ray.get_or_throw().entity);
 
-				case Enlightened_comp::State::activating:
-					if(c._was_light) { // to physical
-						// TODO: change animation/effect
-						c._state = Enlightened_comp::State::disabled;
-						c._was_light = false;
-						c._final_booster_left = c._final_booster_time * 1_s;
-						body.velocity(c._direction * c._velocity);
-
-					} else { // to light
-						// TODO: change animation/effect
-						c._state = Enlightened_comp::State::enabled;
-						c._was_light = true;
-						round_player_pos(transform, 1.f);
-						if(!body.grounded()) {
-							c._air_transforms_left--;
+					if(reflective.interactive!=Light_color::black) {
+						if(reflective.passive!=Light_color::black) {
+							// TODO: split player
 						}
+
+						auto normal = ray.get_or_throw().normal;
+						c._direction = c._direction - 2.f*normal*dot(normal, c._direction);
+						c._air_time = 0_s;
+
+					} else {
+						_disable_light(c, false);
 					}
-					break;
-
-				case Enlightened_comp::State::enabled: {
-					auto pos = remove_units(transform.position());
-
-					auto move_distance = std::abs(c._velocity * dt.value());
-					auto direction = c._direction;
-
-					float max_ray_dist = c._radius*2.f+move_distance;
-					if(max_ray_dist>0.01f) {
-						auto ray = _physics_world.raycast(pos.xy(), direction, max_ray_dist, c.owner());
-
-						// TODO: check if hit object is solid for light
-						if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius) {
-							auto solid = _is_solid(c, ray.get_or_throw().entity);
-							if(solid.interactive!=Light_color::black) {
-								if(solid.passive!=Light_color::black) {
-									// TODO: split player
-								}
-
-								move_distance = ray.get_or_throw().distance - c._radius;
-
-								auto collision_point = pos.xy()+direction*move_distance;
-								auto reflective = _is_reflective(collision_point, c, ray.get_or_throw().entity);
-
-								if(reflective.interactive!=Light_color::black) {
-									if(reflective.passive!=Light_color::black) {
-										// TODO: split player
-									}
-
-									auto normal = ray.get_or_throw().normal;
-									c._direction = c._direction - 2.f*normal*dot(normal, c._direction);
-									c._air_time = 0_s;
-
-								} else {
-									// TODO: set animation, stop effects, ...
-									c._state = Enlightened_comp::State::disabled;
-									c._was_light = false;
-								}
-							}
-						}
-					}
-
-					pos.x += direction.x * move_distance;
-					pos.y += direction.y * move_distance;
-					transform.position(pos * 1_m);
-
-					auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
-					transform.rotation(angle);
-
-					if(c._max_air_time>0.f) {
-						c._air_time+=dt;
-						if(c._air_time >= c._max_air_time*1_s) {
-							// TODO: set animation, stop effects, ...
-							c._state = Enlightened_comp::State::disabled;
-							c._was_light = false;
-							body.velocity(c._direction * c._velocity);
-						}
-					}
-
-					break;
 				}
 			}
-
-			body.active(c.disabled());
-			transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
-
-			any_one_lighted |= c.enabled();
-			any_one_not_grounded |= !body.grounded();
 		}
 
-		if(any_one_lighted) {
-			_light_timer = 1_s;
+		pos.x += direction.x * move_distance;
+		pos.y += direction.y * move_distance;
+		transform.position(pos * 1_m);
+
+		auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
+		transform.rotation(angle);
+
+		if(c._max_air_time>0.f) {
+			c._air_time+=dt;
+			if(c._air_time >= c._max_air_time*1_s) {
+				_disable_light(c, true, false);
+			}
 		}
-
-		if(_light_timer>0_s && !any_one_not_grounded) {
-			_light_timer -= dt;
-		}
-
-		_camera_sys.type(_light_timer>0_s ? cam::Camera_move_type::centered
-		                                  : cam::Camera_move_type::lazy);
-
 	}
+
+
+	void Gameplay_system::_enable_light(Enlightened_comp& c) {
+		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
+		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+
+		// TODO: change animation/effect
+		c._state = Enlightened_comp::State::enabled;
+		c._was_light = true;
+		round_player_pos(transform, 1.f);
+		if(!body.grounded()) {
+			c._air_transforms_left--;
+		}
+
+		body.active(c.disabled());
+		transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
+	}
+	void Gameplay_system::_disable_light(Enlightened_comp& c, bool final_impulse, bool boost) {
+		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+
+		// TODO: change animation/effect
+		c._state = Enlightened_comp::State::disabled;
+		c._was_light = false;
+
+		if(final_impulse) {
+			body.velocity(c._direction * c._velocity);
+			if(boost) {
+				c._final_booster_left = c._final_booster_time * 1_s;
+			}
+		}
+
+		body.active(c.disabled());
+
+		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
+		transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
+	}
+
 
 }
 }

@@ -14,6 +14,8 @@
 #include <core/units.hpp>
 #include <core/ecs/ecs.hpp>
 
+#include <functional>
+
 
 class b2World;
 
@@ -25,6 +27,14 @@ namespace physics {
 		glm::vec2 normal;
 		float distance;
 		ecs::Entity* entity=nullptr;
+	};
+
+	struct Contact {
+		ecs::Entity* a=nullptr;
+		ecs::Entity* b=nullptr;
+		bool begin = true;
+		Contact()=default;
+		Contact(ecs::Entity* a, ecs::Entity* b, bool begin) : a(a), b(b), begin(begin) {}
 	};
 
 	struct Collision {
@@ -48,6 +58,8 @@ namespace physics {
 			auto raycast(glm::vec2 position, glm::vec2 dir, float max_dist) -> util::maybe<Raycast_result>;
 			auto raycast(glm::vec2 position, glm::vec2 dir, float max_dist,
 			             ecs::Entity& exclude) -> util::maybe<Raycast_result>;
+			auto query_intersection(Dynamic_body_comp&,
+			                        std::function<bool(ecs::Entity&)> filter) -> util::maybe<ecs::Entity&>;
 
 		private:
 			struct Contact_listener;

@@ -93,6 +93,15 @@ namespace gameplay {
 			friend class Gameplay_system;
 	};
 
+	class Light_leech_comp : public ecs::Component<Light_leech_comp> {
+		public:
+			static constexpr const char* name() {return "Light_leech";}
+			Light_leech_comp(ecs::Entity& owner) : Component(owner) {}
+
+		private:
+			friend class Gameplay_system;
+	};
+
 	class Transparent_comp : public ecs::Component<Transparent_comp> {
 		public:
 			static constexpr const char* name() {return "Transparent";}
