@@ -49,7 +49,7 @@ namespace gameplay {
 			                std::function<void()> reload);
 
 			void update(Time);
-			void draw_blood(renderer::Command_queue&, const renderer::Camera& camera)const;
+			void draw_blood(renderer::Command_queue&, const renderer::Camera& camera);
 
 			auto game_time()const {return _game_timer;}
 
@@ -83,6 +83,7 @@ namespace gameplay {
 			std::vector<Blood_stain> _blood_stains;
 
 			mutable renderer::Texture_batch _blood_batch;
+			renderer::Texture_ptr _blood_stain_textures[light_color_num];
 
 			void _update_light(Time);
 			auto _is_reflective(glm::vec2 p, Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res;

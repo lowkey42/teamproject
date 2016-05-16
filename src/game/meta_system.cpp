@@ -215,6 +215,7 @@ namespace lux {
 		{
 			// reuses the shadow/light camera, that is further away from the scene,
 			//  so this has to be drawn before the vp is reset
+			auto blend_cleanup = Blend_add{};
 			auto fbo_cleanup = Framebuffer_binder{_post_renderer->decals_canvas};
 			_post_renderer->decals_canvas.clear();
 			gameplay.draw_blood(queue, cam);

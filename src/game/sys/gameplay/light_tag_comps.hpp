@@ -24,6 +24,7 @@ namespace gameplay {
 		cyan  = 0b011, magenta = 0b101, yellow = 0b110, // secondaries
 		white = 0b111,
 	};
+	constexpr auto light_color_num = 8;
 #ifdef sf2_enumDef
 	sf2_enumDef(Light_color,
 		black,
@@ -46,6 +47,12 @@ namespace gameplay {
 	}
 	inline auto operator<(Light_color lhs, Light_color rhs)noexcept {
 		return static_cast<uint8_t>(lhs) < static_cast<uint8_t>(rhs);
+	}
+	inline auto operator|(Light_color lhs, Light_color rhs)noexcept {
+		return static_cast<Light_color>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+	}
+	inline auto operator~(Light_color lhs)noexcept {
+		return static_cast<Light_color>(~static_cast<uint8_t>(lhs));
 	}
 
 	struct Light_op_res {

@@ -20,6 +20,7 @@ namespace gameplay {
 
 	using namespace glm;
 	using namespace unit_literals;
+	using namespace renderer;
 
 
 	namespace {
@@ -54,6 +55,14 @@ namespace gameplay {
 	      _reload(reload),
 	      _rng(util::create_random_generator()),
 	      _blood_batch(64,true) {
+
+		_blood_stain_textures[static_cast<uint8_t>(Light_color::white)] = engine.assets().load<Texture>("tex:blood_stain_white"_aid);
+		_blood_stain_textures[static_cast<uint8_t>(Light_color::red)] = engine.assets().load<Texture>("tex:blood_stain_red"_aid);
+		_blood_stain_textures[static_cast<uint8_t>(Light_color::green)] = engine.assets().load<Texture>("tex:blood_stain_green"_aid);
+		_blood_stain_textures[static_cast<uint8_t>(Light_color::blue)] = engine.assets().load<Texture>("tex:blood_stain_blue"_aid);
+		_blood_stain_textures[static_cast<uint8_t>(Light_color::cyan)] = engine.assets().load<Texture>("tex:blood_stain_cyan"_aid);
+		_blood_stain_textures[static_cast<uint8_t>(Light_color::magenta)] = engine.assets().load<Texture>("tex:blood_stain_magenta"_aid);
+		_blood_stain_textures[static_cast<uint8_t>(Light_color::yellow)] = engine.assets().load<Texture>("tex:blood_stain_yellow"_aid);
 
 		ecs.register_component_type<Collectable_comp>();
 		ecs.register_component_type<Reflective_comp>();
@@ -100,9 +109,9 @@ namespace gameplay {
 		});
 	}
 
-	void Gameplay_system::draw_blood(renderer::Command_queue& q, const renderer::Camera&)const {
+	void Gameplay_system::draw_blood(renderer::Command_queue& q, const renderer::Camera&) {
 		for(auto& bs : _blood_stains) {
-			_blood_batch.insert(*_engine.assets().load<renderer::Texture>("tex:blood_stain.png"_aid),
+			_blood_batch.insert(*_blood_stain_textures[static_cast<uint8_t>(bs.color)],
 			                    bs.position, glm::vec2{blood_stain_radius,blood_stain_radius}*2.f*bs.scale,
 			                    bs.rotation);
 		}
@@ -154,15 +163,15 @@ namespace gameplay {
 
 		auto paint_res = hit->get<Paintable_comp>().process(Light_op_res{Light_color::black, Light_color::black},
 		                                                   [&](auto& p) {
-			auto res = Light_op_res{Light_color::black, Light_color::black};
+			auto reflected = Light_color::black;
 
 			for(auto& bs : _blood_stains) {
 				if(glm::length2(bs.position-pos)<blood_stain_radius*blood_stain_radius) {
-					res = std::max(res, build_lopr(bs.color, light._color));
+					reflected = reflected | interactive_color(bs.color, light._color);
 				}
 			}
 
-			return res;
+			return Light_op_res{reflected, ~reflected};
 		});
 
 
@@ -190,7 +199,8 @@ namespace gameplay {
 		if(light.is_some()) {
 			auto& transform = e.get<physics::Transform_comp>().get_or_throw();
 			auto pos = remove_units(transform.position()).xy();
-			_blood_stains.emplace_back(pos, light.get_or_throw()._color,
+			auto color = light.get_or_throw()._color;
+			_blood_stains.emplace_back(pos, color,
 			                           Angle::from_degrees(util::random_real(_rng, 0.f, 360.f)),
 			                           util::random_real(_rng, 0.8f, 1.2f));
 

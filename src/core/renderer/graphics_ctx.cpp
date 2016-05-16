@@ -335,5 +335,13 @@ namespace renderer {
 	Disable_blend::~Disable_blend() {
 		glEnable(GL_BLEND);
 	}
+
+	Blend_add::Blend_add() {
+		glBlendFunc(GL_ONE, GL_ONE);
+	}
+
+	Blend_add::~Blend_add() {
+		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	}
 }
 }

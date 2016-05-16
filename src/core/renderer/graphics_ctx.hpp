@@ -84,6 +84,10 @@ namespace renderer {
 		Disable_blend();
 		~Disable_blend();
 	};
+	struct Blend_add {
+		Blend_add();
+		~Blend_add();
+	};
 }
 }
 

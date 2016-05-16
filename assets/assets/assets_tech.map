@@ -6,3 +6,10 @@ tex:normal = textures/default_normal.png
 tex:material = textures/default_material.png
 tex:blueprint_icon_dummy = textures/blueprint_icon_dummy.png
 
+tex:blood_stain_white = textures/blood_stain_white.png
+tex:blood_stain_red = textures/blood_stain_red.png
+tex:blood_stain_blue = textures/blood_stain_blue.png
+tex:blood_stain_green = textures/blood_stain_green.png
+tex:blood_stain_cyan = textures/blood_stain_cyan.png
+tex:blood_stain_magenta = textures/blood_stain_magenta.png
+tex:blood_stain_yellow = textures/blood_stain_yellow.png
