@@ -96,6 +96,9 @@ namespace gameplay {
 
 			void _enable_light(Enlightened_comp&);
 			void _disable_light(Enlightened_comp&, bool final_impulse=true, bool boost=true);
+
+			void _color_player(Enlightened_comp&, Light_color new_color);
+			void _split_player(Enlightened_comp& base, Position offset, Light_color new_color);
 	};
 
 }

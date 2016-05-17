@@ -174,7 +174,7 @@ void main() {
 	float decals_fade = clamp(1.0+pos_frag.z/2.0, 0.25, 1.0) * decals_intensity_frag;
 	vec4 decals = texture2D(decals_tex, decals_uv_frag);
 	albedo.rgb = mix(albedo.rgb, decals.rgb * decals_fade, decals.a * decals_fade);
-	emmision = mix(emmision, 0.1, max(0.0, decals.a * decals_fade - 0.45));
+	emmision = mix(emmision, 0.3, max(0.0, decals.a * decals_fade - 0.5));
 	smoothness = mix(smoothness, 0.4, decals.a * decals_fade);
 	metalness = mix(metalness, 0.6, decals.a * decals_fade);
 

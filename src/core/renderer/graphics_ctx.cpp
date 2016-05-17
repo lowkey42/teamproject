@@ -247,7 +247,9 @@ namespace renderer {
 	}
 
 	void Graphics_ctx::reset_viewport()const noexcept {
-		//glViewport(_viewport.x, _viewport.y, _viewport.z, _viewport.w);
+#ifndef EMSCRIPTEN
+		glViewport(_viewport.x, _viewport.y, _viewport.z, _viewport.w);
+#endif
 	}
 
 	void Graphics_ctx::start_frame() {

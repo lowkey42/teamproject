@@ -1,3 +1,5 @@
+#define GLM_SWIZZLE
+
 #include "light_tag_comps.hpp"
 
 #include "../physics/transform_comp.hpp"
@@ -72,7 +74,7 @@ namespace gameplay {
 		auto& transform = owner().get<physics::Transform_comp>().get_or_throw();
 		auto my_pos = transform.position() + _offset;
 
-		auto diff = p - my_pos;
+		auto diff = (p - my_pos).xy();
 
 		auto dist2 = glm::length(remove_units(diff));
 
@@ -84,7 +86,7 @@ namespace gameplay {
 				dir_diff = 360_deg - dir_diff;
 			dir_diff = std::abs(dir_diff);
 
-			return dir_diff <= _angle/2.f;
+			return true;//dd _angle.value()<0.f || dir_diff <= _angle/2.f;
 		}
 
 		return false;

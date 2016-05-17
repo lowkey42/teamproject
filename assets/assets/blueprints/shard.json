@@ -1,24 +1,29 @@
 {
-    "Transform":{
-    },
+	"Transform":{
+	},
 	"Collectable":{},
-    "Sprite": {
-        "material": "mat:crystal_shard",
-        "size": {"x":1, "y":1},
-        "shadowcaster": false
-    },
+	"Sprite": {
+		"material": "mat:crystal_shard",
+		"size": {"x":1, "y":1},
+		"shadowcaster": false
+	},
 	"Light": {
-        "color": {"r":1.0, "g":1.0, "b":5.0},
-        "radius": 6,
+		"color": {"r":1.0, "g":1.0, "b":5.0},
+		"radius": 6,
 		"offset": {"z":0.0}
-    },
-    "Transparent": {
-        "color": "white"
-    },
-    "Editor": {
-        "bounds": {"x":1, "y":1, "z":1}
-    },
-    "Static_body": {
-    	"shape": "circle"
-    }
+	},
+	"Lamp": {
+		"color": "red",
+		"radius": 2
+	},
+
+	"Transparent": {
+		"color": "white"
+	},
+	"Editor": {
+		"bounds": {"x":1, "y":1, "z":1}
+	},
+	"Static_body": {
+		"shape": "circle"
+	}
 }

@@ -49,17 +49,36 @@ namespace physics {
 
 			auto& transform_comp = owner.get<Transform_comp>().get_or_throw();
 
-			b2BodyDef bd;
-			bd.angle = def.fixed_rotation ? 0.f : transform_comp.rotation();
-			bd.angularDamping = def.angular_damping;
-			bd.bullet = def.bullet;
-			bd.fixedRotation = def.fixed_rotation;
-			bd.linearDamping = def.linear_damping;
-			bd.position.x = transform_comp.position().x.value();
-			bd.position.y = transform_comp.position().y.value();
-			bd.userData = &owner;
-			bd.type = btype;
-			body = body_ptr{world.CreateBody(&bd), +[](b2Body*b){if(b) b->GetWorld()->DestroyBody(b);}};
+			if(body) {
+				auto fixture = body->GetFixtureList();
+				while(fixture) {
+					auto to_delete = fixture;
+					fixture = fixture->GetNext();
+					body->DestroyFixture(to_delete);
+				}
+
+				body->SetTransform(b2Vec2{transform_comp.position().x.value(),
+				                          transform_comp.position().y.value()},
+				                   def.fixed_rotation ? 0.f : transform_comp.rotation());
+
+				body->SetFixedRotation(def.fixed_rotation);
+				body->SetBullet(def.bullet);
+				body->SetLinearDamping(def.linear_damping);
+				body->SetAngularDamping(def.angular_damping);
+
+			} else {
+				b2BodyDef bd;
+				bd.angle = def.fixed_rotation ? 0.f : transform_comp.rotation();
+				bd.angularDamping = def.angular_damping;
+				bd.bullet = def.bullet;
+				bd.fixedRotation = def.fixed_rotation;
+				bd.linearDamping = def.linear_damping;
+				bd.position.x = transform_comp.position().x.value();
+				bd.position.y = transform_comp.position().y.value();
+				bd.userData = &owner;
+				bd.type = btype;
+				body = body_ptr{world.CreateBody(&bd), +[](b2Body*b){if(b) b->GetWorld()->DestroyBody(b);}};
+			}
 
 			b2FixtureDef main_fixture;
 			main_fixture.density = def.density;
@@ -166,7 +185,7 @@ namespace physics {
 	void Dynamic_body_comp::load(sf2::JsonDeserializer& state,
 	                             asset::Asset_manager&) {
 		state.read(_def);
-		_body = nullptr;
+		_dirty = true;
 	}
 	void Dynamic_body_comp::save(sf2::JsonSerializer& state)const {
 		state.write(_def);
@@ -176,6 +195,7 @@ namespace physics {
 	void Dynamic_body_comp::_update_body(b2World& world) {
 		std::tie(_fixture_foot, _size) =
 		        update_body(world, _body, _def, owner(), b2_dynamicBody);
+		_dirty = false;
 	}
 
 	void Dynamic_body_comp::apply_force(glm::vec2 f) {
@@ -247,7 +267,7 @@ namespace physics {
 	void Static_body_comp::load(sf2::JsonDeserializer& state,
 	                            asset::Asset_manager& asset_mgr) {
 		state.read(_def);
-		_body = nullptr;
+		_dirty = true;
 	}
 	void Static_body_comp::save(sf2::JsonSerializer& state)const {
 		state.write(_def);
@@ -256,6 +276,7 @@ namespace physics {
 	}
 	void Static_body_comp::_update_body(b2World& world) {
 		update_body(world, _body, _def, owner(), b2_staticBody);
+		_dirty = false;
 	}
 
 }

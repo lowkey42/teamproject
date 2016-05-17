@@ -41,6 +41,7 @@ namespace gameplay {
 			void direction(glm::vec2 dir) {_direction = dir;}
 			auto direction() {return _direction;}
 
+			auto pending()const noexcept {return _state==State::pending;}
 			auto disabled()const noexcept {return _state==State::disabled || _state==State::canceling;}
 			auto enabled()const noexcept {return _state==State::enabled;}
 			bool was_light()const noexcept {return _was_light;}

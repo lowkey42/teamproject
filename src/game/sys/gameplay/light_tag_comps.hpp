@@ -140,9 +140,9 @@ namespace gameplay {
 			friend class Gameplay_system;
 
 			Light_color _color;
-			Angle       _angle;
+			Angle       _angle {0};
 			Distance    _max_distance;
-			Angle       _rotation;
+			Angle       _rotation {0};
 			Position    _offset;
 	};
 

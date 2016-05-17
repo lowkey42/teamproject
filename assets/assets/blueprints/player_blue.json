@@ -1,0 +1,11 @@
+{
+	"$import": "player_base",
+
+	"Sprite": {
+		"hue_change_target": 240,
+		"hue_change_replacement": 0
+	},
+	"Enlightened": {
+		"color": "blue"
+	}
+}

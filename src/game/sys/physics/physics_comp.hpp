@@ -72,6 +72,7 @@ namespace physics {
 			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
 			b2Fixture* _fixture_foot = nullptr;
 			bool _active = true;
+			bool _dirty = true;
 			glm::vec2 _size;
 			bool _grounded = true;
 			glm::vec2 _ground_normal{0,1};
@@ -99,6 +100,7 @@ namespace physics {
 			Body_definition _def;
 			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
 			bool _active = true;
+			bool _dirty = true;
 			uint_fast32_t _transform_revision = 0;
 
 			void _update_body(b2World& world);

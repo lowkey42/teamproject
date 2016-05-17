@@ -1,0 +1,40 @@
+{
+	"Transform":{
+	},
+	"Player_tag": {},
+	"Sprite": {
+		"material": "mat:player",
+		"size": {"x":0.75, "y":1},
+		"shadowcaster": false,
+		"hue_change_target": 300,
+		"hue_change_replacement": 0
+	},
+	"Editor": {
+		"bounds": {"x":1, "y":1, "z":1}
+	},
+	"Camera_target": {
+	},
+	"Input_controller": {
+		"air_velocity": 3.0,
+		"ground_velocity": 4.0,
+		"acceleration_time": 0.5,
+		"jump_velocity": 15.0,
+		"jump_cooldown": 0.025
+	},
+	"Enlightened": {
+		"color": "red",
+		"velocity": 15.0,
+		"air_transformations": 0,
+		"radius": 0.25,
+		"max_air_time": 0.5,
+		"final_booster_time": 0.25
+	},
+	"Dynamic_body": {
+		"shape": "humanoid",
+		"bullet": true,
+		"fixed_rotation": true,
+		"friction": 0.0,
+		"resitution": 0.01,
+		"linear_damping": 0.1
+	}
+}

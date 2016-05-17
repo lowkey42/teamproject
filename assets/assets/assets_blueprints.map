@@ -4,7 +4,16 @@ blueprint:test = blueprints/test.json
 blueprint:test_bg = blueprints/test_bg.json
 blueprint:test_light = blueprints/test_light.json
 
-blueprint:player = blueprints/player.json
+blueprint:player = blueprints/player_green.json
+blueprint:player_base = blueprints/player_base.json
+
+blueprint:player_red = blueprints/player_red.json
+blueprint:player_green = blueprints/player_green.json
+blueprint:player_blue = blueprints/player_blue.json
+blueprint:player_cyan = blueprints/player_cyan.json
+blueprint:player_magenta = blueprints/player_magenta.json
+blueprint:player_yellow = blueprints/player_yellow.json
+blueprint:player_white = blueprints/player_white.json
 
 blueprint:shard = blueprints/shard.json
 

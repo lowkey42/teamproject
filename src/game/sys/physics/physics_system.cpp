@@ -146,7 +146,7 @@ namespace physics {
 		}
 
 		for(auto& comp : _bodies_static) {
-			if(!comp._body) {
+			if(!comp._body || comp._dirty) {
 				this->update_body_shape(comp);
 			}
 
@@ -165,6 +165,10 @@ namespace physics {
 		for(auto& comp : _bodies_dynamic) {
 			auto b2_pos = comp._body->GetPosition();
 			comp._last_body_position = glm::vec2{b2_pos.x, b2_pos.y};
+
+			if(!comp._body || comp._dirty) {
+				this->update_body_shape(comp);
+			}
 		}
 	}
 

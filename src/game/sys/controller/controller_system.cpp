@@ -192,7 +192,7 @@ namespace controller {
 
 			auto enlightened_comp = c.owner().get<gameplay::Enlightened_comp>();
 			enlightened_comp >> [&](gameplay::Enlightened_comp& light) {
-				bool transformation_allowed = body.grounded() || light.can_air_transform();
+				bool transformation_allowed = body.grounded() || light.can_air_transform() || light.pending();
 
 				// transforming to physical
 				if(_transform_pending && light.enabled()) {

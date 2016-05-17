@@ -155,7 +155,12 @@ namespace ecs {
 
 	void apply_blueprint(asset::Asset_manager& asset_mgr, Entity& e,
 	                     asset::AID blueprint) {
-		auto b = asset_mgr.load<ecs::Blueprint>(blueprint);
+		auto mb = asset_mgr.load_maybe<ecs::Blueprint>(blueprint);
+		if(mb.is_nothing()) {
+			ERROR("Failed to load blueprint \""<<blueprint.name()<<"\"");
+			return;
+		}
+		auto b = mb.get_or_throw();
 
 		if(!e.has<BlueprintComponent>())
 			e.emplace<BlueprintComponent>(b);
@@ -167,10 +172,28 @@ namespace ecs {
 		apply_blueprint(asset_mgr, e, *b);
 	}
 
-
+	namespace {
+		const std::string import_key = "$import";
+	}
 	void load(sf2::JsonDeserializer& s, Entity& e) {
+		auto& ecs_deserializer = static_cast<EcsDeserializer&>(s);
+
 		static_assert(sf2::details::has_load<format::Json_reader,details::Component_base>::value, "missing load");
-		s.read_lambda([&](const auto& key){
+		bool first = true;
+		s.read_lambda([&](const auto& key) {
+			if(first && import_key==key) {
+				auto value = std::string{};
+				s.read_value(value);
+
+				auto mb = ecs_deserializer.assets.load_maybe<ecs::Blueprint>(asset::AID{"blueprint"_strid, value});
+				if(mb.is_nothing()) {
+					ERROR("Failed to load blueprint \""<<value<<"\"");
+					return true;
+				}
+				apply_blueprint(ecs_deserializer.assets, e, *mb.get_or_throw());
+				return true;
+			}
+
 			auto mb_comp = e.manager().find_comp_info(key);
 
 			if(mb_comp.is_nothing()) {
@@ -181,7 +204,6 @@ namespace ecs {
 			}
 
 			auto& comp = mb_comp.get_or_throw();
-			auto& ecs_deserializer = static_cast<EcsDeserializer&>(s);
 
 			if(ecs_deserializer.filter && !ecs_deserializer.filter(comp.type)) {
 				DEBUG("Skipped filtered component "<<key);
