@@ -215,6 +215,9 @@ namespace physics {
 
 	auto Dynamic_body_comp::calc_aabb()const -> glm::vec4 {
 		b2AABB result;
+		result.lowerBound = b2Vec2{0,0};
+		result.upperBound = b2Vec2{0,0};
+
 		b2Transform trans = _body->GetTransform();
 		const b2Fixture* first = _body->GetFixtureList();
 

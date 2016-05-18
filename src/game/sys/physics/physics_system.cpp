@@ -280,6 +280,9 @@ namespace physics {
 		};
 		auto calc_aabb(const b2Body& body) {
 			b2AABB result;
+			result.lowerBound = b2Vec2{0,0};
+			result.upperBound = b2Vec2{0,0};
+
 			b2Transform trans = body.GetTransform();
 			const b2Fixture* first = body.GetFixtureList();
 
