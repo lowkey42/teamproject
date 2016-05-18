@@ -120,7 +120,7 @@ namespace renderer {
 		};
 
 		auto transform = [&](vec3 p) {
-			return sprite.position + rotate(p, sprite.rotation, vec3{0,0,1})*scale;
+			return sprite.position + rotate(p*scale, sprite.rotation, vec3{0,0,1});
 		};
 
 		auto tangent = rotate(vec3(1,0,0), sprite.rotation, vec3{0,0,1}).xy();

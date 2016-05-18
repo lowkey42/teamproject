@@ -93,6 +93,33 @@ namespace gameplay {
 	}
 
 
+	void Prism_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
+		auto offset_red = remove_units(_offset_red);
+		auto offset_green = remove_units(_offset_green);
+		auto offset_blue = remove_units(_offset_blue);
+
+		state.read_virtual(
+			sf2::vmember("offset_red", offset_red),
+			sf2::vmember("offset_green", offset_green),
+			sf2::vmember("offset_blue", offset_blue)
+		);
+
+		_offset_red = offset_red * 1_m;
+		_offset_green = offset_green * 1_m;
+		_offset_blue = offset_blue * 1_m;
+	}
+	void Prism_comp::save(sf2::JsonSerializer& state)const {
+		auto offset_red = remove_units(_offset_red);
+		auto offset_green = remove_units(_offset_green);
+		auto offset_blue = remove_units(_offset_blue);
+
+		state.write_virtual(
+			sf2::vmember("offset_red", offset_red),
+			sf2::vmember("offset_green", offset_green),
+			sf2::vmember("offset_blue", offset_blue)
+		);
+	}
+
 }
 }
 }

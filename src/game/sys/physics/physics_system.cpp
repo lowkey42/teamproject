@@ -134,7 +134,7 @@ namespace physics {
 			auto& transform = comp.owner().get<Transform_comp>().get_or_throw();
 			auto pos = remove_units(transform.position());
 
-			auto active = comp._active && std::abs(pos.z) <= max_depth_offset;
+			auto active = comp._def.active && std::abs(pos.z) <= max_depth_offset;
 
 			if(transform.changed_since(comp._transform_revision) || comp._body->IsActive()!=active) {
 				comp._transform_revision = transform.revision();
@@ -157,7 +157,7 @@ namespace physics {
 				auto& transform = comp.owner().get<Transform_comp>().get_or_throw();
 				auto pos = remove_units(transform.position());
 				comp._body->SetTransform(b2Vec2{pos.x, pos.y}, transform.rotation().value());
-				comp._body->SetActive(comp._active && std::abs(pos.z) <= max_depth_offset);
+				comp._body->SetActive(comp._def.active && std::abs(pos.z) <= max_depth_offset);
 			}
 		}
 	}

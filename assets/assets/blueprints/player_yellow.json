@@ -6,6 +6,7 @@
 		"hue_change_replacement": 60
 	},
 	"Enlightened": {
-		"color": "yellow"
+		"color": "yellow",
+		"smash_force": 40
 	}
 }

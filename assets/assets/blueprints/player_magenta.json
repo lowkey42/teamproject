@@ -6,6 +6,7 @@
 		"hue_change_replacement": 305
 	},
 	"Enlightened": {
-		"color": "cyan"
+		"color": "cyan",
+		"smash_force": 40
 	}
 }

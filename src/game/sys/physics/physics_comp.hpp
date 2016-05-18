@@ -30,6 +30,7 @@ namespace physics {
 	};
 
 	struct Body_definition {
+		bool active = true;
 		Body_shape shape = Body_shape::polygon;
 		float linear_damping = 0.f;
 		float angular_damping = 0.f;
@@ -40,6 +41,7 @@ namespace physics {
 		float density = 2.f;
 		glm::vec2 size;
 		bool sensor = false;
+		glm::vec2 velocity{};
 	};
 
 	class Dynamic_body_comp : public ecs::Component<Dynamic_body_comp> {
@@ -54,7 +56,7 @@ namespace physics {
 			void apply_force(glm::vec2 f);
 			void foot_friction(bool enable);//< only for humanoids
 			bool has_ground_contact()const;
-			void active(bool e) {_active = e;}
+			void active(bool e) {_def.active = e;}
 
 			auto velocity()const -> glm::vec2;
 			void velocity(glm::vec2 v)const;
@@ -65,13 +67,14 @@ namespace physics {
 			auto grounded()const {return _grounded;}
 			auto ground_normal()const {return _ground_normal;}
 
+			auto calc_aabb()const -> glm::vec4;
+
 		private:
 			friend class Physics_system;
 
-			Body_definition _def;
+			mutable Body_definition _def;
 			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
 			b2Fixture* _fixture_foot = nullptr;
-			bool _active = true;
 			bool _dirty = true;
 			glm::vec2 _size;
 			bool _grounded = true;
@@ -92,14 +95,13 @@ namespace physics {
 
 			Static_body_comp(ecs::Entity& owner);
 
-			void active(bool e) {_active = e;}
+			void active(bool e) {_def.active = e;}
 
 		private:
 			friend class Physics_system;
 
 			Body_definition _def;
 			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
-			bool _active = true;
 			bool _dirty = true;
 			uint_fast32_t _transform_revision = 0;
 

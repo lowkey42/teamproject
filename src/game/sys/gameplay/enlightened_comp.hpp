@@ -20,11 +20,13 @@ namespace gameplay {
 
 	class Gameplay_system;
 
+	enum class Enlightened_State {
+		disabled, pending, canceling, activating, enabled
+	};
+
 	class Enlightened_comp : public ecs::Component<Enlightened_comp> {
 		private:
-			enum class State {
-				disabled, pending, canceling, activating, enabled
-			};
+			using State = Enlightened_State;
 
 		public:
 			static constexpr const char* name() {return "Enlightened";}
@@ -64,9 +66,10 @@ namespace gameplay {
 			float _final_booster_time = 0.f;
 			float _max_air_time = -1.f;
 			Light_color _color;
+			float _smash_force = 40.f;
 
 			bool _was_light = false; //< state after the last update
-			State _state = State::disabled; //< state change request
+			Enlightened_State _state = Enlightened_State::disabled; //< state change request
 			glm::vec2 _direction {0,-1};
 			int _air_transforms_left=0;
 			Time _air_time{};

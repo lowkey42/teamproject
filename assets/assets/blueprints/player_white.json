@@ -3,11 +3,12 @@
 
 	"Sprite": {
 		"material": "mat:player_white",
-		"size": {"x":0.75, "y":1},
+		"size": {"x":1.5, "y":2},
 		"hue_change_target": 0,
 		"hue_change_replacement": 0
 	},
 	"Enlightened": {
-		"color": "white"
+		"color": "white",
+		"smash_force": 60
 	}
 }

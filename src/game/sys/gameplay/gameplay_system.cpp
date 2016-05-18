@@ -71,13 +71,14 @@ namespace gameplay {
 		ecs.register_component_type<Transparent_comp>();
 		ecs.register_component_type<Lamp_comp>();
 		ecs.register_component_type<Light_leech_comp>();
+		ecs.register_component_type<Prism_comp>();
 
 		_mailbox.subscribe_to([&](sys::physics::Collision& c) {
 			this->_on_collision(c);
 		});
-		_mailbox.subscribe_to([&](sys::physics::Contact& c) {
-			// TODO: check for relevant components
-		});
+//		_mailbox.subscribe_to([&](sys::physics::Contact& c) {
+//			// TODO: check for relevant components
+//		});
 	}
 
 	void Gameplay_system::draw_blood(renderer::Command_queue& q, const renderer::Camera&) {
@@ -168,12 +169,12 @@ namespace gameplay {
 
 			c._direction = glm::normalize(c._direction);
 
-			if(c._state!=Enlightened_comp::State::enabled) {
+			if(c._state!=Enlightened_State::enabled) {
 				c._air_time = 0_s;
 			}
 
 			switch(c._state) {
-				case Enlightened_comp::State::canceling:
+				case Enlightened_State::canceling:
 					if(c._was_light) {
 						_enable_light(c); //< re-enable
 					} else {
@@ -181,7 +182,7 @@ namespace gameplay {
 					}
 					break;
 
-				case Enlightened_comp::State::activating:
+				case Enlightened_State::activating:
 					if(_physics_world.query_intersection(body, [](ecs::Entity& e){return e.has<Light_leech_comp>();}).is_some()) {
 						_disable_light(c, false, false);
 					} else {
@@ -195,7 +196,7 @@ namespace gameplay {
 					break;
 
 
-				case Enlightened_comp::State::pending:
+				case Enlightened_State::pending:
 					if(_physics_world.query_intersection(body, [](ecs::Entity& e){return e.has<Light_leech_comp>();}).is_some()) {
 						_disable_light(c, false, false);
 					} else {
@@ -203,11 +204,11 @@ namespace gameplay {
 					}
 					break;
 
-				case Enlightened_comp::State::disabled:
+				case Enlightened_State::disabled:
 					_handle_light_disabled(dt, c);
 					break;
 
-				case Enlightened_comp::State::enabled:
+				case Enlightened_State::enabled:
 					_handle_light_enabled(dt, c);
 					break;
 			}
@@ -230,12 +231,6 @@ namespace gameplay {
 	}
 
 	void Gameplay_system::_on_collision(sys::physics::Collision& c) {
-		ecs::Entity* player = nullptr;
-		if(c.a && c.a->has<Player_tag_comp>()) {
-			player = c.a;
-		} else if(c.b && c.b->has<Player_tag_comp>()) {
-			player = c.b;
-		}
 
 		if(c.a && c.a->has<Collectable_comp>() && !c.a->get<Collectable_comp>().get_or_throw()._collected) {
 			c.a->get<Collectable_comp>().get_or_throw()._collected = true;
@@ -248,22 +243,29 @@ namespace gameplay {
 			return;
 		}
 
+		if(c.a && c.b) {
+			process(c.a->get<Enlightened_comp>(), c.b->get<Enlightened_comp>())
+			        >> [&](Enlightened_comp& ae, Enlightened_comp& be) {
+				if(!ae._smashed && !be._smashed && !ae.enabled() && !be.enabled()) {
+					_color_player(ae, ae._color|be._color);
+					c.b->manager().erase(c.b->shared_from_this());
+					be._smashed = true;
+					c.b = nullptr;
+				}
+			};
+		}
 
 		auto smashable = [&](ecs::Entity* e) {
 			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
-				return (elc._final_booster_left>0_s || c.impact>=40.f) && elc.smash();
+				return (elc._final_booster_left>0_s || c.impact>=elc._smash_force) && elc.smash();
 			});
 		};
 
 		if(smashable(c.a)) {
 			_on_smashed(*c.a);
-			if(c.a==player)
-				player = nullptr;
 		}
 		if(smashable(c.b)) {
 			_on_smashed(*c.b);
-			if(c.b==player)
-				player = nullptr;
 		}
 	}
 	void Gameplay_system::_on_smashed(ecs::Entity& e) {
@@ -339,33 +341,79 @@ namespace gameplay {
 			auto ray = _physics_world.raycast(pos.xy(), direction, max_ray_dist, c.owner());
 
 			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius*1.5f) {
-				auto solid = _is_solid(c, ray.get_or_throw().entity);
-				if(solid.interactive!=Light_color::black) {
-					if(solid.passive!=Light_color::black) {
-						auto offset = Position{direction.x * move_distance, direction.y * move_distance, 0_m};
-						_split_player(c, offset, solid.passive);
-						_color_player(c, solid.interactive);
+				if(auto prism = ray.get_or_throw().entity->get<Prism_comp>()) {
+					auto prism_pos = ray.get_or_throw().entity->get<physics::Transform_comp>().get_or_throw().position();
+					prism_pos.z = pos.z*1_m;
+
+					// TODO: cleanup
+					switch(c._color) {
+						case Light_color::white:
+							transform.position(prism_pos);
+							_split_player(c, prism.get_or_throw()._offset_red, Light_color::red)._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_red.xy()));
+							_split_player(c, prism.get_or_throw()._offset_green, Light_color::green)._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_green.xy()));
+							_color_player(c, Light_color::blue);
+							transform.position(prism_pos + prism.get_or_throw()._offset_blue);
+							c._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_blue.xy()));
+							break;
+
+						case Light_color::cyan:
+							transform.position(prism_pos);
+							_split_player(c, prism.get_or_throw()._offset_green, Light_color::green)._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_green.xy()));
+							_color_player(c, Light_color::blue);
+							transform.position(prism_pos + prism.get_or_throw()._offset_blue);
+							c._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_blue.xy()));
+							break;
+
+						case Light_color::magenta:
+							transform.position(prism_pos);
+							_split_player(c, prism.get_or_throw()._offset_red, Light_color::red)._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_red.xy()));
+							_color_player(c, Light_color::blue);
+							transform.position(prism_pos + prism.get_or_throw()._offset_blue);
+							c._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_blue.xy()));
+							break;
+
+						case Light_color::yellow:
+							transform.position(prism_pos);
+							_split_player(c, prism.get_or_throw()._offset_red, Light_color::red)._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_red.xy()));
+							_color_player(c, Light_color::green);
+							transform.position(prism_pos + prism.get_or_throw()._offset_green);
+							c._direction = glm::normalize(remove_units(prism.get_or_throw()._offset_green.xy()));
+							break;
+
+						default:
+							break; // nothing to do
 					}
 
-					move_distance = ray.get_or_throw().distance - c._radius*2.0f;
-
-					auto collision_point = pos.xy()+direction*move_distance;
-					auto reflective = _is_reflective(collision_point, c, ray.get_or_throw().entity);
-
-					if(reflective.interactive!=Light_color::black) {
-						if(reflective.passive!=Light_color::black) {
+				} else {
+					auto solid = _is_solid(c, ray.get_or_throw().entity);
+					if(solid.interactive!=Light_color::black) {
+						if(solid.passive!=Light_color::black) {
 							auto offset = Position{direction.x * move_distance, direction.y * move_distance, 0_m};
-							_split_player(c, offset, reflective.passive);
-							_color_player(c, reflective.interactive);
-							// TODO: implement correct "fork"-behaviour
+							_split_player(c, offset, solid.passive);
+							_color_player(c, solid.interactive);
 						}
 
-						auto normal = ray.get_or_throw().normal;
-						c._direction = c._direction - 2.f*normal*dot(normal, c._direction);
-						c._air_time = 0_s;
+						move_distance = ray.get_or_throw().distance - c._radius*2.0f;
 
-					} else {
-						_disable_light(c, true, false);
+						auto collision_point = pos.xy()+direction*move_distance;
+						auto reflective = _is_reflective(collision_point, c, ray.get_or_throw().entity);
+
+						if(reflective.interactive!=Light_color::black) {
+							if(reflective.passive!=Light_color::black) {
+								auto offset = Position{direction.x * move_distance, direction.y * move_distance, 0_m};
+								auto& new_light = _split_player(c, offset, reflective.passive);
+								_disable_light(new_light, true, false);
+
+								_color_player(c, reflective.interactive);
+							}
+
+							auto normal = ray.get_or_throw().normal;
+							c._direction = c._direction - 2.f*normal*dot(normal, c._direction);
+							c._air_time = 0_s;
+
+						} else {
+							_disable_light(c, true, false);
+						}
 					}
 				}
 			}
@@ -392,7 +440,7 @@ namespace gameplay {
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
 		// TODO: change animation/effect
-		c._state = Enlightened_comp::State::enabled;
+		c._state = Enlightened_State::enabled;
 		c._was_light = true;
 		round_player_pos(transform, 1.f);
 		if(!body.grounded()) {
@@ -403,7 +451,7 @@ namespace gameplay {
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
 		// TODO: change animation/effect
-		c._state = Enlightened_comp::State::disabled;
+		c._state = Enlightened_State::disabled;
 		c._was_light = false;
 
 		if(final_impulse) {
@@ -456,46 +504,18 @@ namespace gameplay {
 		ecs::apply_blueprint(_engine.assets(), c.owner(), blueprint);
 	}
 
-	void Gameplay_system::_split_player(Enlightened_comp& c, Position offset,
-										Light_color new_color) {
-		switch(new_color) {
-			case Light_color::black:
-				DEBUG("Split player: black");
-				return;
-
-			case Light_color::red:
-				DEBUG("Split player: red");
-				break;
-			case Light_color::green:
-				DEBUG("Split player: green");
-				break;
-			case Light_color::blue:
-				DEBUG("Split player: blue");
-				break;
-
-			case Light_color::cyan:
-				DEBUG("Split player: cyan");
-				break;
-			case Light_color::magenta:
-				DEBUG("Split player: magenta");
-				break;
-			case Light_color::yellow:
-				DEBUG("Split player: yellow");
-				break;
-
-			case Light_color::white:
-				DEBUG("Split player: white");
-				break;
-		}
+	auto Gameplay_system::_split_player(Enlightened_comp& c, Position offset,
+										Light_color new_color) -> Enlightened_comp& {
 		// TODO[low]: poor-mans clone
-		// FIXME/TODO: MUST NOT BE CALLED DURING GAMEPLAY-MAINLOOP OVER COMPONENTS
 		auto n = c.owner().manager().restore(c.owner().manager().backup(c.owner_ptr()));
 
-		_color_player(n->get<Enlightened_comp>().get_or_throw(), new_color);
+		auto& nc = n->get<Enlightened_comp>().get_or_throw();
+		_color_player(nc, new_color);
 
 		auto& transform = n->get<physics::Transform_comp>().get_or_throw();
 		transform.move(offset);
 
+		return nc;
 	}
 
 }

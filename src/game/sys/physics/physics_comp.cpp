@@ -188,14 +188,46 @@ namespace physics {
 		_dirty = true;
 	}
 	void Dynamic_body_comp::save(sf2::JsonSerializer& state)const {
+		auto vel = _body->GetLinearVelocity();
+		_def.velocity = glm::vec2{vel.x, vel.y};
 		state.write(_def);
 	}
 	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*b){}) {
 	}
 	void Dynamic_body_comp::_update_body(b2World& world) {
+		auto org_aabb = _body ? util::just(calc_aabb()) : util::nothing();
+
 		std::tie(_fixture_foot, _size) =
 		        update_body(world, _body, _def, owner(), b2_dynamicBody);
+		_body->SetLinearVelocity({_def.velocity.x,_def.velocity.y});
+		_last_body_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};
+
 		_dirty = false;
+
+		org_aabb.process([&](auto aabb){
+			auto new_aabb = this->calc_aabb();
+			if(new_aabb.w>aabb.w) {
+				auto pos = _body->GetPosition();
+				_body->SetTransform({pos.x, pos.y - (new_aabb.w-aabb.w)}, _body->GetAngle());
+			}
+		});
+	}
+
+	auto Dynamic_body_comp::calc_aabb()const -> glm::vec4 {
+		b2AABB result;
+		b2Transform trans = _body->GetTransform();
+		const b2Fixture* first = _body->GetFixtureList();
+
+		for(auto fixture = first; fixture; fixture = fixture->GetNext()) {
+			b2AABB aabb;
+			fixture->GetShape()->ComputeAABB(&aabb, trans, 0);
+			if(fixture==first)
+				result = aabb;
+			else
+				result.Combine(aabb);
+		}
+
+		return {result.lowerBound.x, result.lowerBound.y, result.upperBound.x, result.upperBound.y};
 	}
 
 	void Dynamic_body_comp::apply_force(glm::vec2 f) {

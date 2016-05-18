@@ -54,6 +54,11 @@ namespace gameplay {
 	inline auto operator~(Light_color lhs)noexcept {
 		return static_cast<Light_color>(~static_cast<uint8_t>(lhs));
 	}
+	inline auto contains(Light_color filter, Light_color pred)noexcept {
+		auto ci = static_cast<uint8_t>(pred);
+		auto ri = static_cast<uint8_t>(filter);
+		return static_cast<Light_color>(ci & ri) == filter;
+	}
 
 	struct Light_op_res {
 		Light_color interactive;
@@ -145,6 +150,22 @@ namespace gameplay {
 			Angle       _rotation {0};
 			Position    _offset;
 	};
+
+	class Prism_comp : public ecs::Component<Prism_comp> {
+		public:
+			static constexpr const char* name() {return "Prism";}
+			void load(sf2::JsonDeserializer& state, asset::Asset_manager&)override;
+			void save(sf2::JsonSerializer& state)const override;
+			Prism_comp(ecs::Entity& owner) : Component(owner) {}
+
+		private:
+			friend class Gameplay_system;
+
+			Position _offset_red;
+			Position _offset_green;
+			Position _offset_blue;
+	};
+
 
 }
 }
