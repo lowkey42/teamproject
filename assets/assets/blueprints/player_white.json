@@ -7,8 +7,13 @@
 		"hue_change_target": 0,
 		"hue_change_replacement": 0
 	},
+	"Light": {
+		"color": {"r":5.0, "g":5.0, "b":5.0},
+		"radius": 8,
+		"offset": {"y":0.25, "z": 1.0}
+	},
 	"Enlightened": {
 		"color": "white",
-		"smash_force": 60
+		"smash_force": 80
 	}
 }

@@ -5,8 +5,13 @@
 		"hue_change_target": 300,
 		"hue_change_replacement": 305
 	},
+	"Light": {
+		"color": {"r":4.0, "g":1.0, "b":4.0},
+		"radius": 7,
+		"offset": {"y":0.25, "z": 1.0}
+	},
 	"Enlightened": {
-		"color": "cyan",
+		"color": "magenta",
 		"smash_force": 40
 	}
 }

@@ -213,7 +213,32 @@ namespace renderer {
 				return glm::normalize(vec2{-diff.y, diff.x});
 			};
 
+			auto angle_between = [&](auto v1, auto v2) {
+				auto a = glm::atan(v2.y,v2.x) - glm::atan(v1.y,v1.x);
+				if(a<0.f)
+					a+=2.f*glm::pi<float>();
+
+				return Angle{a};
+			};
+
 			std::vector<Sprite_vertex> vertex_tmp_buffer;
+
+			auto add_sprite_points = [&](float d, vec2 tangent, vec2 tl, vec2 tr, vec2 bl, vec2 br,
+			                             vec4 uv_clip,
+			                             vec2 uv_tl, vec2 uv_tr, vec2 uv_bl, vec2 uv_br, bool later=false) {
+
+				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
+
+				auto& v = later ? vertex_tmp_buffer : vertices;
+
+				v.emplace_back(vec3(bl, d), uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(tl, d), uv_tl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(tr, d), uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+
+				v.emplace_back(vec3(tr, d), uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(bl, d), uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(br, d), uv_br, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+			};
 
 			auto add_sprite = [&](float d, vec2 left, vec2 right,
 			                      vec2 normal_l, vec2 normal_r, vec4 uv_clip,
@@ -222,21 +247,12 @@ namespace renderer {
 				auto tangent = glm::normalize(right - left);
 
 				auto top_left = left + normal_l*hh;
-				auto bottom_left = left - normal_l*hh;
-
 				auto top_right = right + normal_r*hh;
+				auto bottom_left = left - normal_l*hh;
 				auto bottom_right = right - normal_r*hh;
-				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
 
-				auto& v = later ? vertex_tmp_buffer : vertices;
-
-				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-				v.emplace_back(vec3(top_left,     d), uv_tl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-
-				v.emplace_back(vec3(top_right,    d), uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-				v.emplace_back(vec3(bottom_left,  d), uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-				v.emplace_back(vec3(bottom_right, d), uv_br, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				add_sprite_points(d, tangent, top_left, top_right, bottom_left, bottom_right,
+				                  uv_clip, uv_tl, uv_tr, uv_bl, uv_br, later);
 			};
 
 			auto i_offset = 0u;
@@ -261,9 +277,15 @@ namespace renderer {
 				auto curr = points[i];
 				auto next = points[next_i(i)];
 
+				auto edge_offset_left = 0.f;
+				auto edge_offset_right = 0.f;
+
 				auto normal = calc_normal(pi, i);
+				auto tangent = glm::normalize(points[i] - points[pi]);
 				auto normal_prev = calc_normal(prev_i(pi), pi);
+				auto tangent_prev = glm::normalize(points[pi] - points[prev_i(pi)]);
 				auto normal_next = calc_normal(i, next_i(i));
+				auto tangent_next = glm::normalize(points[next_i(i)] - points[i]);
 				auto normal_l = normal;
 				auto normal_r = normal;
 
@@ -271,17 +293,26 @@ namespace renderer {
 				auto vertical_prev = glm::abs(normal_prev.x) >= glm::abs(normal_prev.y);
 				auto vertical_next = glm::abs(normal_next.x) >= glm::abs(normal_next.y);
 
-				auto has_edge_left = glm::length2(normal-normal_prev)>connection_limit;// || glm::abs(normal_prev.x) >= glm::abs(normal_prev.y);
-				auto has_edge_right = glm::length2(normal-normal_next)>connection_limit;// || glm::abs(normal_next.x) >= glm::abs(normal_next.y);
+				auto angle_left = angle_between(prev-points[prev_i(pi)], prev-curr);
+				auto angle_right = angle_between(prev-curr, next-curr);
+
+				auto has_edge_left = abs(angle_left-180_deg)>=45_deg;
+				auto has_edge_right = abs(angle_right-180_deg)>45_deg;
 
 				if(!has_edge_left || (vertical && vertical_prev)) {
 					normal_l = glm::normalize(glm::mix(normal_prev, normal, 0.5f));
 				} else {
-					auto new_nl = glm::normalize(points[pi] - points[prev_i(pi)]);
-					if(glm::length2(normal_l-new_nl)>=1.0)
-						normal_l = -new_nl;
-					else
-						normal_l = new_nl;
+					// skip for extremly sharp edges
+					if(angle_left<=360_deg-45_deg) {
+						// solve the contact-equation for this edge: x*T_1 +- h/2*N_1 = -x*T_2 +- h/2*N_2
+						auto x = (h*(normal-normal_prev) / (2.f*(tangent_prev+tangent))).x;
+						x = std::max(x, (h*(normal_prev-normal) / (2.f*(tangent_prev+tangent))).x);
+						prev+=tangent * x;
+						edge_offset_left = x;
+					} else {
+						has_edge_left = false;
+						normal_l = glm::normalize(glm::mix(normal_prev, normal, 0.5f));
+					}
 
 					w = 0.f;
 				}
@@ -289,24 +320,23 @@ namespace renderer {
 				if(!has_edge_right || (vertical && vertical_next)) {
 					normal_r = glm::normalize(glm::mix(normal, normal_next, 0.5f));
 				} else {
-					auto new_nr = glm::normalize(curr - points[next_i(i)]);
-					if(glm::length2(normal_r-new_nr)>=1.0)
-						normal_r = -new_nr;
-					else
-						normal_r = new_nr;
+					// skip for extremly sharp edges
+					if(angle_right<=360_deg-45_deg) {
+						// solve the contact-equation for this edge: x*T_1 +- h/2*N_1 = -x*T_2 +- h/2*N_2
+						auto x = (h*(normal_next-normal) / (2.f*(tangent+tangent_next))).x;
+						x = std::max(x, (h*(normal-normal_next) / (2.f*(tangent+tangent_next))).x);
+						curr-=tangent * x;
+						edge_offset_right = x;
+					} else {
+						has_edge_right = false;
+						normal_r = glm::normalize(glm::mix(normal, normal_next, 0.5f));
+					}
 				}
 
 				auto s = w;
 				w += glm::length(curr - prev)*0.5f / scale;
 
 				if(vertical) { // vertical
-					auto tangent = glm::normalize(curr-prev);
-					if(has_edge_left && !vertical_prev) {
-						prev+=tangent*h*0.5f;
-					}
-					if(has_edge_right && !vertical_next) {
-						curr-=tangent*h*0.5f;
-					}
 
 					if(normal.x>0) { // left facing
 						add_sprite(0.0f, prev, curr, normal_l, normal_r,
@@ -321,13 +351,6 @@ namespace renderer {
 				} else { // horizontal
 					auto edge_y_offset = 0.f;
 
-					auto tangent = glm::normalize(curr-prev);
-					if(has_edge_left) {
-						prev+=tangent*h*0.5f;
-					}
-					if(has_edge_right) {
-						curr-=tangent*h*0.5f;
-					}
 
 					if(normal.y>0) { // down facing
 						edge_y_offset = 0.125f;
@@ -337,32 +360,50 @@ namespace renderer {
 
 						// left edge
 						if(has_edge_left) {
-							if(next.y<=prev.y) { // edge is going downwards
-								add_sprite(0.0f, prev-tangent*h, prev, normal_l, normal_l,
-								           vec4{0.875f,0.625f+pc, 1.f-pc, 0.75f-pc},
-								           {0,0}, {1,0}, {0,1}, {1,1}, true);
+							if(angle_left>180_deg) { // edge is going upwards
+								auto p1 = points[pi] - tangent_prev*edge_offset_left - normal_prev*hh;
+								auto p2 = points[pi] - tangent_prev*edge_offset_left + normal_prev*hh;
+								auto p3 = points[pi] - normal_prev*std::min(edge_offset_left,hh) - normal*std::min(edge_offset_left,hh);
+								auto p4 = prev - normal*hh;
+								add_sprite_points(0.f, tangent, p1, p2, p3, p4,
+								                  vec4{0.875f,0.625f+pc, 1.f-pc, 0.75f-pc},
+								                  {0,0}, {1,0}, {0,1}, {1,1}, true);
 							} else {
-								add_sprite(0.0f, prev-tangent*h, prev, normal_l, normal_l,
-								           vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
-								           {0,0}, {1,0}, {0,1}, {1,1}, true);
+								auto p1 = points[pi] + normal_prev*std::min(edge_offset_left,hh) + normal*std::min(edge_offset_left,hh);
+								auto p2 = prev + normal*hh;
+								auto p3 = points[pi] - tangent_prev*edge_offset_left + normal_prev*hh;
+								auto p4 = prev - normal*hh;
+								add_sprite_points(0.f, tangent, p1, p2, p3, p4,
+								                  vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
+								                  {0,0}, {1,0}, {0,1}, {1,1}, true);
 							}
 						}
 
 						// right edge
 						if(has_edge_right) {
-							if(points[prev_i(pi)].y<=curr.y) { // edge is going downwards
-								add_sprite(0.0f, curr, curr+tangent*h, normal_r, normal_r,
-								           vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
-								           {0,0}, {1,0}, {0,1}, {1,1}, true);
+							if(angle_right>180_deg) { // edge is going upwards
+								auto p1 = curr + normal*hh;
+								auto p2 = p1 - normal_next*h;
+								auto p3 = curr - normal*hh;
+								auto p4 = points[i] - normal_next*std::min(edge_offset_right,hh) - normal*std::min(edge_offset_right,hh);
+								add_sprite_points(0.f, tangent, p1, p2, p3, p4,
+								                  vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
+								                  {0,0}, {1,0}, {0,1}, {1,1}, true);
 							} else {
-								add_sprite(0.0f, curr, curr+tangent*h, normal_r, normal_r,
-								           vec4{0.75f,0.75f+edge_y_offset+pc, 0.875f-pc, 0.875f+edge_y_offset-pc},
-								           {0,0}, {1,0}, {0,1}, {1,1}, true);
+								auto p1 = curr + normal*hh;
+								auto p2 = points[i] + normal_next*std::min(edge_offset_right,hh) + normal*std::min(edge_offset_right,hh);
+								auto p3 = curr - normal*hh;
+								auto p4 = p3 + normal_next*h;
+								add_sprite_points(0.f, tangent, p1, p2, p3, p4,
+								                  vec4{0.75f,0.75f+edge_y_offset+pc, 0.875f-pc, 0.875f+edge_y_offset-pc},
+								                  {0,0}, {1,0}, {0,1}, {1,1}, true);
 							}
 						}
 
 					} else { // up facing
 						std::swap(has_edge_left, has_edge_right); // upside down
+						std::swap(angle_left, angle_right); // upside down
+						std::swap(edge_offset_left, edge_offset_right); // upside down
 
 						edge_y_offset = 0.0f;
 						add_sprite(0.0f, prev, curr, normal_l, normal_r,
@@ -371,30 +412,47 @@ namespace renderer {
 
 						// left edge
 						if(has_edge_left) {
-							if(next.y<=prev.y) { // edge is going downwards
-								add_sprite(0.0f, curr, curr+tangent*h, normal_r, normal_r,
-								           vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
-								           {1,1}, {0,1}, {1,0}, {0,0}, true);
+							if(angle_left>180_deg) { // edge is going downwards
+								auto p1 = points[i] - normal_next*std::min(edge_offset_left,hh) - normal*std::min(edge_offset_left,hh);
+								auto p2 = curr - normal*hh;
+								auto p4 = curr + normal*hh;
+								auto p3 = p4 - normal_next*h;
+								add_sprite_points(0.f, tangent, p4, p3, p2, p1,
+								                  vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
+								                  {1,1}, {0,1}, {1,0}, {0,0}, true);
 							} else {
-								add_sprite(0.0f, curr, curr+tangent*h, normal_r, normal_r,
-								           vec4{0.75f,0.625f+edge_y_offset+pc, 0.875f-pc, 0.75f+edge_y_offset-pc},
-								           {1,1}, {0,1}, {1,0}, {0,0}, true);
+								auto p1 = points[i] + normal_next*std::min(edge_offset_left,hh) + normal*std::min(edge_offset_left,hh);
+								auto p2 = curr + normal*hh;
+								auto p4 = curr - normal*hh;
+								auto p3 = p4 + normal_next*h;
+								add_sprite_points(0.f, tangent, p2, p1, p4, p3,
+								                  vec4{0.75f,0.625f+edge_y_offset+pc, 0.875f-pc, 0.75f+edge_y_offset-pc},
+								                  {1,1}, {0,1}, {1,0}, {0,0}, true);
 							}
 						}
 
 						// right edge
 						if(has_edge_right) {
-							if(points[prev_i(pi)].y<=curr.y) { // edge is going downwards
-								add_sprite(0.0f, prev-tangent*h, prev, normal_l, normal_l,
-								           vec4{0.75f,0.75f+edge_y_offset+pc, 0.875f-pc, 0.875f+edge_y_offset-pc},
-								           {1,1}, {0,1}, {1,0}, {0,0}, true);
+							if(angle_right>180_deg) { // edge is going downwards
+								auto p1 = points[pi] - normal_prev*std::min(edge_offset_right,hh) - normal*std::min(edge_offset_right,hh);
+								auto p2 = prev - normal*hh;
+								auto p4 = prev + normal*hh;
+								auto p3 = p4 - normal_prev*h;
+								add_sprite_points(0.f, tangent, p3, p4, p1, p2,
+								                  vec4{0.75f,0.75f+edge_y_offset+pc, 0.875f-pc, 0.875f+edge_y_offset-pc},
+								                  {1,1}, {0,1}, {1,0}, {0,0}, true);
 
 							} else {
-								add_sprite(0.0f, prev-tangent*h, prev, normal_l, normal_l,
-								           vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
-								           {1,1}, {0,1}, {1,0}, {0,0}, true);
+								auto p1 = points[pi] + normal_prev*std::min(edge_offset_right,hh) + normal*std::min(edge_offset_right,hh);
+								auto p2 = prev + normal*hh;
+								auto p4 = prev - normal*hh;
+								auto p3 = p4 + normal_prev*h;
+								add_sprite_points(0.f, tangent, p1, p2, p3, p4,
+								                  vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
+								                  {1,1}, {0,1}, {1,0}, {0,0}, true);
 							}
 						}
+
 					}
 				}
 			}
