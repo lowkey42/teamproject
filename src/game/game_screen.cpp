@@ -49,7 +49,7 @@ namespace lux {
 		_engine.input().screen_to_world_coords([&](auto p) {
 			return _systems.camera.screen_to_world(p).xy();
 		});
-		//_engine.audio_ctx().play_music(_engine.assets().load<audio::Music>("music:intro"_aid));
+		_engine.audio_ctx().play_music(_engine.assets().load<audio::Music>("music:game.ogg"_aid));
 	}
 
 	void Game_screen::_on_leave(util::maybe<Screen&> next) {
@@ -57,6 +57,7 @@ namespace lux {
 			return p;
 		});
 		_mailbox.disable();
+		_engine.audio_ctx().stop_music();
 
 	}
 

@@ -191,9 +191,11 @@ namespace renderer {
 		                        bool shadowcaster, bool decals_intensity,
 		                        const renderer::Material& mat) {
 
+			constexpr auto scale = 1.f;
+
 			const auto pc = 0.5f / mat.albedo().width();
 
-			constexpr auto h = 0.5f;
+			constexpr auto h = 0.5f * scale;
 			constexpr auto hh = h / 2.f;
 			constexpr auto connection_limit = 0.5f;
 
@@ -295,7 +297,7 @@ namespace renderer {
 				}
 
 				auto s = w;
-				w += glm::length(curr - prev)*0.5f;
+				w += glm::length(curr - prev)*0.5f / scale;
 
 				if(vertical) { // vertical
 					auto tangent = glm::normalize(curr-prev);

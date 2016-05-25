@@ -25,7 +25,7 @@ namespace gameplay {
 
 
 	namespace {
-		constexpr auto blood_stain_radius = 1.5f;
+		constexpr auto blood_stain_radius = 2.0f;
 
 		float dot(vec2 a, vec2 b) {
 			return a.x*b.x + a.y*b.y;
@@ -282,7 +282,7 @@ namespace gameplay {
 			auto color = light.get_or_throw()._color;
 			_blood_stains.emplace_back(pos, color,
 			                           Angle::from_degrees(util::random_real(_rng, 0.f, 360.f)),
-			                           util::random_real(_rng, 0.8f, 1.2f));
+			                           util::random_real(_rng, 0.8f, 1.0f));
 
 		}
 

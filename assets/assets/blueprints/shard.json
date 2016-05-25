@@ -23,6 +23,7 @@
 		"bounds": {"x":1, "y":1, "z":1}
 	},
 	"Static_body": {
-		"shape": "circle"
+		"shape": "circle",
+		"sensor": true
 	}
 }

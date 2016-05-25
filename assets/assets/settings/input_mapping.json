@@ -10,7 +10,7 @@
                 "D": {"type":"continuous", "action":"move_right"},
                 "Right": {"type":"continuous", "action":"move_right"},
 
-                "Space": {"type":"continuous", "action":"jump"},
+                "Space": {"type":"continuous", "action":"transform"},
 				"Up": {"type":"continuous", "action":"jump"},
                 "W": {"type":"continuous", "action":"jump"}
             },
