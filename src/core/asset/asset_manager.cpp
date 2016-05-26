@@ -399,7 +399,7 @@ namespace asset {
 
 	auto Asset_manager::find_by_path(const std::string& path) -> util::maybe<AID> {
 		static const auto working_dir = util::replace(pwd(), "\\", "/");
-		auto path_cleared = util::replace(path,working_dir+"/", "");
+		auto path_cleared = util::replace( util::replace(path, "\\", "/"), working_dir+"/", "");
 
 		for(auto& aid_path : _dispatcher) {
 			auto loc = physical_location(aid_path.first, false);
