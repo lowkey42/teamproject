@@ -2,6 +2,7 @@
 
 #include "gameplay_system.hpp"
 #include "collectable_comp.hpp"
+#include "deadly_comp.hpp"
 
 #include "../cam/camera_system.hpp"
 #include "../controller/controller_system.hpp"
@@ -72,6 +73,7 @@ namespace gameplay {
 		ecs.register_component_type<Lamp_comp>();
 		ecs.register_component_type<Light_leech_comp>();
 		ecs.register_component_type<Prism_comp>();
+		ecs.register_component_type<Deadly_comp>();
 
 		_mailbox.subscribe_to([&](sys::physics::Collision& c) {
 			this->_on_collision(c);
@@ -257,7 +259,9 @@ namespace gameplay {
 
 		auto smashable = [&](ecs::Entity* e) {
 			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
-				return (elc._final_booster_left>0_s || c.impact>=elc._smash_force) && elc.smash();
+				ecs::Entity* other = (c.a==&elc.owner()) ? c.b : c.a;
+				auto deadly = other && other->has<Deadly_comp>();
+				return (elc._final_booster_left>0_s || c.impact>=elc._smash_force || deadly) && elc.smash();
 			});
 		};
 

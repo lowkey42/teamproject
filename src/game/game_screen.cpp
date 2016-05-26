@@ -70,9 +70,6 @@ namespace lux {
 			_ui_text.set(util::to_string(_systems.gameplay.game_time().value())+"s");
 		else
 			_ui_text.set("");
-
-
-		_ui_text.set(util::to_string(dt.value()*1000));
 	}
 
 
