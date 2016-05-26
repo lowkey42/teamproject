@@ -239,6 +239,10 @@ namespace input {
 
 			case SDL_CONTROLLERDEVICEREMAPPED:
 				break; // ignored for now
+
+			case SDL_DROPFILE:
+				_mailbox.send<File_dropped>(event.drop.file);
+				break;
 		}
 	}
 	void Input_manager::_add_gamepad(int joystick_id) {

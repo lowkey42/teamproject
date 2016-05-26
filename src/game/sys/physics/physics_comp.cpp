@@ -190,8 +190,10 @@ namespace physics {
 		_dirty = true;
 	}
 	void Dynamic_body_comp::save(sf2::JsonSerializer& state)const {
-		auto vel = _body->GetLinearVelocity();
-		_def.velocity = glm::vec2{vel.x, vel.y};
+		if(_body) {
+			auto vel = _body->GetLinearVelocity();
+			_def.velocity = glm::vec2{vel.x, vel.y};
+		}
 		state.write(_def);
 	}
 	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*b){}) {

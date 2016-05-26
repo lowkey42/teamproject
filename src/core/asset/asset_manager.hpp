@@ -82,6 +82,8 @@ namespace asset {
 
 			auto list(Asset_type type) -> std::vector<AID>;
 
+			auto find_by_path(const std::string&) -> util::maybe<AID>;
+
 			template<typename T>
 			void save(const AID& id, const T& asset) throw(Loading_failed);
 
@@ -89,7 +91,7 @@ namespace asset {
 
 			bool exists(const AID& id)const noexcept;
 
-			auto physical_location(const AID& id)const noexcept -> util::maybe<std::string>;
+			auto physical_location(const AID& id, bool warn=true)const noexcept -> util::maybe<std::string>;
 
 			void reload();
 
@@ -120,7 +122,7 @@ namespace asset {
 			auto _base_dir(Asset_type type)const -> util::maybe<std::string>;
 			auto _open(const std::string& path) -> util::maybe<istream>;
 			auto _open(const std::string& path, const AID& aid) -> util::maybe<istream>;
-			auto _locate(const AID& id)const -> std::tuple<Location_type, std::string>;
+			auto _locate(const AID& id, bool warn=true)const -> std::tuple<Location_type, std::string>;
 
 			auto _create(const AID& id)throw(Loading_failed) -> ostream;
 			void _post_write();

@@ -266,7 +266,7 @@ namespace asset {
 		_assets.emplace(id, Asset{asset, reloader, PHYSFS_getLastModTime(path.c_str())});
 	}
 
-	auto Asset_manager::_locate(const AID& id)const -> std::tuple<Location_type, std::string> {
+	auto Asset_manager::_locate(const AID& id, bool warn)const -> std::tuple<Location_type, std::string> {
 		auto res = _dispatcher.find(id);
 
 		if(res!=_dispatcher.end()) {
@@ -274,7 +274,7 @@ namespace asset {
 				return std::make_tuple(Location_type::file, res->second);
 			else if(util::contains(res->second, ":"))
 				return std::make_tuple(Location_type::indirection, res->second);
-			else
+			else if(warn)
 				INFO("Asset not found in configured place: "<<res->second);
 		}
 
@@ -287,7 +287,7 @@ namespace asset {
 			auto path = append_file(baseDir.get_or_throw(), id.name());
 			if(exists_file(path))
 				return std::make_tuple(Location_type::file, std::move(path));
-			else
+			else if(warn)
 				DEBUG("asset "<<id.str()<<" not found in "<<path);
 		}
 
@@ -318,12 +318,12 @@ namespace asset {
 		return {id, *this, path};
 	}
 
-	auto Asset_manager::physical_location(const AID& id)const noexcept -> util::maybe<std::string>{
+	auto Asset_manager::physical_location(const AID& id, bool warn)const noexcept -> util::maybe<std::string>{
 		using namespace std::literals;
 
 		Location_type type;
 		std::string location;
-		std::tie(type, location) = _locate(id);
+		std::tie(type, location) = _locate(id, warn);
 
 		if(type!=Location_type::file)
 			return util::nothing();
@@ -395,6 +395,24 @@ namespace asset {
 	auto Asset_manager::save_raw(const AID& id) -> ostream {
 		_assets.erase(id);
 		return _create(id);
+	}
+
+	auto Asset_manager::find_by_path(const std::string& path) -> util::maybe<AID> {
+		static const auto working_dir = util::replace(pwd(), "\\", "/");
+		auto path_cleared = util::replace(path,working_dir+"/", "");
+
+		for(auto& aid_path : _dispatcher) {
+			auto loc = physical_location(aid_path.first, false);
+			if(loc.is_some()) {
+				if(loc.get_or_throw()==path_cleared) {
+					return util::justCopy(aid_path.first);
+				}
+			}
+		}
+
+		DEBUG("Couldn't finde asset for '"<<path_cleared<<"'");
+
+		return util::nothing();
 	}
 
 } /* namespace asset */

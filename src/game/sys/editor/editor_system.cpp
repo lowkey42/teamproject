@@ -138,6 +138,15 @@ namespace editor {
 					break;
 			}
 		});
+
+		_mailbox.subscribe_to([&](input::File_dropped& e){
+			_engine.assets().find_by_path(e.path).process([&](auto aid) {
+				if(aid.type()=="blueprint"_strid) {
+					auto pos = _engine.input().last_pointer_world_position();
+					_commands.execute<Create_cmd>(_entity_manager, _selection, aid.name(), glm::vec3{pos, 0.f});
+				}
+			});
+		});
 	}
 
 	void Editor_system::_spawn_new(std::size_t index, glm::vec2 pos) {

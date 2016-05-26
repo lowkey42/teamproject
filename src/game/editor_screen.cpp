@@ -213,6 +213,7 @@ namespace lux {
 			}
 		});
 
+
 		_render_queue.shared_uniforms(renderer::make_uniform_map("vp", _camera_menu.vp()));
 
 		_level_metadata = _systems.load_level(level_id);

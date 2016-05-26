@@ -18,6 +18,10 @@ namespace input {
 
 	struct Char_input {std::string character;};
 
+	struct File_dropped {
+		std::string path;
+	};
+
 	struct Source_added {
 		Input_source src;
 	};
