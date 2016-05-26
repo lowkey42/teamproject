@@ -126,6 +126,7 @@ namespace asset {
 
 			auto _create(const AID& id)throw(Loading_failed) -> ostream;
 			void _post_write();
+			void _reload_dispatchers();
 	};
 
 	template<class T>

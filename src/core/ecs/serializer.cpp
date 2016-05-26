@@ -25,10 +25,13 @@ namespace ecs {
 			Blueprint& operator=(Blueprint&&)noexcept;
 
 			void detach(Entity_ptr target)const;
+			void on_reload();
 
 			mutable std::vector<Entity*> users;
+			mutable std::vector<Blueprint*> children;
 			std::string id;
 			std::string content;
+			asset::Ptr<Blueprint> parent;
 			asset::Asset_manager* asset_mgr;
 	};
 }
@@ -85,8 +88,14 @@ namespace ecs {
 	}
 
 	namespace {
+		const std::string import_key = "$import";
+
 		void apply_blueprint(asset::Asset_manager& asset_mgr,
 		                     Entity& e, const Blueprint& b) {
+			if(b.parent) {
+				apply_blueprint(asset_mgr, e, *b.parent);
+			}
+
 			std::istringstream stream{b.content};
 			auto deserializer = EcsDeserializer{b.id, stream, e.manager(), asset_mgr};
 
@@ -101,6 +110,8 @@ namespace ecs {
 		state.read_virtual(sf2::vmember("name", blueprintName));
 
 		blueprint = asset_mgr.load<Blueprint>(AID{"blueprint"_strid, blueprintName});
+		this->set(blueprint);
+		blueprint->users.push_back(&owner());
 		apply_blueprint(asset_mgr, owner(), *blueprint);
 	}
 	void BlueprintComponent::save(sf2::JsonSerializer& state)const {
@@ -109,7 +120,7 @@ namespace ecs {
 	}
 
 	BlueprintComponent::BlueprintComponent(ecs::Entity& owner, asset::Ptr<Blueprint> blueprint)noexcept
-	  : Component(owner), blueprint(blueprint) {
+	  : Component(owner), blueprint(std::move(blueprint)) {
 
 	}
 	BlueprintComponent::~BlueprintComponent() {
@@ -124,25 +135,61 @@ namespace ecs {
 			this->blueprint->detach(owner_ptr());
 		}
 
-		this->blueprint = blueprint;
+		this->blueprint = std::move(blueprint);
 	}
 
 
 	Blueprint::Blueprint(std::string id, std::string content, asset::Asset_manager* asset_mgr)
 		: id(std::move(id)), content(std::move(content)), asset_mgr(asset_mgr) {
+
+		std::istringstream stream{this->content};
+		auto deserializer = sf2::JsonDeserializer{stream};
+		deserializer.read_lambda([&](const auto& key) {
+			if(key==import_key) {
+				auto value = std::string{};
+				deserializer.read_value(value);
+				parent = asset_mgr->load<Blueprint>(AID{"blueprint"_strid, value});
+				parent->children.push_back(this);
+
+			} else {
+				deserializer.skip_obj();
+			}
+			return true;
+		});
 	}
 	Blueprint::~Blueprint()noexcept {
+		if(parent) {
+			util::erase_fast(parent->children, this);
+		}
+		INVARIANT(children.empty(), "Blueprint children not deregistered");
 	}
 
 	Blueprint& Blueprint::operator=(Blueprint&& o)noexcept {
 		// swap data but keep user-list
 		id = o.id;
-		content = o.content;
+		content = std::move(o.content);
+		if(parent) {
+			util::erase_fast(parent->children, this);
+			parent.reset();
+		}
+
+		if(o.parent) {
+			util::erase_fast(o.parent->children, &o);
+			parent = std::move(o.parent);
+			o.parent->children.push_back(this);
+		}
+
+		on_reload();
+
+		return *this;
+	}
+	void Blueprint::on_reload() {
+		for(auto&& c : children) {
+			c->on_reload();
+		}
 
 		for(auto&& u : users)
 			apply_blueprint(*asset_mgr, *u, *this);
-
-		return *this;
 	}
 
 	void Blueprint::detach(Entity_ptr target)const {
@@ -172,25 +219,14 @@ namespace ecs {
 		apply_blueprint(asset_mgr, e, *b);
 	}
 
-	namespace {
-		const std::string import_key = "$import";
-	}
 	void load(sf2::JsonDeserializer& s, Entity& e) {
 		auto& ecs_deserializer = static_cast<EcsDeserializer&>(s);
 
 		static_assert(sf2::details::has_load<format::Json_reader,details::Component_base>::value, "missing load");
-		bool first = true;
 		s.read_lambda([&](const auto& key) {
-			if(first && import_key==key) {
+			if(import_key==key) {
 				auto value = std::string{};
 				s.read_value(value);
-
-				auto mb = ecs_deserializer.assets.load_maybe<ecs::Blueprint>(asset::AID{"blueprint"_strid, value});
-				if(mb.is_nothing()) {
-					ERROR("Failed to load blueprint \""<<value<<"\"");
-					return true;
-				}
-				apply_blueprint(ecs_deserializer.assets, e, *mb.get_or_throw());
 				return true;
 			}
 

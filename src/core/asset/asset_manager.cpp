@@ -198,6 +198,20 @@ namespace asset {
 			});
 		}
 
+		_reload_dispatchers();
+
+		current_instance = this;
+	}
+
+	Asset_manager::~Asset_manager() {
+		current_instance = nullptr;
+		_assets.clear();
+		PHYSFS_deinit();
+	}
+
+	void Asset_manager::_reload_dispatchers() {
+		_dispatcher.clear();
+
 		for(auto&& df : list_files("", "assets", ".map")) {
 			_open(df).process([this](istream& in) {
 				for(auto&& l : in.lines()) {
@@ -209,14 +223,6 @@ namespace asset {
 				}
 			});
 		}
-
-		current_instance = this;
-	}
-
-	Asset_manager::~Asset_manager() {
-		current_instance = nullptr;
-		_assets.clear();
-		PHYSFS_deinit();
 	}
 
 	void Asset_manager::_post_write() {
@@ -337,6 +343,7 @@ namespace asset {
 	}
 
 	void Asset_manager::reload() {
+		_reload_dispatchers();
 		for(auto& a : _assets) {
 			Location_type type;
 			std::string location;
