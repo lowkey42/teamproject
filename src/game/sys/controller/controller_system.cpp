@@ -22,6 +22,7 @@ namespace controller {
 	                                     physics::Physics_system& physics_world)
 	    : _mailbox(engine.bus()),
 	      _input_controllers(ecs.list<Input_controller_comp>()),
+	      _ai_controllers(ecs.list<Ai_simple_comp>()),
 	      _physics_world(physics_world) {
 
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
@@ -237,6 +238,29 @@ namespace controller {
 		}
 
 		_transform = false;
+
+
+		for(auto& c : _ai_controllers) {
+			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
+			auto cpos = remove_units(ctransform.position()).xy();
+			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+
+			auto dir = (c._moving_left ? -1.f : 1.f);
+
+			auto ray = _physics_world.raycast(cpos, glm::vec2{dir,0.f}, 1.f);
+			if(ray.is_some()) {
+				c._moving_left = !c._moving_left;
+				continue;
+			}
+
+			auto target_vel = c._velocity * dir;
+			auto vel_diff = target_vel - body.velocity().x;
+			auto move_force = vel_diff * body.mass() / dt.value();
+
+			body.foot_friction(false);
+			body.apply_force({move_force, 0.f});
+			// TODO: flip sprite
+		}
 	}
 
 }

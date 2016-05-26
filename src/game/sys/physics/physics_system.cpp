@@ -142,6 +142,18 @@ namespace physics {
 				auto rot = comp._def.fixed_rotation ? 0.f : transform.rotation().value();
 				comp._body->SetTransform(b2Vec2{pos.x, pos.y}, rot);
 				comp._body->SetActive(active);
+				comp._initial_position = pos.xy();
+			}
+
+			if(comp._def.keep_position_force>0.f) {
+				auto diff = comp._last_body_position - comp._initial_position;
+				auto diff_len = glm::length(diff);
+				if(diff_len>0.2f) {
+					diff/=diff_len;
+					auto resp = -diff * comp._def.keep_position_force * glm::clamp(diff_len/10.f, 0.1f, 1.0f);
+					comp._body->ApplyLinearImpulse(b2Vec2{resp.x, resp.y}, comp._body->GetWorldCenter(), true);
+				}
+				comp._body->ApplyForceToCenter(-1 * comp._body->GetMass() * _world->GetGravity(), true);
 			}
 		}
 

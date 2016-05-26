@@ -42,6 +42,7 @@ namespace physics {
 		glm::vec2 size;
 		bool sensor = false;
 		glm::vec2 velocity{};
+		float keep_position_force = 0.f;
 	};
 
 	class Dynamic_body_comp : public ecs::Component<Dynamic_body_comp> {
@@ -81,6 +82,7 @@ namespace physics {
 			glm::vec2 _ground_normal{0,1};
 			glm::vec2 _last_body_position;
 			uint_fast32_t _transform_revision = 0;
+			glm::vec2 _initial_position;
 
 			void _update_body(b2World& world);
 			void _update_ground_info(Physics_system&);

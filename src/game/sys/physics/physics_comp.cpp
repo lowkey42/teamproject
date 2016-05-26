@@ -33,7 +33,9 @@ namespace physics {
 	              resitution,
 	              density,
 	              size,
-	              sensor)
+	              sensor,
+	              velocity,
+	              keep_position_force)
 
 	sf2_enumDef(Body_shape, polygon, humanoid, circle)
 
@@ -201,6 +203,7 @@ namespace physics {
 		        update_body(world, _body, _def, owner(), b2_dynamicBody);
 		_body->SetLinearVelocity({_def.velocity.x,_def.velocity.y});
 		_last_body_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};
+		_initial_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};
 
 		_dirty = false;
 
