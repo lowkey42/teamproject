@@ -24,10 +24,11 @@ namespace light {
 
 			Light_comp(ecs::Entity& owner);
 
-			auto color()const noexcept {return _color;}
+			auto color()const noexcept {return _color*_color_factor;}
 			auto radius()const noexcept {return _radius;}
-
 			auto offset()const noexcept {return _offset;}
+			auto brightness_factor(float f) {_color_factor = f;}
+			auto shadowcaster()const noexcept {return _shadowcaster;}
 
 		private:
 			friend class Light_system;
@@ -36,7 +37,9 @@ namespace light {
 			Angle _angle;
 			Rgb _color;
 			glm::vec3 _factors {1,0,1};
+			bool _shadowcaster = true;
 
+			float _color_factor = 1.f;
 			bool _radius_based;
 			Distance _radius;
 			glm::vec3 _offset;

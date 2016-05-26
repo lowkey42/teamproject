@@ -8,6 +8,7 @@
 #include "../controller/controller_system.hpp"
 #include "../physics/transform_comp.hpp"
 #include "../physics/physics_system.hpp"
+#include "../light/light_comp.hpp"
 
 #include <core/audio/music.hpp>
 #include <core/audio/sound.hpp>
@@ -296,12 +297,17 @@ namespace gameplay {
 	void Gameplay_system::_handle_light_pending(Time dt, Enlightened_comp& c) {
 		if(!c._was_light) {
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
-			body.active(false);
+			body.active(true);
+			body.kinematic(true);
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 
 			auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
 			transform.rotation(angle);
 			round_player_pos(transform, std::min(dt/0.1_s, 1.f));
+
+			c.owner().get<light::Light_comp>().process([&](auto& l){
+				l.brightness_factor(2.f);
+			});
 		}
 		// TODO: set animation, start effects, ...
 	}
@@ -310,6 +316,7 @@ namespace gameplay {
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
 		body.active(true);
+		body.kinematic(false);
 
 		if(body.grounded()) {
 			c._air_transforms_left = c._air_transformations;
@@ -334,6 +341,7 @@ namespace gameplay {
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
 		body.active(false);
+		body.kinematic(false);
 
 		auto pos = remove_units(transform.position());
 
@@ -467,6 +475,10 @@ namespace gameplay {
 
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 		transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
+
+		c.owner().get<light::Light_comp>().process([&](auto& l){
+			l.brightness_factor(1.f);
+		});
 	}
 
 

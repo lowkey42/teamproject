@@ -23,7 +23,8 @@ namespace light {
 			sf2::vmember("color", _color),
 			sf2::vmember("radius", radius),
 			sf2::vmember("factors", _factors),
-			sf2::vmember("offset", _offset)
+			sf2::vmember("offset", _offset),
+			sf2::vmember("shadowcaster", _shadowcaster)
 		);
 
 		if(_radius_based && glm::length2(_factors)<0.0001)
@@ -74,7 +75,8 @@ namespace light {
 				sf2::vmember("angle", _angle / 1_deg),
 				sf2::vmember("color", _color),
 				sf2::vmember("radius", remove_unit(_radius)),
-				sf2::vmember("offset", _offset)
+				sf2::vmember("offset", _offset),
+				sf2::vmember("shadowcaster", _shadowcaster)
 			);
 
 		} else {
@@ -83,7 +85,8 @@ namespace light {
 				sf2::vmember("angle", _angle / 1_deg),
 				sf2::vmember("color", _color),
 				sf2::vmember("factors", _factors),
-				sf2::vmember("offset", _offset)
+				sf2::vmember("offset", _offset),
+				sf2::vmember("shadowcaster", _shadowcaster)
 			);
 		}
 	}

@@ -7,9 +7,10 @@
 		"shadowcaster": false
 	},
 	"Light": {
-		"color": {"r":1.0, "g":1.0, "b":5.0},
+		"color": {"r":5.0, "g":1.0, "b":1.0},
 		"radius": 6,
-		"offset": {"z":0.0}
+		"offset": {"z":0.0},
+		"shadowcaster": false
 	},
 	"Lamp": {
 		"color": "red",

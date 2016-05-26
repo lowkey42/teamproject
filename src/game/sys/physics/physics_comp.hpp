@@ -31,6 +31,7 @@ namespace physics {
 
 	struct Body_definition {
 		bool active = true;
+		bool kinematic=false;
 		Body_shape shape = Body_shape::polygon;
 		float linear_damping = 0.f;
 		float angular_damping = 0.f;
@@ -58,6 +59,7 @@ namespace physics {
 			void foot_friction(bool enable);//< only for humanoids
 			bool has_ground_contact()const;
 			void active(bool e) {_def.active = e;}
+			void kinematic(bool e) {_dirty|=_def.kinematic!=e; _def.kinematic=e;}
 
 			auto velocity()const -> glm::vec2;
 			void velocity(glm::vec2 v)const;

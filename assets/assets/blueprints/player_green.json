@@ -8,8 +8,9 @@
 	},
 	"Light": {
 		"color": {"r":1.0, "g":3.0, "b":1.0},
-		"radius": 6,
-		"offset": {"y":0.25, "z": 1.0}
+		"radius": 4,
+		"offset": {"y":0.25, "z": 1.0},
+		"shadowcaster": false
 	},
 	"Enlightened": {
 		"color": "green",

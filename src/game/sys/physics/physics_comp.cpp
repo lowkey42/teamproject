@@ -24,6 +24,8 @@ namespace physics {
 	}
 
 	sf2_structDef(Body_definition,
+	              active,
+	              kinematic,
 	              shape,
 	              linear_damping,
 	              angular_damping,
@@ -202,8 +204,9 @@ namespace physics {
 		auto org_aabb = _body ? util::just(calc_aabb()) : util::nothing();
 
 		std::tie(_fixture_foot, _size) =
-		        update_body(world, _body, _def, owner(), b2_dynamicBody);
+		        update_body(world, _body, _def, owner(), _def.kinematic ? b2_kinematicBody : b2_dynamicBody);
 		_body->SetLinearVelocity({_def.velocity.x,_def.velocity.y});
+
 		_last_body_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};
 		_initial_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};
 

@@ -119,7 +119,8 @@ namespace light {
 
 				auto r = light.radius().value();
 				auto dist = glm::distance2(remove_units(trans.position()), eye_pos);
-				auto score = 1.f/dist + glm::clamp(r/2.f + glm::length2(light.color())/4.f, -0.001f, 0.001f);
+
+				auto score = 1.f/dist + glm::clamp(r/2.f + glm::length2(light.color())/4.f, -0.001f, 0.001f) + (light.shadowcaster() ? 1.f : 0.f);
 
 				if(index<max_lights) {
 					out[index].transform = &trans;
@@ -261,7 +262,7 @@ namespace light {
 			                                               + lights[N].light->_direction.value());\
 \
 			uniforms.emplace("light["#N"].angle", lights[N].light->_angle.value());\
-			uniforms.emplace("light["#N"].color", lights[N].light->_color); \
+			uniforms.emplace("light["#N"].color", lights[N].light->color()); \
 			uniforms.emplace("light["#N"].factors", lights[N].light->_factors);\
 		} else {\
 			uniforms.emplace("light["#N"].color", glm::vec3(0,0,0));\
