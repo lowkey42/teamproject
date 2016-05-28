@@ -39,6 +39,9 @@ namespace sys {
 
 namespace gameplay {
 
+	struct Level_finished {
+	};
+
 	class Gameplay_system {
 		public:
 			Gameplay_system(Engine&, ecs::Entity_manager&, physics::Physics_system& physics_world,
@@ -82,6 +85,9 @@ namespace gameplay {
 
 			mutable renderer::Texture_batch _blood_batch;
 			renderer::Texture_ptr _blood_stain_textures[light_color_num];
+
+			bool _level_finished = false;
+
 
 			void _update_light(Time);
 			auto _is_reflective(glm::vec2 p, Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res;

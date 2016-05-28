@@ -126,8 +126,10 @@ namespace lux {
 				return;
 
 			if(_playing_music) {
-				// TODO: fade
-				Mix_HaltMusic();
+				if(!music)
+					Mix_FadeOutMusic(static_cast<int>(fade_time/1_ms));
+				else
+					Mix_HaltMusic(); // no cross-fade in SDL_Mixer, sadly
 			}
 
 			_playing_music = music;

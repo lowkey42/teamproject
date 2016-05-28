@@ -36,14 +36,16 @@ namespace lux {
 
 		private:
 			util::Mailbox_collection _mailbox;
-
 			Meta_system _systems;
 
 			renderer::Text_dynamic _ui_text;
-
 			renderer::Camera_2d _camera_ui;
-
 			renderer::Command_queue _render_queue;
+
+			std::string _current_level;
+
+			bool _fadeout = false;
+			Time _fadeout_fadetimer {};
 	};
 
 }
