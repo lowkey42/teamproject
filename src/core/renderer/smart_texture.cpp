@@ -12,9 +12,22 @@ namespace renderer {
 	      _dirty(true) {
 	}
 
-	void Smart_texture::move_point(std::size_t i, glm::vec2 p) {
-		_points.at(i) = p;
+	auto Smart_texture::move_point(std::size_t i, glm::vec2 p) -> util::maybe<std::size_t> {
 		_dirty = true;
+
+		if(_points.size()>1) {
+			if(glm::distance2(_points.at(i>0?i-1:_points.size()-1),p)<0.01) {
+				_points.erase(_points.begin()+i);
+				return i-1;
+			}
+			if(glm::distance2(_points.at((i+1) % _points.size()),p)<0.01) {
+				_points.erase(_points.begin()+i);
+				return i;
+			}
+		}
+
+		_points.at(i) = p;
+		return util::nothing();
 	}
 
 	void Smart_texture::insert_point(std::size_t i, glm::vec2 p) {

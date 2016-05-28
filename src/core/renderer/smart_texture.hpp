@@ -60,7 +60,7 @@ namespace renderer {
 			void points(std::vector<glm::vec2> p) {_points=p; _dirty=true;}
 			auto vertices()const -> std::vector<glm::vec2>;
 
-			void move_point(std::size_t i, glm::vec2 p);
+			auto move_point(std::size_t i, glm::vec2 p) -> util::maybe<std::size_t>;
 			void insert_point(std::size_t i, glm::vec2 p);
 			void erase_point(std::size_t i);
 

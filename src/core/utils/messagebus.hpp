@@ -149,6 +149,7 @@ namespace util {
 				Typeuid _type;
 				void* _mailbox;
 				std::function<void(void*, const void*)> _send;
+				bool _deleted = false;
 			};
 
 			auto& group(Typeuid id) {

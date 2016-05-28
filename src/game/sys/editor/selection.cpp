@@ -108,6 +108,45 @@ namespace editor {
 				float     _prev_scale;
 		};
 
+		struct Point_deleted_cmd : util::Command {
+			public:
+				/// positions in model-space
+				Point_deleted_cmd(ecs::Entity_ptr e, int index, glm::vec2 prev_pos)
+				    : _name("Smart texture modified. Point "+util::to_string(index)+" of "+ecs::entity_name(e)+" "+glm::to_string(prev_pos)+" deleted"),
+				      _entity(e),
+				      _index(index), _prev_pos(prev_pos) {}
+
+				void execute()override {
+					if(_first_exec) {
+						_first_exec = false;
+						return;
+					}
+
+					auto& terrain = _entity->get<graphic::Terrain_comp>().get_or_throw();
+					auto& tex = terrain.smart_texture();
+
+					tex.erase_point(_index);
+				}
+				void undo()override {
+					auto& terrain = _entity->get<graphic::Terrain_comp>().get_or_throw();
+					auto& tex = terrain.smart_texture();
+
+					tex.insert_point(_index, _prev_pos);
+				}
+				auto name()const -> const std::string& override{
+					return _name;
+				}
+
+			private:
+				const std::string _name;
+
+				ecs::Entity_ptr _entity;
+
+				bool      _first_exec = true;
+				int       _index;
+				glm::vec2 _prev_pos;
+		};
+
 		struct Point_moved_cmd : util::Command {
 			public:
 				/// positions in model-space
@@ -570,7 +609,6 @@ namespace editor {
 		auto& terrain = _selected_entity->get<graphic::Terrain_comp>().get_or_throw();
 		auto& tex = terrain.smart_texture();
 
-		// TODO: undo/redo
 		tex.insert_point(prev, position-remove_units(transform.position().xy()));
 		return prev;
 	}
@@ -578,14 +616,27 @@ namespace editor {
 		auto& terrain = _selected_entity->get<graphic::Terrain_comp>().get_or_throw();
 		auto& tex = terrain.smart_texture();
 
-		// TODO: undo/redo
 		_curr_point_position += offset;
 
+		util::maybe<std::size_t> new_point = util::nothing();
+
 		if(_snap_to_grid) {
-			tex.move_point(_current_shape_index, glm::round(_curr_point_position*2.f) / 2.f);
+			new_point = tex.move_point(_current_shape_index, glm::round(_curr_point_position*2.f) / 2.f);
 
 		} else {
-			tex.move_point(_current_shape_index, _curr_point_position);
+			new_point = tex.move_point(_current_shape_index, _curr_point_position);
+		}
+
+		if(new_point.is_some()) {
+			auto& smart_texture = _selected_entity->get<Terrain_comp>().get_or_throw().smart_texture();
+
+			_commands.execute<Point_deleted_cmd>(_selected_entity,
+			                                     _current_shape_index,
+			                                     _prev_point_position);
+
+			_current_shape_index = new_point.get_or_throw();
+			_prev_point_position = _curr_point_position = smart_texture.points()[_current_shape_index];
+			_point_created = false;
 		}
 	}
 

@@ -22,7 +22,7 @@ namespace lux {
 	using namespace renderer;
 
 	namespace {
-		constexpr auto fadeout_delay = 4_s;
+		constexpr auto fadeout_delay = 2_s;
 		const auto fadeout_sun = Rgb{1.8, 1.75, 0.78} *4.f;
 	}
 
