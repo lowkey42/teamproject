@@ -188,16 +188,22 @@ namespace lux {
 	void Meta_system::update(Time dt, Update_mask mask) {
 		entity_manager.process_queued_actions();
 
-		if(mask & Update::movements) {
+		if(mask & Update::input) {
 			controller.update(dt);
+		}
+
+		if(mask & Update::movements) {
 			physics.update(dt);
+		}
+
+		if(mask & Update::input) {
 			gameplay.update(dt);
 			scene_graph.update(dt);
-			camera.update(dt);
 		}
 
 		if(mask & Update::animations) {
 			renderer.update(dt);
+			camera.update(dt);
 		}
 	}
 

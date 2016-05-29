@@ -4,6 +4,9 @@
 	#include "messagebus.hpp"
 #endif
 
+#include "reflection.hpp"
+
+
 namespace lux {
 namespace util {
 
@@ -143,6 +146,9 @@ namespace util {
 
 	template<typename T>
 	void Message_bus::Mailbox_ref::exec_send(const T& m, Typeuid self) {
+		if(_deleted)
+			return;
+
 		assert(_type==typeuid_of<T>() && "Types don't match");
 
 		if(_self!=0 && self==_self) {
@@ -162,6 +168,15 @@ namespace util {
 	void Message_bus::unregister_mailbox(Mailbox<T>& mailbox) {
 		// TODO: mutex
 		_remove_queue.emplace_back(mailbox);
+
+		// required to avoid segfaults, caused by events during shutdown
+		auto& groups = group(typeuid_of<T>());
+		auto mb = std::find(groups.begin(), groups.end(), Mailbox_ref{mailbox});
+		if(mb!=groups.end()) {
+			mb->_deleted = true;
+		} else {
+			ERROR("Tried to unregister nonexistent mailbox for "<<typeName<T>());
+		}
 	}
 
 	inline void Message_bus::update() {
@@ -202,6 +217,16 @@ namespace util {
 	inline Message_bus::~Message_bus() {
 		if(_parent) {
 			util::erase_fast(_parent->_children, this);
+		}
+
+		for(auto& m : _remove_queue) {
+			util::erase_fast(group(m._type), m);
+		}
+
+		int i=0;
+		for(auto& group : _mb_groups) {
+			INVARIANT(group.empty(), "Mailboxes leaked for "<<group.at(i)._type<<", "<<group.size()<<"left");
+			i++;
 		}
 	}
 

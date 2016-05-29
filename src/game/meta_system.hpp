@@ -29,9 +29,11 @@
 namespace lux {
 
 	enum class Update : unsigned int {
-		none       = 0b000,
-		animations = 0b001,
-		movements  = 0b010
+		none       = 0b0000,
+		animations = 0b0001,
+		movements  = 0b0010,
+		gameplay   = 0b0100,
+		input      = 0b1000
 	};
 	using Update_mask = unsigned int;
 
@@ -45,7 +47,8 @@ namespace lux {
 		return lhs & static_cast<Update_mask>(rhs);
 	}
 
-	constexpr auto update_all = Update::animations | Update::movements;
+	constexpr auto update_all = Update::animations | Update::movements |
+	                            Update::gameplay | Update::input;
 
 
 	class Meta_system {

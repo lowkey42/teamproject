@@ -48,6 +48,10 @@ namespace light {
 				_ambient_brightness = ambient_brightness;
 				_background_tint = background_tint;
 			}
+			auto sun_light()const noexcept {return _sun_light;}
+			auto sun_dir()const noexcept {return _sun_dir;}
+			auto ambient_brightness()const noexcept {return _ambient_brightness;}
+			auto background_tint()const noexcept {return _background_tint;}
 
 			auto shadowcaster_batch() -> auto& {return _shadowcaster_batch;}
 			void prepare_draw(renderer::Command_queue&, const renderer::Camera& camera);

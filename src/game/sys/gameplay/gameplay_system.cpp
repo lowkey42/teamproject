@@ -3,6 +3,7 @@
 #include "gameplay_system.hpp"
 #include "collectable_comp.hpp"
 #include "deadly_comp.hpp"
+#include "finish_marker_comp.hpp"
 
 #include "../cam/camera_system.hpp"
 #include "../controller/controller_system.hpp"
@@ -75,13 +76,26 @@ namespace gameplay {
 		ecs.register_component_type<Light_leech_comp>();
 		ecs.register_component_type<Prism_comp>();
 		ecs.register_component_type<Deadly_comp>();
+		ecs.register_component_type<Finish_marker_comp>();
 
 		_mailbox.subscribe_to([&](sys::physics::Collision& c) {
 			this->_on_collision(c);
 		});
-//		_mailbox.subscribe_to([&](sys::physics::Contact& c) {
-//			// TODO: check for relevant components
-//		});
+		_mailbox.subscribe_to([&](sys::physics::Contact& c) {
+			if(c.a && c.b && ((c.a->has<Player_tag_comp>() && c.b->has<Finish_marker_comp>())
+			               || (c.b->has<Player_tag_comp>() && c.a->has<Finish_marker_comp>()))) {
+				_level_finished = true;
+				_mailbox.send<Level_finished>();
+
+				auto player = c.a->has<Player_tag_comp>() ? c.a : c.b;
+				player->get<Enlightened_comp>().process([&](auto& e) {
+					this->_disable_light(e, false, false);
+					player->erase<Enlightened_comp>();
+				});
+
+				// TODO: trigger player animation
+			}
+		});
 	}
 
 	void Gameplay_system::draw_blood(renderer::Command_queue& q, const renderer::Camera&) {
@@ -97,6 +111,10 @@ namespace gameplay {
 	void Gameplay_system::update(Time dt) {
 		_update_light(dt);
 		_mailbox.update_subscriptions();
+
+		if(_level_finished) {
+			return; //< we are done here
+		}
 
 		if(_game_timer<=0_s) {
 			if(_controller_sys.input_active())
@@ -234,7 +252,6 @@ namespace gameplay {
 	}
 
 	void Gameplay_system::_on_collision(sys::physics::Collision& c) {
-
 		if(c.a && c.a->has<Collectable_comp>() && !c.a->get<Collectable_comp>().get_or_throw()._collected) {
 			c.a->get<Collectable_comp>().get_or_throw()._collected = true;
 			c.a->manager().erase(c.a->shared_from_this());
@@ -475,6 +492,7 @@ namespace gameplay {
 
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 		transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
+		transform.rotation(0_deg);
 
 		c.owner().get<light::Light_comp>().process([&](auto& l){
 			l.brightness_factor(1.f);
