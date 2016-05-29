@@ -45,6 +45,8 @@ if(NOT EMSCRIPTEN)
 	add_subdirectory(dependencies/happyhttp)
 endif()
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_subdirectory(src)
 
 
