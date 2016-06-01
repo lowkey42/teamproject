@@ -361,32 +361,41 @@ namespace editor {
 				auto bottom_right = top_left*-1.f;
 				auto top_right    = glm::vec2{bottom_right.x, top_left.y};
 				auto bottom_left  = glm::vec2{top_left.x, bottom_right.y};
+				auto center_p     = glm::vec2{0,0};
 
 				top_left     = rotate(top_left, transform.rotation())     + center.xy();
 				bottom_right = rotate(bottom_right, transform.rotation()) + center.xy();
 				top_right    = rotate(top_right, transform.rotation())    + center.xy();
 				bottom_left  = rotate(bottom_left, transform.rotation())  + center.xy();
+				center_p     = rotate(center_p, transform.rotation())     + center.xy();
 
 				// world to screen
 				top_left     = _world_cam.world_to_screen(vec3(top_left, center.z));
 				bottom_right = _world_cam.world_to_screen(vec3(bottom_right, center.z));
 				top_right    = _world_cam.world_to_screen(vec3(top_right, center.z));
 				bottom_left  = _world_cam.world_to_screen(vec3(bottom_left, center.z));
+				center_p     = _world_cam.world_to_screen(vec3(center_p, center.z));
 
 				// screen to menu
 				top_left     = cam.screen_to_world(top_left).xy();
 				bottom_right = cam.screen_to_world(bottom_right).xy();
 				top_right    = cam.screen_to_world(top_right).xy();
 				bottom_left  = cam.screen_to_world(bottom_left).xy();
+				center_p     = cam.screen_to_world(center_p).xy();
 
 				draw_dashed_line(queue, top_left,     top_right,    2.0f, Rgba{1.f,0.8f, 0.25f, 1.0f});
 				draw_dashed_line(queue, top_right,    bottom_right, 2.0f, Rgba{1.f,0.8f, 0.25f, 1.0f});
 				draw_dashed_line(queue, bottom_right, bottom_left,  2.0f, Rgba{1.f,0.8f, 0.25f, 1.0f});
 				draw_dashed_line(queue, bottom_left,  top_left,     2.0f, Rgba{1.f,0.8f, 0.25f, 1.0f});
 
-				_batch.insert(*_icon_layer, top_left, {32.f, 32.f});
-				_batch.insert(*_icon_rotate, bottom_right, {32.f, 32.f});
-				_batch.insert(*_icon_scale, top_right, {32.f, 32.f});
+				if(glm::length2(bottom_right-top_left)>32.f*32.f) {
+					_batch.insert(*_icon_layer, top_left, {32.f, 32.f});
+					_batch.insert(*_icon_rotate, bottom_right, {32.f, 32.f});
+					_batch.insert(*_icon_scale, top_right, {32.f, 32.f});
+					_batch.insert(*_icon_move, bottom_left, {32.f, 32.f});
+				} else {
+					_batch.insert(*_icon_move, center_p, {32.f, 32.f});
+				}
 				_batch.flush(queue);
 			}
 		}
@@ -458,9 +467,10 @@ namespace editor {
 
 		auto half_bounds = glm::max(remove_units(editor.bounds()).xy() * transform.scale(), vec2{1,1}) / 2.f;
 
-		auto icon_layer_pos = vec2{-half_bounds.x,  half_bounds.y};
-		auto icon_rotate_pos = vec2{half_bounds.x, -half_bounds.y};
-		auto icon_scale_pos = vec2{half_bounds.x, half_bounds.y};
+		auto icon_layer_pos  = vec2{-half_bounds.x,  half_bounds.y};
+		auto icon_rotate_pos = vec2{ half_bounds.x, -half_bounds.y};
+		auto icon_scale_pos  = vec2{ half_bounds.x,  half_bounds.y};
+		auto icon_move_pos   = vec2{-half_bounds.x, -half_bounds.y};
 
 		if(_current_action==Action_type::none) {
 			if(terrain.is_some()) {
@@ -489,6 +499,8 @@ namespace editor {
 					_current_action = Action_type::move;
 				}
 
+			} else if(glm::length2(obb_prev-icon_move_pos)<icon_size2) {
+				_current_action = Action_type::move;
 			} else if(glm::length2(obb_prev-icon_layer_pos)<icon_size2) {
 				_current_action = Action_type::layer;
 			} else if(glm::length2(obb_prev-icon_rotate_pos)<icon_size2) {
