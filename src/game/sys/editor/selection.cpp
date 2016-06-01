@@ -402,10 +402,9 @@ namespace editor {
 			_last_secondary_pointer_pos = mp2;
 		};
 
-		if(mp1.is_nothing() || _last_primary_pointer_pos.is_nothing() || !_selected_entity)
+		if(mp1.is_nothing() || _last_primary_pointer_pos.is_nothing()
+		        || !_selected_entity || _current_action==Action_type::inactive)
 			return false;
-
-		INVARIANT(_current_action!=Action_type::inactive, "Listener not called!!!");
 
 		if(_current_action==Action_type::none && !is_inside(*_selected_entity, _last_primary_pointer_pos.get_or_throw(), _world_cam, true))
 			return false;
