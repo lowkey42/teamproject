@@ -49,7 +49,8 @@ namespace gameplay {
 			                controller::Controller_system& controller_sys,
 			                std::function<void()> reload);
 
-			void update(Time);
+			void update_pre_physic(Time);
+			void update_post_physic(Time);
 			void draw_blood(renderer::Command_queue&, const renderer::Camera& camera);
 
 			auto game_time()const {return _game_timer;}

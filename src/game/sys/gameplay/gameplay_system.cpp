@@ -116,13 +116,15 @@ namespace gameplay {
 		_blood_batch.flush(q);
 
 	}
-	void Gameplay_system::update(Time dt) {
+	void Gameplay_system::update_pre_physic(Time dt) {
+		_update_light(dt);
+	}
+	void Gameplay_system::update_post_physic(Time dt) {
 		if(_first_update_after_reset) {
 			_mailbox.enable();
 			_first_update_after_reset = false;
 		}
 
-		_update_light(dt);
 		_mailbox.update_subscriptions();
 
 		if(_level_finished) {
@@ -492,6 +494,9 @@ namespace gameplay {
 		}
 	}
 	void Gameplay_system::_disable_light(Enlightened_comp& c, bool final_impulse, bool boost) {
+		if(c._state == Enlightened_State::disabled)
+			return;
+
 		if(!c.owner().has<physics::Dynamic_body_comp>()
 		        || !c.owner().has<physics::Transform_comp>()) {
 			return;
