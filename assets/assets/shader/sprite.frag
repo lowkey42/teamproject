@@ -86,6 +86,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 	light_color = mix(light_color, light_color*albedo, metalness);
 
 	specular*=(1.0 + metalness*20.0); //< not physicaly accurate, but makes metals more shiny
+	specular*=(1.0-roughness); // TODO(this is a workaround): specular is to powerfull for realy rough surfaces
 
 	return (diffuse + specular) * light_color * dotNL;
 }
