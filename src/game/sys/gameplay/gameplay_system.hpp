@@ -87,6 +87,7 @@ namespace gameplay {
 			renderer::Texture_ptr _blood_stain_textures[light_color_num];
 
 			bool _level_finished = false;
+			bool _first_update_after_reset = true;
 
 
 			void _update_light(Time);
