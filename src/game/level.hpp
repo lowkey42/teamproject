@@ -35,11 +35,24 @@ namespace lux {
 	};
 	using Level_data_ptr = std::shared_ptr<const Level_data>;
 
+	struct Level_pack_entry {
+		std::string aid;
+		glm::vec2 position;
+	};
+	struct Level_pack {
+		std::string name;
+		std::string description;
+		std::vector<Level_pack_entry> level_ids;
+		std::string map_texture_id;
+	};
+	using Level_pack_ptr = std::shared_ptr<const Level_pack>;
+
+
 	extern auto list_local_levels(Engine&) -> std::vector<Level_info_ptr>;
 	extern auto load_level(Engine&, ecs::Entity_manager& ecs, const std::string& id) -> Level_data;
-
 	extern void save_level(Engine&, ecs::Entity_manager& ecs, const Level_data&);
 
+	extern auto list_level_packs(Engine&) -> std::vector<Level_pack_ptr>;
 
 	extern auto list_remote_levels(Engine&, int32_t count, int32_t offset) -> std::vector<Level_info>;
 	extern auto download_level(Engine&, const std::string& id) -> std::future<void>;
