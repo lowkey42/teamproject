@@ -49,7 +49,8 @@ namespace gameplay {
 			                controller::Controller_system& controller_sys,
 			                std::function<void()> reload);
 
-			void update(Time);
+			void update_pre_physic(Time);
+			void update_post_physic(Time);
 			void draw_blood(renderer::Command_queue&, const renderer::Camera& camera);
 
 			auto game_time()const {return _game_timer;}
@@ -87,6 +88,7 @@ namespace gameplay {
 			renderer::Texture_ptr _blood_stain_textures[light_color_num];
 
 			bool _level_finished = false;
+			bool _first_update_after_reset = true;
 
 
 			void _update_light(Time);

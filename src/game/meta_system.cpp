@@ -190,6 +190,7 @@ namespace lux {
 
 		if(mask & Update::input) {
 			controller.update(dt);
+			gameplay.update_pre_physic(dt);
 		}
 
 		if(mask & Update::movements) {
@@ -197,7 +198,7 @@ namespace lux {
 		}
 
 		if(mask & Update::input) {
-			gameplay.update(dt);
+			gameplay.update_post_physic(dt);
 			scene_graph.update(dt);
 		}
 

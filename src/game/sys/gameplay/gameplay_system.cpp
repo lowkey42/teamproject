@@ -79,9 +79,17 @@ namespace gameplay {
 		ecs.register_component_type<Finish_marker_comp>();
 
 		_mailbox.subscribe_to([&](sys::physics::Collision& c) {
+			if(_level_finished) {
+				return; //< we are done here
+			}
+
 			this->_on_collision(c);
 		});
 		_mailbox.subscribe_to([&](sys::physics::Contact& c) {
+			if(_level_finished) {
+				return; //< we are done here
+			}
+
 			if(c.a && c.b && ((c.a->has<Player_tag_comp>() && c.b->has<Finish_marker_comp>())
 			               || (c.b->has<Player_tag_comp>() && c.a->has<Finish_marker_comp>()))) {
 				_level_finished = true;
@@ -108,8 +116,15 @@ namespace gameplay {
 		_blood_batch.flush(q);
 
 	}
-	void Gameplay_system::update(Time dt) {
+	void Gameplay_system::update_pre_physic(Time dt) {
 		_update_light(dt);
+	}
+	void Gameplay_system::update_post_physic(Time dt) {
+		if(_first_update_after_reset) {
+			_mailbox.enable();
+			_first_update_after_reset = false;
+		}
+
 		_mailbox.update_subscriptions();
 
 		if(_level_finished) {
@@ -130,8 +145,10 @@ namespace gameplay {
 			_camera_sys.start_slow_lerp(1.0_s);
 			_controller_sys.block_input(0.8_s);
 
+			_mailbox.disable();
 			_reload();
 			_game_timer = 0_s;
+			_first_update_after_reset = true;
 		}
 	}
 
@@ -477,6 +494,14 @@ namespace gameplay {
 		}
 	}
 	void Gameplay_system::_disable_light(Enlightened_comp& c, bool final_impulse, bool boost) {
+		if(c._state == Enlightened_State::disabled)
+			return;
+
+		if(!c.owner().has<physics::Dynamic_body_comp>()
+		        || !c.owner().has<physics::Transform_comp>()) {
+			return;
+		}
+
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
 		// TODO: change animation/effect

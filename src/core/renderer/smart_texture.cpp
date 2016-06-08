@@ -309,8 +309,8 @@ namespace renderer {
 				auto angle_left = angle_between(prev-points[prev_i(pi)], prev-curr);
 				auto angle_right = angle_between(prev-curr, next-curr);
 
-				auto has_edge_left = abs(angle_left-180_deg)>=45_deg;
-				auto has_edge_right = abs(angle_right-180_deg)>45_deg;
+				auto has_edge_left = abs(angle_left-180_deg)>=45_deg || vertical!=vertical_prev;
+				auto has_edge_right = abs(angle_right-180_deg)>45_deg || vertical!=vertical_next;
 
 				if(!has_edge_left || (vertical && vertical_prev)) {
 					normal_l = glm::normalize(glm::mix(normal_prev, normal, 0.5f));

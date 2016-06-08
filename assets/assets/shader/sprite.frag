@@ -86,6 +86,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 	light_color = mix(light_color, light_color*albedo, metalness);
 
 	specular*=(1.0 + metalness*20.0); //< not physicaly accurate, but makes metals more shiny
+	specular*=(1.0-roughness); // TODO(this is a workaround): specular is to powerfull for realy rough surfaces
 
 	return (diffuse + specular) * light_color * dotNL;
 }
@@ -171,7 +172,7 @@ void main() {
 		discard;
 	}
 
-	float decals_fade = clamp(1.0+pos_frag.z/2.0, 0.25, 1.0) * decals_intensity_frag;
+	float decals_fade = clamp(1.0+pos_frag.z/2.0, 0.25, 1.0) * decals_intensity_frag * albedo.a;
 	vec4 decals = texture2D(decals_tex, decals_uv_frag);
 	albedo.rgb = mix(albedo.rgb, decals.rgb * decals_fade, decals.a * decals_fade);
 	emmision = mix(emmision, 0.3, max(0.0, decals.a * decals_fade - 0.5));
