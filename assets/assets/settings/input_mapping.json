@@ -63,7 +63,10 @@
 				"T_6": {"type":"once", "action":"new_f"},
 				"T_7": {"type":"once", "action":"new_g"},
 				"T_8": {"type":"once", "action":"new_h"},
-				"T_9": {"type":"once", "action":"new_i"}
+				"T_9": {"type":"once", "action":"new_i"},
+				
+				"PageUp": {"type":"once", "action":"next"},
+				"PageDown": {"type":"once", "action":"prev"}
             },
             "mouse_wheel_up": {"type":"once", "action": "zoom_in"},
             "mouse_wheel_down": {"type":"once", "action": "zoom_out"},

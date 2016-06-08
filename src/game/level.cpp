@@ -23,7 +23,8 @@ namespace lux {
 		id,
 		name,
 		author,
-		description
+		description,
+		pack
 	)
 
 	sf2_structDef(Level_data,
@@ -31,16 +32,33 @@ namespace lux {
 		name,
 		author,
 		description,
+		pack,
 		environment_id,
 		environment_light_color,
 		environment_light_direction,
 		ambient_brightness,
-		background_tint
+		background_tint,
+		music_id
 	)
+
+
+	sf2_structDef(Level_pack_entry,
+		aid,
+		position
+	)
+
+	sf2_structDef(Level_pack,
+		name,
+		description,
+		level_ids,
+		icon_texture_id,
+		map_texture_id
+	)
+
 
 	namespace {
 		auto level_aid(const std::string& id) {
-			return asset::AID{"level"_strid, "level_"+id+".map"};
+			return asset::AID{"level"_strid, id+".map"};
 		}
 
 		void add_to_list(Engine& engine, const std::string& id) {
@@ -103,6 +121,28 @@ namespace lux {
 		stream.close();
 
 		add_to_list(engine, level.id);
+	}
+
+	auto Level_pack::find_level(std::string id)const -> util::maybe<int> {
+		auto r = std::find_if(level_ids.begin(), level_ids.end(), [id](auto& l) {
+			return l.aid ==id;
+		});
+
+		return r!=level_ids.end() ? util::just(static_cast<int>(std::distance(level_ids.begin(),r)))
+		                          : util::nothing();
+	}
+	auto list_level_packs(Engine& engine) -> std::vector<Level_pack_ptr> {
+		auto aids  = engine.assets().list("level_pack"_strid);
+		auto packs = std::vector<Level_pack_ptr>{};
+		packs.reserve(aids.size());
+		for(auto& aid : aids) {
+			packs.emplace_back(get_level_pack(engine, aid.name()));
+		}
+
+		return packs;
+	}
+	auto get_level_pack(Engine& engine, const std::string& id) -> Level_pack_ptr {
+		return engine.assets().load<Level_pack>(asset::AID{"level_pack"_strid, id});
 	}
 
 

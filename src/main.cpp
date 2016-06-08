@@ -15,6 +15,7 @@
 #include "core/engine.hpp"
 
 #include "game/editor_screen.hpp"
+#include "game/world_map_screen.hpp"
 
 #include "info.hpp"
 
@@ -23,6 +24,7 @@
 #include <SDL2/SDL.h>
 
 using namespace lux; // import game namespace
+using namespace std::string_literals;
 
 std::unique_ptr<Engine> engine;
 
@@ -72,7 +74,11 @@ void init(int argc, char** argv, char** env) {
 	try {
 		util::init_stacktrace(argv[0]);
 		engine.reset(new Engine(app_name, argc, argv, env));
-		engine->screens().enter<Editor_screen>("test");
+
+		if(argc>1 && argv[1]=="game"s) // TODO: reverse for release version
+			engine->screens().enter<World_map_screen>("jungle");
+		else
+			engine->screens().enter<Editor_screen>("jungle_01");
 
 	} catch (const util::Error& ex) {
 		CRASH_REPORT("Exception in init: "<<ex.what());
