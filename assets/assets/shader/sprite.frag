@@ -172,7 +172,7 @@ void main() {
 		discard;
 	}
 
-	float decals_fade = clamp(1.0+pos_frag.z/2.0, 0.25, 1.0) * decals_intensity_frag;
+	float decals_fade = clamp(1.0+pos_frag.z/2.0, 0.25, 1.0) * decals_intensity_frag * albedo.a;
 	vec4 decals = texture2D(decals_tex, decals_uv_frag);
 	albedo.rgb = mix(albedo.rgb, decals.rgb * decals_fade, decals.a * decals_fade);
 	emmision = mix(emmision, 0.3, max(0.0, decals.a * decals_fade - 0.5));
