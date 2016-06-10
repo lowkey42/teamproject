@@ -392,13 +392,13 @@ namespace renderer {
 							if(angle_left>180_deg) { // edge is going upwards
 								auto p1 = points[pi] - tangent_prev*edge_offset_left - normal_prev*hh;
 								auto p2 = points[pi] - tangent_prev*edge_offset_left + normal_prev*hh;
-								auto p3 = points[pi] - normal_prev*std::min(edge_offset_left,hh) - normal*std::min(edge_offset_left,hh);
+								auto p3 = points[pi] - normal_prev*std::max(edge_offset_left,hh) - normal*std::max(edge_offset_left,hh);
 								auto p4 = prev - normal*hh;
 								add_sprite_points(0.f, tangent, p1, p2, p3, p4,
 								                  vec4{0.875f,0.625f+pc, 1.f-pc, 0.75f-pc},
 								                  {0,0}, {1,0}, {0,1}, {1,1}, true);
 							} else {
-								auto p1 = points[pi] + normal_prev*std::min(edge_offset_left,hh) + normal*std::min(edge_offset_left,hh);
+								auto p1 = points[pi] + normal_prev*std::max(edge_offset_left,hh) + normal*std::max(edge_offset_left,hh);
 								auto p2 = prev + normal*hh;
 								auto p3 = points[pi] - tangent_prev*edge_offset_left + normal_prev*hh;
 								auto p4 = prev - normal*hh;
@@ -414,13 +414,13 @@ namespace renderer {
 								auto p1 = curr + normal*hh;
 								auto p2 = p1 - normal_next*h;
 								auto p3 = curr - normal*hh;
-								auto p4 = points[i] - normal_next*std::min(edge_offset_right,hh) - normal*std::min(edge_offset_right,hh);
+								auto p4 = points[i] - normal_next*std::max(edge_offset_right,hh) - normal*std::max(edge_offset_right,hh);
 								add_sprite_points(0.f, tangent, p1, p2, p3, p4,
 								                  vec4{0.875f,0.75f+edge_y_offset+pc, 1.0f-pc, 0.875f+edge_y_offset-pc},
 								                  {0,0}, {1,0}, {0,1}, {1,1}, true);
 							} else {
 								auto p1 = curr + normal*hh;
-								auto p2 = points[i] + normal_next*std::min(edge_offset_right,hh) + normal*std::min(edge_offset_right,hh);
+								auto p2 = points[i] + normal_next*std::max(edge_offset_right,hh) + normal*std::max(edge_offset_right,hh);
 								auto p3 = curr - normal*hh;
 								auto p4 = p3 + normal_next*h;
 								add_sprite_points(0.f, tangent, p1, p2, p3, p4,
@@ -442,7 +442,7 @@ namespace renderer {
 						// left edge
 						if(has_edge_left) {
 							if(angle_left>180_deg) { // edge is going downwards
-								auto p1 = points[i] - normal_next*std::min(edge_offset_left,hh) - normal*std::min(edge_offset_left,hh);
+								auto p1 = points[i] - normal_next*std::max(edge_offset_left,hh) - normal*std::max(edge_offset_left,hh);
 								auto p2 = curr - normal*hh;
 								auto p4 = curr + normal*hh;
 								auto p3 = p4 - normal_next*h;
@@ -450,7 +450,7 @@ namespace renderer {
 								                  vec4{0.0f,0.75f+edge_y_offset+pc, 0.125f-pc, 0.875f+edge_y_offset-pc},
 								                  {1,1}, {0,1}, {1,0}, {0,0}, true);
 							} else {
-								auto p1 = points[i] + normal_next*std::min(edge_offset_left,hh) + normal*std::min(edge_offset_left,hh);
+								auto p1 = points[i] + normal_next*std::max(edge_offset_left,hh) + normal*std::max(edge_offset_left,hh);
 								auto p2 = curr + normal*hh;
 								auto p4 = curr - normal*hh;
 								auto p3 = p4 + normal_next*h;
@@ -463,7 +463,7 @@ namespace renderer {
 						// right edge
 						if(has_edge_right) {
 							if(angle_right>180_deg) { // edge is going downwards
-								auto p1 = points[pi] - normal_prev*std::min(edge_offset_right,hh) - normal*std::min(edge_offset_right,hh);
+								auto p1 = points[pi] - normal_prev*std::max(edge_offset_right,hh) - normal*std::max(edge_offset_right,hh);
 								auto p2 = prev - normal*hh;
 								auto p4 = prev + normal*hh;
 								auto p3 = p4 - normal_prev*h;
@@ -472,7 +472,7 @@ namespace renderer {
 								                  {1,1}, {0,1}, {1,0}, {0,0}, true);
 
 							} else {
-								auto p1 = points[pi] + normal_prev*std::min(edge_offset_right,hh) + normal*std::min(edge_offset_right,hh);
+								auto p1 = points[pi] + normal_prev*std::max(edge_offset_right,hh) + normal*std::max(edge_offset_right,hh);
 								auto p2 = prev + normal*hh;
 								auto p4 = prev - normal*hh;
 								auto p3 = p4 + normal_prev*h;
