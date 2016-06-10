@@ -239,6 +239,22 @@ namespace renderer {
 			auto add_sprite_points = [&](float d, vec2 tangent, vec2 tl, vec2 tr, vec2 bl, vec2 br,
 			                             vec4 uv_clip,
 			                             vec2 uv_tl, vec2 uv_tr, vec2 uv_bl, vec2 uv_br, bool later=false) {
+				auto tex_clip = mat.albedo().clip_rect();
+				// rescale uv to texture clip_rect
+				uv_clip.x *= (tex_clip.z - tex_clip.x);
+				uv_clip.z *= (tex_clip.z - tex_clip.x);
+				uv_clip.y *= (tex_clip.w - tex_clip.y);
+				uv_clip.w *= (tex_clip.w - tex_clip.y);
+				// move uv by clip_rect offset
+				uv_clip.x += tex_clip.x;
+				uv_clip.z += tex_clip.x;
+				uv_clip.y += tex_clip.y;
+				uv_clip.w += tex_clip.y;
+
+				uv_clip.x += 1.0f / mat.albedo().width();
+				uv_clip.y += 1.0f / mat.albedo().height();
+				uv_clip.z -= 1.0f / mat.albedo().width();
+				uv_clip.w -= 1.0f / mat.albedo().height();
 
 				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
 

@@ -81,11 +81,20 @@ namespace renderer {
 		auto sprite_clip = glm::vec4{0,0,1,1};
 
 		// rescale uv to texture clip_rect
-		sprite_clip.xz() *= (tex_clip.z - tex_clip.x);
-		sprite_clip.yw() *= (tex_clip.w - tex_clip.y);
+		sprite_clip.x *= (tex_clip.z - tex_clip.x);
+		sprite_clip.z *= (tex_clip.z - tex_clip.x);
+		sprite_clip.y *= (tex_clip.w - tex_clip.y);
+		sprite_clip.w *= (tex_clip.w - tex_clip.y);
 		// move uv by clip_rect offset
-		sprite_clip.xz() += tex_clip.x;
-		sprite_clip.yw() += tex_clip.y;
+		sprite_clip.x += tex_clip.x;
+		sprite_clip.z += tex_clip.x;
+		sprite_clip.y += tex_clip.y;
+		sprite_clip.w += tex_clip.y;
+
+		sprite_clip.x += 1.0f / texture.width();
+		sprite_clip.y += 1.0f / texture.height();
+		sprite_clip.z -= 1.0f / texture.width();
+		sprite_clip.w -= 1.0f / texture.height();
 
 		auto uv_size = sprite_clip.zw() - sprite_clip.xy();
 

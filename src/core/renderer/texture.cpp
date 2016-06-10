@@ -29,7 +29,7 @@ namespace renderer {
 				buffer.size(),
 				SOIL_LOAD_AUTO,
 				SOIL_CREATE_NEW_ID,
-				SOIL_FLAG_MULTIPLY_ALPHA | SOIL_FLAG_MIPMAPS,
+				SOIL_FLAG_MULTIPLY_ALPHA,
 				&_width,
 				&_height
 			);
@@ -49,8 +49,6 @@ namespace renderer {
 			throw Texture_loading_failed(SOIL_last_result());
 
 		auto tex_type = _cubemap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
-
-		// TODO: mipmapping for sprites
 
 		bind(0);
 		glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, _cubemap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);

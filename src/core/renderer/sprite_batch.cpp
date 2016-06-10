@@ -129,11 +129,20 @@ namespace renderer {
 		auto sprite_clip = sprite.uv;
 
 		// rescale uv to texture clip_rect
-		sprite_clip.xz() *= (tex_clip.z - tex_clip.x);
-		sprite_clip.yw() *= (tex_clip.w - tex_clip.y);
+		sprite_clip.x *= (tex_clip.z - tex_clip.x);
+		sprite_clip.z *= (tex_clip.z - tex_clip.x);
+		sprite_clip.y *= (tex_clip.w - tex_clip.y);
+		sprite_clip.w *= (tex_clip.w - tex_clip.y);
 		// move uv by clip_rect offset
-		sprite_clip.xz() += tex_clip.x;
-		sprite_clip.yw() += tex_clip.y;
+		sprite_clip.x += tex_clip.x;
+		sprite_clip.z += tex_clip.x;
+		sprite_clip.y += tex_clip.y;
+		sprite_clip.w += tex_clip.y;
+
+		sprite_clip.x += 1.0f / sprite.material->albedo().width();
+		sprite_clip.y += 1.0f / sprite.material->albedo().height();
+		sprite_clip.z -= 1.0f / sprite.material->albedo().width();
+		sprite_clip.w -= 1.0f / sprite.material->albedo().height();
 
 		auto uv_size = sprite_clip.zw() - sprite_clip.xy();
 
@@ -141,7 +150,7 @@ namespace renderer {
 
 		for(auto& vert : single_sprite_vert) {
 			auto uv = sprite_clip.xy() + uv_size * vert.uv;
-			*iter = Sprite_vertex{transform(vert.position), uv, vert.uv_clip,
+			*iter = Sprite_vertex{transform(vert.position), uv, sprite_clip,
 			                      tangent, sprite.hue_change, sprite.shadow_resistence,
 			                      sprite.decals_intensity, sprite.material};
 			iter++;
