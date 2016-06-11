@@ -50,18 +50,10 @@ namespace lux {
 			Meta_system _systems;
 
 			// TODO: sidebar for blueprints
-			// TODO: entity placement
-			// TODO: camera movement
 			// TODO: top-side buttons
-			// TODO: load/store
 			// TODO: save-file management
-			// TODO: entity manipulation (move, rotate, scale)
-			// TODO: entity deletion
-			// TODO: play/pause functionallity
 			// TODO: plot player movement trail
 			// TODO: level settings
-			// TODO: entity settings
-			// TODO: smart textures
 
 			renderer::Camera_2d _camera_menu;
 			renderer::Camera_sidescroller _camera_world;
@@ -77,7 +69,7 @@ namespace lux {
 
 			glm::vec2 _cam_speed;
 
-			Level_data _level_metadata;
+			Level_info _level_metadata;
 
 			auto _handle_pointer_menu(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
 			auto _handle_pointer_cam(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;

@@ -164,6 +164,30 @@ namespace lux {
 					_commands.clear();
 					break;
 
+				case "prev"_strid:
+				case "next"_strid:
+					if(!_level_metadata.pack.empty()) {
+						auto pack = get_level_pack(engine,_level_metadata.pack);
+						auto curr_index = pack->find_level(_level_metadata.id);
+						if(curr_index.is_some()) {
+							auto step = e.id=="prev"_strid ? -1 : 1;
+							auto next_index = (curr_index.get_or_throw()+step) % pack->level_ids.size();
+
+							DEBUG("Level "<<curr_index.get_or_throw()<<" => "<<next_index<<"  aka "<<pack->level_ids.at(next_index).aid);
+
+							_level_metadata = _systems.load_level(pack->level_ids.at(next_index).aid);
+							_selection.select({});
+							_commands.clear();
+						} else {
+							WARN("Level \""<<_level_metadata.id<<"\" not found in pack \""<<
+							     _level_metadata.pack<<"\"");
+						}
+					} else {
+						WARN("Level doesn't belong to a pack");
+					}
+					break;
+
+
 
 				case "save"_strid:
 					save_level(_engine, _systems.entity_manager, _level_metadata);
@@ -274,7 +298,7 @@ namespace lux {
 			auto& transform = _selection.selection()->get<sys::physics::Transform_comp>().get_or_throw();
 			auto pos = remove_units(transform.position());
 
-			_debug_Text.set("Position: " + util::to_string(pos.x) + "/" +util::to_string(pos.y) +"/"+util::to_string(pos.z) );
+			_debug_Text.set("Position: " + util::to_string(pos.x) + "/" +util::to_string(pos.y) +"/"+util::to_string(pos.z) + "  |  Level: "+_level_metadata.id );
 		}
 
 		auto mp1 = _input_manager.pointer_screen_position(0);

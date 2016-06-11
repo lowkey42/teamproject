@@ -95,8 +95,8 @@ namespace lux {
 			                       _systems.lights.background_tint() );
 
 			if(_fadeout_fadetimer>=fadeout_delay) {
-				auto next_level = _current_level;// TODO: determine next level
-				_engine.screens().enter<Loading_screen>(next_level);
+				unlock_next_levels(_engine, _current_level);
+				_engine.screens().leave();
 			}
 		}
 	}

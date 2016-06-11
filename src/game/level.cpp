@@ -7,6 +7,9 @@
 #include <core/asset/asset_manager.hpp>
 #include <core/utils/sf2_glm.hpp>
 
+#include <unordered_set>
+
+
 namespace lux {
 
 	namespace {
@@ -23,24 +26,34 @@ namespace lux {
 		id,
 		name,
 		author,
-		description
-	)
-
-	sf2_structDef(Level_data,
-		id,
-		name,
-		author,
 		description,
+		pack,
 		environment_id,
 		environment_light_color,
 		environment_light_direction,
 		ambient_brightness,
-		background_tint
+		background_tint,
+		music_id
 	)
+
+
+	sf2_structDef(Level_pack_entry,
+		aid,
+		position
+	)
+
+	sf2_structDef(Level_pack,
+		name,
+		description,
+		level_ids,
+		icon_texture_id,
+		map_texture_id
+	)
+
 
 	namespace {
 		auto level_aid(const std::string& id) {
-			return asset::AID{"level"_strid, "level_"+id+".map"};
+			return asset::AID{"level"_strid, id+".map"};
 		}
 
 		void add_to_list(Engine& engine, const std::string& id) {
@@ -70,14 +83,17 @@ namespace lux {
 
 		return ret;
 	}
-	auto load_level(Engine& engine, ecs::Entity_manager& ecs, const std::string& id) -> Level_data {
+	auto get_level(Engine& engine, const std::string& id) -> Level_info_ptr {
+		return engine.assets().load<Level_info>(level_aid(id));
+	}
+	auto load_level(Engine& engine, ecs::Entity_manager& ecs, const std::string& id) -> Level_info {
 		auto data = engine.assets().load_raw(level_aid(id));
 
 		INVARIANT(!data.is_nothing(), "Level doesn't exists: "<<id);
 
 		auto& stream = data.get_or_throw();
 
-		Level_data level_data;
+		Level_info level_data;
 		sf2::deserialize_json(stream, [&](auto& msg, uint32_t row, uint32_t column) {
 			ERROR("Error parsing LevelData from "<<id<<" at "<<row<<":"<<column<<": "<<msg);
 		}, level_data);
@@ -87,7 +103,7 @@ namespace lux {
 		return level_data;
 	}
 
-	void save_level(Engine& engine, ecs::Entity_manager& ecs, const Level_data& level) {
+	void save_level(Engine& engine, ecs::Entity_manager& ecs, const Level_info& level) {
 		auto stream = engine.assets().save_raw(level_aid(level.id));
 
 		sf2::serialize_json(stream, level);
@@ -103,6 +119,77 @@ namespace lux {
 		stream.close();
 
 		add_to_list(engine, level.id);
+	}
+
+	auto Level_pack::find_level(std::string id)const -> util::maybe<int> {
+		auto r = std::find_if(level_ids.begin(), level_ids.end(), [id](auto& l) {
+			return l.aid ==id;
+		});
+
+		return r!=level_ids.end() ? util::just(static_cast<int>(std::distance(level_ids.begin(),r)))
+		                          : util::nothing();
+	}
+	auto list_level_packs(Engine& engine) -> std::vector<Level_pack_ptr> {
+		auto aids  = engine.assets().list("level_pack"_strid);
+		auto packs = std::vector<Level_pack_ptr>{};
+		packs.reserve(aids.size());
+		for(auto& aid : aids) {
+			packs.emplace_back(get_level_pack(engine, aid.name()));
+		}
+
+		return packs;
+	}
+	auto get_level_pack(Engine& engine, const std::string& id) -> Level_pack_ptr {
+		return engine.assets().load<Level_pack>(asset::AID{"level_pack"_strid, id});
+	}
+
+	namespace {
+		struct Savegame {
+			std::unordered_set<std::string> unlocked_levels;
+		};
+		sf2_structDef(Savegame,
+			unlocked_levels
+		)
+		auto load_savegame(Engine& engine) -> const Savegame& {
+			static auto savegame = engine.assets().load_maybe<Savegame>(asset::AID{"cfg"_strid, "savegame"});
+			if(savegame.is_nothing()) {
+				auto new_savegame = Savegame{};
+				engine.assets().save(asset::AID{"cfg"_strid, "savegame"}, new_savegame);
+				savegame = engine.assets().load_maybe<Savegame>(asset::AID{"cfg"_strid, "savegame"});
+			}
+			return *savegame.get_or_throw();
+		}
+	}
+
+	void unlock_level(Engine& engine, const std::string& id) {
+		auto savegame_copy = load_savegame(engine);
+		savegame_copy.unlocked_levels.emplace(id);
+
+		engine.assets().save(asset::AID{"cfg"_strid, "savegame"}, savegame_copy);
+	}
+	void unlock_next_levels(Engine& engine, const std::string& id) {
+		auto level = get_level(engine, id);
+		if(!level || level->pack.empty())
+			return;
+
+		auto pack = get_level_pack(engine, level->pack);
+		if(!pack)
+			return;
+
+		auto level_idx = pack->find_level(id);
+		if(level_idx.is_nothing())
+			return;
+
+		auto next_idx = (level_idx.get_or_throw()+1) % pack->level_ids.size();
+
+		auto savegame_copy = load_savegame(engine);
+		savegame_copy.unlocked_levels.emplace(pack->level_ids.at(next_idx).aid);
+
+		engine.assets().save(asset::AID{"cfg"_strid, "savegame"}, savegame_copy);
+	}
+	auto is_level_locked(Engine& engine, const std::string& id) -> bool {
+		const auto& unlocked_levels = load_savegame(engine).unlocked_levels;
+		return unlocked_levels.find(id)==unlocked_levels.end();
 	}
 
 

@@ -169,7 +169,7 @@ namespace lux {
 	}
 
 
-	auto Meta_system::load_level(const std::string& id) -> Level_data {
+	auto Meta_system::load_level(const std::string& id) -> Level_info {
 		_current_level = id;
 		auto level_meta_data = ::lux::load_level(_engine, entity_manager, id);
 		_skybox.texture(_engine.assets().load<Texture>({"tex_cube"_strid, level_meta_data.environment_id}));
