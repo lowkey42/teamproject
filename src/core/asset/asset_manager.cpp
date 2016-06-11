@@ -234,6 +234,7 @@ namespace asset {
 			});
 		);
 #endif
+		reload();
 	}
 
 	util::maybe<std::string> Asset_manager::_base_dir(Asset_type type)const {
@@ -363,6 +364,24 @@ namespace asset {
 					});
 				}
 			}
+		}
+	}
+	void Asset_manager::_force_reload(const AID& aid) {
+		auto iter = _assets.find(aid);
+		if(iter==_assets.end())
+			return;
+
+		Location_type type;
+		std::string location;
+		std::tie(type, location) = _locate(aid);
+
+		if(type==Location_type::file) {
+			_open(location, aid).process([&](istream& in){
+				try {
+					iter->second.reloader(iter->second.data.get(), std::move(in));
+
+				} catch(Loading_failed& e) {}
+			});
 		}
 	}
 

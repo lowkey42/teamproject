@@ -43,6 +43,8 @@ namespace lux {
 
 			Level_pack_ptr _level_pack;
 			int _current_level = 0;
+
+			void _enter_nth_level(std::size_t idx);
 	};
 
 }
