@@ -251,6 +251,16 @@ namespace gameplay {
 					break;
 			}
 
+			auto res_color = c._color;
+			for(auto& lamp : _lamps) {
+				if(lamp.in_range(transform.position())) {
+					res_color = lamp.resulting_color(res_color);
+				}
+			}
+			if(res_color!=c._color) {
+				_color_player(c, res_color);
+			}
+
 			any_one_lighted |= c.enabled();
 			any_one_not_grounded |= !body.grounded();
 		}
@@ -346,7 +356,6 @@ namespace gameplay {
 		// TODO: set animation, start effects, ...
 	}
 	void Gameplay_system::_handle_light_disabled(Time dt, Enlightened_comp& c) {
-		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
 		body.active(true);
@@ -358,16 +367,6 @@ namespace gameplay {
 		if(c._final_booster_left>0_s) {
 			body.velocity(c._direction * c._velocity);
 			c._final_booster_left -= dt;
-		}
-
-		auto res_color = c._color;
-		for(auto& lamp : _lamps) {
-			if(lamp.in_range(transform.position())) {
-				res_color = lamp.resulting_color(res_color);
-			}
-		}
-		if(res_color!=c._color) {
-			_color_player(c, res_color);
 		}
 	}
 	void Gameplay_system::_handle_light_enabled(Time dt, Enlightened_comp& c) {
