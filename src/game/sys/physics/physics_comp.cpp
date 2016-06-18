@@ -95,6 +95,11 @@ namespace physics {
 					return s.size() * transform_comp.scale();
 				});
 			}
+			if(glm::length2(size)<0.01f) {
+				size = owner.get<graphic::Anim_sprite_comp>().process(size, [&](auto& s){
+					return s.size() * transform_comp.scale();
+				});
+			}
 
 			if(glm::length2(size)>0.01f) {
 				auto half_size = size / 2.f;

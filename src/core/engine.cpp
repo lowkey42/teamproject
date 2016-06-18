@@ -117,7 +117,7 @@ namespace {
 	void Engine::on_frame() {
 		_last_time = _current_time;
 		_current_time = current_time_sec();
-		auto delta_time = static_cast<float>(_current_time - _last_time);
+		auto delta_time = std::max(0.f, static_cast<float>(_current_time - _last_time));
 		auto delta_time_smoothed = smooth(std::min(delta_time, 1.f/1));
 
 		_graphics_ctx->start_frame();

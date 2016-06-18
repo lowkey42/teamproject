@@ -1,7 +1,7 @@
 {
 	"$import": "player_base",
 
-	"Sprite": {
+	"Anim_sprite": {
 		"size": {"x":0.56, "y":0.75},
 		"hue_change_target": 300,
 		"hue_change_replacement": 0

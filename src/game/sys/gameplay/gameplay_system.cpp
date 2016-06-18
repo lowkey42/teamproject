@@ -7,6 +7,7 @@
 
 #include "../cam/camera_system.hpp"
 #include "../controller/controller_system.hpp"
+#include "../graphic/sprite_comp.hpp"
 #include "../physics/transform_comp.hpp"
 #include "../physics/physics_system.hpp"
 #include "../light/light_comp.hpp"
@@ -101,8 +102,13 @@ namespace gameplay {
 					player->erase<Enlightened_comp>();
 				});
 
-				// TODO: trigger player animation
+				player->get<graphic::Anim_sprite_comp>().process([&](auto& s) {
+					s.play("leave"_strid);
+				});
 			}
+		});
+		_mailbox.subscribe_to([&](Animation_event& e){
+			_on_animation_event(e);
 		});
 	}
 
@@ -203,7 +209,11 @@ namespace gameplay {
 		bool any_one_not_grounded = false;
 
 		for(Enlightened_comp& c : _enlightened) {
-			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+			auto body_mb = c.owner().get<physics::Dynamic_body_comp>();
+			if(body_mb.is_nothing())
+				continue;
+
+			auto& body = body_mb.get_or_throw();
 
 			c._direction = glm::normalize(c._direction);
 
@@ -318,24 +328,40 @@ namespace gameplay {
 		}
 	}
 	void Gameplay_system::_on_smashed(ecs::Entity& e) {
-		// TODO: play death animation
-		// TODO: play sound
-		_engine.audio_ctx().play_static(*_engine.assets().load<audio::Sound>("sound:slime"_aid));
+		e.get<graphic::Anim_sprite_comp>().process([&](auto& s) {
+			s.play("die"_strid);
+			e.erase_other<physics::Transform_comp, Enlightened_comp, graphic::Anim_sprite_comp, Player_tag_comp>();
 
+		}).on_nothing([&] {
+			WARN("smashed a not animated entity");
+			e.manager().erase(e.shared_from_this());
+		});
+	}
+	void Gameplay_system::_on_animation_event(const Animation_event& event) {
+		if(!event.owner)
+			return;
 
-		// TODO: when done => spawn Blood_stain, delete entity
-		auto light = e.get<Enlightened_comp>();
-		if(light.is_some()) {
-			auto& transform = e.get<physics::Transform_comp>().get_or_throw();
-			auto pos = remove_units(transform.position()).xy();
-			auto color = light.get_or_throw()._color;
-			_blood_stains.emplace_back(pos, color,
-			                           Angle::from_degrees(util::random_real(_rng, 0.f, 360.f)),
-			                           util::random_real(_rng, 0.8f, 1.0f));
+		auto& e = *static_cast<ecs::Entity*>(event.owner);
 
+		switch(event.name) {
+			case "death_sound"_strid:
+				_engine.audio_ctx().play_static(*_engine.assets().load<audio::Sound>("sound:slime"_aid));
+				break;
+
+			case "dead"_strid: {
+				auto light = e.get<Enlightened_comp>();
+				if(light.is_some()) {
+					auto& transform = e.get<physics::Transform_comp>().get_or_throw();
+					auto pos = remove_units(transform.position()).xy();
+					auto color = light.get_or_throw()._color;
+					_blood_stains.emplace_back(pos, color,
+					                           Angle::from_degrees(util::random_real(_rng, 0.f, 360.f)),
+					                           util::random_real(_rng, 0.8f, 1.0f));
+				}
+				e.manager().erase(e.shared_from_this());
+				break;
+			}
 		}
-
-		e.manager().erase(e.shared_from_this());
 	}
 
 	void Gameplay_system::_handle_light_pending(Time dt, Enlightened_comp& c) {
@@ -468,8 +494,10 @@ namespace gameplay {
 		pos.y += direction.y * move_distance;
 		transform.position(pos * 1_m);
 
-		auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
-		transform.rotation(angle);
+		if(c.enabled()) {
+			auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
+			transform.rotation(angle);
+		}
 
 		if(c._max_air_time>0.f) {
 			c._air_time+=dt;

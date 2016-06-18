@@ -125,6 +125,14 @@ namespace util {
 				return def;
 			}
 
+			template<typename RT, typename Func>
+			auto process(RT def, Func f)const -> RT {
+				if(is_some())
+					return f(_data);
+
+				return def;
+			}
+
 		private:
 			maybe() : _valid(false) {}
 
@@ -239,6 +247,14 @@ namespace util {
 
 			template<typename RT, typename Func>
 			auto process(RT def, Func f) -> RT {
+				if(is_some())
+					return f(get_or_throw());
+
+				return def;
+			}
+
+			template<typename RT, typename Func>
+			auto process(RT def, Func f)const -> RT {
 				if(is_some())
 					return f(get_or_throw());
 
@@ -362,3 +378,27 @@ namespace util {
 }
 }
 
+#ifdef LUX_DEFINE_MAYBE_MACROS
+	#define LUX_NARGS_SEQ(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,N,...) N
+	#define LUX_NARGS(...) LUX_NARGS_SEQ(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+
+	/* This will let macros expand before concating them */
+	#define LUX_PRIMITIVE_CAT(x, y) x ## y
+	#define LUX_CAT(x, y) LUX_PRIMITIVE_CAT(x, y)
+
+	#define LUX_APPLY(macro, ...) LUX_CAT(LUX_APPLY_, LUX_NARGS(__VA_ARGS__))(macro, __VA_ARGS__)
+	#define LUX_APPLY_1(m, x1) m(x1)
+	#define LUX_APPLY_2(m, x, ...) m(x), LUX_APPLY_1(m,__VA_ARGS__)
+	#define LUX_APPLY_3(m, x, ...) m(x), LUX_APPLY_2(m,__VA_ARGS__)
+	#define LUX_APPLY_4(m, x, ...) m(x), LUX_APPLY_3(m,__VA_ARGS__)
+	#define LUX_APPLY_5(m, x, ...) m(x), LUX_APPLY_4(m,__VA_ARGS__)
+	#define LUX_APPLY_6(m, x, ...) m(x), LUX_APPLY_5(m,__VA_ARGS__)
+	#define LUX_APPLY_7(m, x, ...) m(x), LUX_APPLY_6(m,__VA_ARGS__)
+	#define LUX_APPLY_8(m, x, ...) m(x), LUX_APPLY_7(m,__VA_ARGS__)
+	#define LUX_APPLY_9(m, x, ...) m(x), LUX_APPLY_8(m,__VA_ARGS__)
+	#define LUX_APPLY_10(m, x, ...) m(x), LUX_APPLY_9(m,__VA_ARGS__)
+
+	#define LUX_PROCESS_MAYBE_ARG_EXP(name) decltype(name.get_or_throw()) name
+
+	#define LUX_PROCESS_MAYBE(...) ::lux::util::process(__VA_ARGS__) >> [&](LUX_APPLY(LUX_PROCESS_MAYBE_ARG_EXP, __VA_ARGS__))
+#endif

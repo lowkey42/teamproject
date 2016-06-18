@@ -98,6 +98,35 @@ namespace lux {
 				glm::vec3 _pos;
 		};
 
+		struct Flip_cmd : util::Command {
+			public:
+				Flip_cmd(ecs::Entity_ptr entity,
+				         bool vert)
+				    : _name("Entity flipped"),
+				      _entity(entity), _vert(vert) {}
+
+				void execute()override {
+					auto& transform = _entity->get<sys::physics::Transform_comp>().get_or_throw();
+					if(_vert) {
+						transform.flip_vertical(!transform.flip_vertical());
+					} else {
+						transform.flip_horizontal(!transform.flip_horizontal());
+					}
+				}
+				void undo()override {
+					execute();
+				}
+				auto name()const -> const std::string& override{
+					return _name;
+				}
+
+			private:
+				const std::string _name;
+
+				ecs::Entity_ptr _entity;
+				bool _vert;
+		};
+
 	}
 
 
@@ -155,6 +184,17 @@ namespace lux {
 				case "delete"_strid:
 					if(_selection.selection()) {
 						_commands.execute<Delete_cmd>(_selection);
+					}
+					break;
+
+				case "flip_v"_strid:
+					if(_selection.selection()) {
+						_commands.execute<Flip_cmd>(_selection.selection(), true);
+					}
+					break;
+				case "flip_h"_strid:
+					if(_selection.selection()) {
+						_commands.execute<Flip_cmd>(_selection.selection(), false);
 					}
 					break;
 

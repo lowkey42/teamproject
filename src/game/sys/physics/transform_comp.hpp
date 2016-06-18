@@ -37,6 +37,11 @@ namespace physics {
 			auto rotation()const noexcept {return _rotation;}
 			void rotation(Angle a)noexcept;
 
+			auto flip_horizontal()const noexcept {return _flip_horizontal;}
+			auto flip_vertical()const noexcept {return _flip_vertical;}
+			void flip_horizontal(bool f)noexcept;
+			void flip_vertical(bool f)noexcept;
+
 			auto changed_since(uint_fast32_t expected)const noexcept {return _revision!=expected;}
 			auto revision()const noexcept {return _revision;}
 
@@ -48,6 +53,8 @@ namespace physics {
 			float _scale = 1.f;
 			Angle _rotation;
 			bool _rotation_fixed = false;
+			bool _flip_horizontal = false;
+			bool _flip_vertical = false;
 			uint_fast32_t _revision = 1;
 	};
 

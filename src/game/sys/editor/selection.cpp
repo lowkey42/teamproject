@@ -555,16 +555,27 @@ namespace editor {
 
 	void Selection::_change_selection(glm::vec2 point) {
 		ecs::Entity_ptr entity;
-		float max_z = -1000.f;
+		auto max_compv = std::make_pair(-1000.f, (void*) nullptr);
+		auto limit_compv = std::make_pair(1000.f, (void*) nullptr);
+		if(_selected_entity && is_inside(*_selected_entity, point, _world_cam)) {
+			auto z = _selected_entity->get<physics::Transform_comp>().get_or_throw().position().z.value();
+			limit_compv = std::make_pair(z, static_cast<void*>(_selected_entity.get()));
+		}
 
 		for(auto& comp : _editor_comps) {
 			if(is_inside(comp.owner(), point, _world_cam)) {
 				auto z = comp.owner().get<physics::Transform_comp>().get_or_throw().position().z.value();
-				if(z>=max_z) {
-					max_z = z;
+				auto compv = std::make_pair(z, static_cast<void*>(&comp.owner()));
+
+				if(compv>max_compv && compv<limit_compv) {
+					max_compv = compv;
 					entity = comp.owner_ptr();
 				}
 			}
+		}
+
+		if(!entity && _selected_entity && is_inside(*_selected_entity, point, _world_cam)) {
+			return;
 		}
 
 		if(_selected_entity!=entity) {

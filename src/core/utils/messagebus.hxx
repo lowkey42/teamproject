@@ -175,7 +175,7 @@ namespace util {
 		if(mb!=groups.end()) {
 			mb->_deleted = true;
 		} else {
-			ERROR("Tried to unregister nonexistent mailbox for "<<typeName<T>());
+			//ERROR("Tried to unregister nonexistent mailbox for "<<typeName<T>());
 		}
 	}
 
