@@ -101,6 +101,9 @@
                 "F9": {"type":"once", "action":"load"},
                 "F6": {"type":"once", "action":"start"},
 
+				"H": {"type":"once", "action":"flip_h"},
+				"J": {"type":"once", "action":"flip_v"},
+
                 "T_1": {"type":"once", "action":"new_a"},
 				"T_2": {"type":"once", "action":"new_b"},
 				"T_3": {"type":"once", "action":"new_c"},
