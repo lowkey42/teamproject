@@ -2,8 +2,9 @@
 	"Transform":{
 	},
 	"Player_tag": {},
-	"Sprite": {
-		"material": "mat:player",
+	"Anim_sprite": {
+		"animation_set": "anim:player",
+		"animation_clip": "idle",
 		"size": {"x":0.75, "y":1},
 		"shadowcaster": false,
 		"hue_change_target": 300,

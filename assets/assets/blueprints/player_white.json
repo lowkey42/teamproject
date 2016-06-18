@@ -1,8 +1,7 @@
 {
 	"$import": "player_base",
 
-	"Sprite": {
-		"material": "mat:player_white",
+	"Anim_sprite": {
 		"size": {"x":1.125, "y":1.5},
 		"hue_change_target": 0,
 		"hue_change_replacement": 0
