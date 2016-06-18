@@ -144,13 +144,10 @@ namespace renderer {
 		sprite_clip.z -= 1.0f / sprite.material->albedo().width();
 		sprite_clip.w -= 1.0f / sprite.material->albedo().height();
 
-		auto uv_size = sprite_clip.zw() - sprite_clip.xy();
-
 		auto iter = _reserve_space(sprite.position.z, sprite.material, single_sprite_vert.size());
 
 		for(auto& vert : single_sprite_vert) {
-			auto uv = sprite_clip.xy() + uv_size * vert.uv;
-			*iter = Sprite_vertex{transform(vert.position), uv, sprite_clip,
+			*iter = Sprite_vertex{transform(vert.position), vert.uv, sprite_clip,
 			                      tangent, sprite.hue_change, sprite.shadow_resistence,
 			                      sprite.decals_intensity, sprite.material};
 			iter++;

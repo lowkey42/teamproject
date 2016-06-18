@@ -31,6 +31,15 @@ namespace graphic {
 
 			return prog;
 		}
+
+		auto flip(glm::vec4 uv_clip, bool vert, bool horiz) {
+			return glm::vec4 {
+				horiz ? uv_clip.z : uv_clip.x,
+				vert  ? uv_clip.w : uv_clip.y,
+				horiz ? uv_clip.x : uv_clip.z,
+				vert  ? uv_clip.y : uv_clip.w
+			};
+		}
 	}
 
 	Graphic_system::Graphic_system(
@@ -40,11 +49,13 @@ namespace graphic {
 	    : _background_shader(build_background_shader(asset_manager)),
 	      _mailbox(bus),
 	      _sprites(entity_manager.list<Sprite_comp>()),
+	      _anim_sprites(entity_manager.list<Anim_sprite_comp>()),
 	      _terrains(entity_manager.list<Terrain_comp>()),
 	      _sprite_batch(512),
 	      _sprite_batch_bg(_background_shader, 256)
 	{
 		entity_manager.register_component_type<Sprite_comp>();
+		entity_manager.register_component_type<Anim_sprite_comp>();
 		entity_manager.register_component_type<Terrain_comp>();
 		entity_manager.register_component_type<Terrain_data_comp>();
 
@@ -60,8 +71,33 @@ namespace graphic {
 			auto position = remove_units(trans.position());
 			auto sprite_data = renderer::Sprite{
 			                   position, trans.rotation(),
-			                   sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
+			                   sprite._size*trans.scale(),
+			                   flip(glm::vec4{0,0,1,1}, trans.flip_vertical(), trans.flip_horizontal()),
+			                   sprite._shadowcaster ? 1.0f : 0.0f,
 			                   sprite._decals_intensity, *sprite._material};
+
+			sprite_data.hue_change = {
+			    sprite._hue_change_target / 360_deg,
+			    sprite._hue_change_replacement / 360_deg
+			};
+
+			if(position.z<background_boundary) {
+				_sprite_batch_bg.insert(sprite_data);
+			} else {
+				_sprite_batch.insert(sprite_data);
+			}
+		}
+
+		for(Anim_sprite_comp& sprite : _anim_sprites) {
+			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
+
+			auto position = remove_units(trans.position());
+			auto sprite_data = renderer::Sprite{
+			                   position, trans.rotation(),
+			                   sprite._size*trans.scale(),
+			                   flip(sprite.state().uv_rect(), trans.flip_vertical(), trans.flip_horizontal()),
+			                   sprite._shadowcaster ? 1.0f : 0.0f,
+			                   sprite._decals_intensity, sprite.state().material()};
 
 			sprite_data.hue_change = {
 			    sprite._hue_change_target / 360_deg,
@@ -98,8 +134,24 @@ namespace graphic {
 
 			if(sprite._shadowcaster && std::abs(position.z) < 1.0f) {
 				batch.insert(renderer::Sprite{position, trans.rotation(),
-				             sprite._size*trans.scale(), glm::vec4{0,0,1,1}, sprite._shadowcaster ? 1.0f : 0.0f,
+				             sprite._size*trans.scale(),
+				             flip(glm::vec4{0,0,1,1}, trans.flip_vertical(), trans.flip_horizontal()),
+				             sprite._shadowcaster ? 1.0f : 0.0f,
 				             sprite._decals_intensity, *sprite._material});
+			}
+		}
+
+		for(Anim_sprite_comp& sprite : _anim_sprites) {
+			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
+
+			auto position = remove_units(trans.position());
+
+			if(sprite._shadowcaster && std::abs(position.z) < 1.0f) {
+				batch.insert(renderer::Sprite{position, trans.rotation(),
+				             sprite._size*trans.scale(),
+				             flip(sprite.state().uv_rect(), trans.flip_vertical(), trans.flip_horizontal()),
+				             sprite._shadowcaster ? 1.0f : 0.0f,
+				             sprite._decals_intensity, sprite.state().material()});
 			}
 		}
 
@@ -114,6 +166,9 @@ namespace graphic {
 	}
 
 	void Graphic_system::update(Time dt) {
+		for(Anim_sprite_comp& sprite : _anim_sprites) {
+			sprite.state().update(dt, _mailbox.bus());
+		}
 	}
 
 	void Graphic_system::_on_state_change(const State_change& s) {

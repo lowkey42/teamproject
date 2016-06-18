@@ -8,6 +8,8 @@
 
 #include "../gameplay/enlightened_comp.hpp"
 
+#include "../graphic/sprite_comp.hpp"
+
 #include <core/input/events.hpp>
 
 
@@ -90,7 +92,7 @@ namespace controller {
 		} else {
 			c._air_time += dt;
 		}
-		ctransform.rotation(Angle{glm::mix(ctransform.rotation().value(), target_rotation, 10*dt.value())});
+		ctransform.rotation(Angle{glm::mix(normalize(ctransform.rotation()).value(), normalize(Angle{target_rotation}).value(), 10*dt.value())});
 
 		auto same_dir = glm::sign(effective_move)==glm::sign(c._last_velocity) || glm::abs(c._last_velocity)<1.f;
 
@@ -160,8 +162,6 @@ namespace controller {
 			return;
 		}
 
-		// TODO: AI
-
 		auto effective_move = _move_dir;
 		if(_move_left>0)
 			effective_move-=1;
@@ -173,6 +173,7 @@ namespace controller {
 		effective_move = glm::clamp(effective_move, -1.f, 1.f);
 
 		for(Input_controller_comp& c : _input_controllers) {
+			auto sprite = c.owner().get<graphic::Anim_sprite_comp>();
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
 			auto cpos = remove_units(ctransform.position()).xy();
@@ -189,8 +190,6 @@ namespace controller {
 				dir = glm::rotate(glm::vec2{1,0}, dir_angle.value());
 			}
 
-			// TODO: apply dir to sprite
-
 			auto enlightened_comp = c.owner().get<gameplay::Enlightened_comp>();
 			enlightened_comp >> [&](gameplay::Enlightened_comp& light) {
 				bool transformation_allowed = body.grounded() || light.can_air_transform() || light.pending();
@@ -199,11 +198,13 @@ namespace controller {
 				if(_transform_pending && light.enabled()) {
 					light.start_transformation();
 					light.finish_transformation();
+					sprite.process([&](auto& s){s.play("untransform"_strid);});
 				}
 
 				// transforming to light
 				if(_transform_pending && transformation_allowed && light.disabled()) {
 					light.start_transformation();
+					sprite.process([&](auto& s){s.play("transform"_strid);});
 				}
 				if(_transform_pending && transformation_allowed && !light.was_light()) {
 					if(glm::length2(dir)>0.1f) {
@@ -214,11 +215,13 @@ namespace controller {
 				// jump to cancel
 				if(_transform_canceled) {
 					light.cancel_transformation();
+					sprite.process([&](auto& s){s.play_next("untransform"_strid);});
 				}
 
 				// execute
 				if(_transform && (transformation_allowed || light.was_light())) {
 					light.finish_transformation();
+					sprite.process([&](auto& s){s.play_next("light"_strid);});
 				}
 			};
 
@@ -227,13 +230,30 @@ namespace controller {
 			if(is_light)
 				continue;
 
-
 			_move(c, body, effective_move, dt);
 
 			if(_jump) {
 				_start_jump(c, body, dt);
 			} else {
 				_stop_jump(c, body, dt);
+			}
+
+			if(glm::abs(effective_move)>0.0001f) {
+				ctransform.flip_horizontal(effective_move<0.f);
+				sprite.process([&](auto& s){s.play_if("idle"_strid, "walk"_strid, glm::abs(effective_move));});
+			} else {
+				sprite.process([&](auto& s){s.play_if("walk"_strid, "idle"_strid);});
+			}
+
+			if(_jump && body.velocity().y>0.1f) {
+				sprite.process([&](auto& s){s.play("jump"_strid);});
+			} else if(!body.grounded()) {
+				sprite.process([&](auto& s){s.play("fall"_strid);});
+			} else {
+				sprite.process([&](auto& s){
+					s.play_if("fall"_strid, "land"_strid);
+					s.play_if("jump"_strid, "land"_strid);
+				});
 			}
 		}
 
@@ -246,6 +266,8 @@ namespace controller {
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
 			auto dir = (c._moving_left ? -1.f : 1.f);
+
+			ctransform.flip_horizontal(c._moving_left);
 
 			auto ray = _physics_world.raycast(cpos, glm::vec2{dir,0.f}, 1.f);
 			if(ray.is_some()) {

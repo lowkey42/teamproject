@@ -19,7 +19,9 @@ namespace physics {
 			sf2::vmember("position", position_f),
 			sf2::vmember("scale", _scale),
 			sf2::vmember("rotation", rotation_f),
-			sf2::vmember("rotation_fixed", _rotation_fixed)
+			sf2::vmember("rotation_fixed", _rotation_fixed),
+			sf2::vmember("flip_horizontal", _flip_horizontal),
+			sf2::vmember("flip_vertical", _flip_vertical)
 		);
 
 		_position = position_f * 1_m;
@@ -30,7 +32,9 @@ namespace physics {
 			sf2::vmember("position", remove_units(_position)),
 			sf2::vmember("scale", _scale),
 			sf2::vmember("rotation", _rotation / 1_deg),
-			sf2::vmember("rotation_fixed", _rotation_fixed)
+			sf2::vmember("rotation_fixed", _rotation_fixed),
+			sf2::vmember("flip_horizontal", _flip_horizontal),
+			sf2::vmember("flip_vertical", _flip_vertical)
 		);
 	}
 
@@ -41,6 +45,18 @@ namespace physics {
 	void Transform_comp::rotation(Angle a)noexcept {
 		if(!_rotation_fixed) {
 			_rotation = a;
+		}
+	}
+	void Transform_comp::flip_horizontal(bool f)noexcept {
+		if(_flip_horizontal!=f) {
+			_flip_horizontal = f;
+			_revision++;
+		}
+	}
+	void Transform_comp::flip_vertical(bool f)noexcept {
+		if(_flip_vertical!=f) {
+			_flip_vertical = f;
+			_revision++;
 		}
 	}
 

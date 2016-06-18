@@ -62,6 +62,8 @@ namespace util {
 		public:
 			Mailbox_collection(Message_bus& bus);
 
+			auto& bus()noexcept {return _bus;}
+
 			template<class T, std::size_t bulk_size, typename Func>
 			void subscribe(std::size_t queue_size, Func handler={});
 

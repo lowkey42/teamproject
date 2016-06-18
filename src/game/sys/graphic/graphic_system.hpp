@@ -38,6 +38,7 @@ namespace graphic {
 
 			util::Mailbox_collection _mailbox;
 			Sprite_comp::Pool& _sprites;
+			Anim_sprite_comp::Pool& _anim_sprites;
 			Terrain_comp::Pool& _terrains;
 
 			mutable renderer::Sprite_batch _sprite_batch;
