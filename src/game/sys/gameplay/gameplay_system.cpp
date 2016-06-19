@@ -213,6 +213,7 @@ namespace gameplay {
 			if(body_mb.is_nothing())
 				continue;
 
+			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 			auto& body = body_mb.get_or_throw();
 
 			c._direction = glm::normalize(c._direction);

@@ -238,9 +238,9 @@ namespace controller {
 				_stop_jump(c, body, dt);
 			}
 
-			if(glm::abs(effective_move)>0.0001f) {
+			if(glm::abs(c._last_velocity)>0.0001f) {
 				ctransform.flip_horizontal(effective_move<0.f);
-				sprite.process([&](auto& s){s.play_if("idle"_strid, "walk"_strid, glm::abs(effective_move));});
+				sprite.process([&](auto& s){s.play_if("idle"_strid, "walk"_strid, glm::abs(c._last_velocity)/c._ground_velocity);});
 			} else {
 				sprite.process([&](auto& s){s.play_if("walk"_strid, "idle"_strid);});
 			}
