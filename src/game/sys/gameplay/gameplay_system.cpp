@@ -148,6 +148,7 @@ namespace gameplay {
 			DEBUG("Everyone is dead!");
 
 			// set camera to slowly lerp back to player and block input
+			// TODO: maybe make the lerp time dependent on the distance to the start position
 			_camera_sys.start_slow_lerp(1.0_s);
 			_controller_sys.block_input(0.8_s);
 

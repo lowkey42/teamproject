@@ -97,9 +97,12 @@ namespace cam {
 		if(_slow_lerp_remainder>0_s) {
 			if(_targets.size()>0) {
 				_slow_lerp_remainder-=dt;
-				if(_slow_lerp_remainder<_slow_lerp_time*0.9f)
-					target = save_mix(remove_units(_slow_lerp_target), remove_units(_slow_lerp_start), _slow_lerp_remainder/(_slow_lerp_time*0.9f)) * 1_m;
-				else {
+				if(_slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001f) {
+					auto alpha = 1.f - glm::clamp(_slow_lerp_remainder/_slow_lerp_time, 0.f, 1.f);
+					//alpha = glm::sin(alpha*glm::pi<float>()/2.f);
+					alpha = glm::smoothstep(0.f, 1.f, alpha);
+					target = save_mix(remove_units(_slow_lerp_start), remove_units(_slow_lerp_target), alpha) * 1_m;
+				} else {
 					_slow_lerp_target = target;
 					target = _slow_lerp_start;
 				}
