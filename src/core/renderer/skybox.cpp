@@ -87,6 +87,11 @@ namespace renderer {
 	}
 
 	void Skybox::draw(Command_queue& q)const {
+		if(_dirty) {
+			_prog.bind().set_uniform("tint", _tint).set_uniform("brightness", _brightness);
+			_dirty = false;
+		}
+
 		q.push_back(create_command()
 		        .shader(_prog)
 		        .texture(Texture_unit::environment, *_tex)

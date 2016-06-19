@@ -29,6 +29,7 @@ namespace lux {
 		description,
 		pack,
 		environment_id,
+		environment_brightness,
 		environment_light_color,
 		environment_light_direction,
 		ambient_brightness,

@@ -24,10 +24,16 @@ namespace renderer {
 
 			void texture(Texture_ptr tex);
 
+			void tint(glm::vec3 t){_tint = t;_dirty=true;}
+			void brightness(float b){_brightness = b; _dirty=true;}
+
 		private:
 			mutable Shader_program _prog;
 			Object         _obj;
 			Texture_ptr    _tex;
+			glm::vec3      _tint {1.f,1.f,1.f};
+			float          _brightness = 1.f;
+			mutable bool   _dirty = true;
 	};
 
 }

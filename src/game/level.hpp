@@ -24,6 +24,7 @@ namespace lux {
 		std::string pack;
 
 		std::string environment_id;
+		float environment_brightness = 1.f;
 		Rgb environment_light_color;
 		glm::vec3 environment_light_direction;
 		float ambient_brightness;

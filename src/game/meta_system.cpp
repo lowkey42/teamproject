@@ -169,14 +169,29 @@ namespace lux {
 	}
 
 
+	void Meta_system::light_config(Rgb sun_light, glm::vec3 sun_dir, float ambient_brightness,
+	                               Rgba background_tint) {
+		lights.config(sun_light,
+		              sun_dir,
+		              ambient_brightness,
+		              background_tint);
+
+		using namespace glm;
+		_skybox.tint(vec3(ambient_brightness) + sun_light);
+
+	}
+
 	auto Meta_system::load_level(const std::string& id) -> Level_info {
 		_current_level = id;
 		auto level_meta_data = ::lux::load_level(_engine, entity_manager, id);
 		_skybox.texture(_engine.assets().load<Texture>({"tex_cube"_strid, level_meta_data.environment_id}));
-		lights.config(level_meta_data.environment_light_color,
-		              level_meta_data.environment_light_direction,
-		              level_meta_data.ambient_brightness,
-		              level_meta_data.background_tint);
+
+		light_config(level_meta_data.environment_light_color,
+		             level_meta_data.environment_light_direction,
+	                 level_meta_data.ambient_brightness,
+	                 level_meta_data.background_tint);
+
+		_skybox.brightness(level_meta_data.environment_brightness);
 
 		return level_meta_data;
 	}
