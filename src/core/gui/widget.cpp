@@ -3,124 +3,109 @@
 namespace lux {
 namespace gui {
 
-	using namespace glm;
-
-	void Widget::position(vec2 p) noexcept {
-		_position = p;
-		_on_moved(p);
+	Widget::Widget(Engine& engine, util::maybe<Widget&> parent, Layout_desc layout)
+	    : _engine(engine), _parent(parent), _layout(layout) {
 	}
 
-	auto Widget::contains(vec2 p) const noexcept -> bool {
-		auto min = position();
-		auto max = min+size();
+	void Widget::draw(Draw_ctx ctx) {
+		_on_draw(ctx);
 
-		return p.x>=min.x && p.y>=min.y &&
-		       p.x<=max.x && p.y<=max.y;
-	}
-
-
-	Widget_container::Widget_container(
-	        Ui_ctx& ctx,
-	        vec2 position, vec2 size, Layout layout)
-	    : Widget(ctx, position), _size(size),
-	      _auto_size_x(_size.x<=0),
-	      _auto_size_y(_size.y<=0),
-	      _layout(layout) {
-	}
-
-	auto Widget_container::add(Widget_ptr w) -> Widget_container& {
-		_children.push_back(std::move(w));
-		_realign();
-		return *this;
-	}
-
-	void Widget_container::_realign() {
-		_layout(position(), _size, _children);
-		if(_auto_size_x || _auto_size_y) {
-			auto max_p = position();
-
-			for(auto& c : _children) {
-				auto p = c->position() + c->size();
-
-				if(max_p.x<p.x) max_p.x = p.x;
-				if(max_p.y<p.y) max_p.y = p.y;
-			}
-
-			if(_auto_size_x)
-				_size.x = max_p.x - position().x;
-			if(_auto_size_y)
-				_size.y = max_p.y - position().y;
-		}
-	}
-
-	void Widget_container::draw(bool active) {
-		int i=0;
-		for(auto& c : _children)
-			c->draw(i++==_focus && active);
-	}
-	void Widget_container::update(float dt) {
-		for(auto& c : _children)
-			c->update(dt);
-	}
-
-	void Widget_container::on_activate() {
-		_children.at(_focus)->on_activate();
-	}
-	void Widget_container::on_input(const std::string& c) {
-		_children.at(_focus)->on_input(c);
-	}
-	void Widget_container::on_move(vec2 point) {
-		std::size_t i=0;
 		for(auto& c : _children) {
-			if(c->contains(point)) {
-				_focus = i;
-				c->on_move(point);
-				return;
-			}
-
-			++i;
+			c->draw(ctx);
 		}
 	}
 
-	void Widget_container::on_move(Direction dir) {
-		if(dir==Direction::left || dir==Direction::up)
-			_focus--;
-		else
-			_focus++;
+	void Widget::update(Time dt) {
+		_on_update(dt);
 
-		if(_focus<0)
-			_focus = _children.size()-1;
-		else if(_focus>=int(_children.size()))
-			_focus = 0;
-
-		_children.at(_focus)->on_move(dir);
+		for(auto& c : _children) {
+			c->update(dt);
+		}
 	}
 
-	void Widget_container::_on_moved(glm::vec2 p) noexcept {
-		_realign();
+	void Widget::focus(glm::vec2 position) {
+		_refocus( std::find_if(_children.begin(), _children.end(), [&](auto& c){
+			return c->_inside(position);
+		}) );
+
+		if(_focused_child!=_children.end()) {
+			(*_focused_child)->focus(position);
+		}
 	}
+	void Widget::focus_next(glm::vec2 dir) {
+		_refocus(_children.end()); // TODO: find next focus
 
+		if(_focused_child!=_children.end()) {
+			(*_focused_child)->focus_next(dir);
+		}
+	}
+	void Widget::_refocus(Child_iter new_focus) {
+		_on_focus();
 
-	auto vertical  (float padding) -> Layout {
-		return [padding](glm::vec2 pos, vec2 size, Widget_list& widgets) {
-			pos += vec2{0, padding};
-
-			for(auto& w : widgets) {
-				w->position(pos);
-				pos.y += w->size().y + padding;
+		if(_focused_child!=new_focus) {
+			if(_focused_child!=_children.end()) {
+				(*_focused_child)->unfocus();
 			}
-		};
+
+			_focused_child = new_focus;
+		}
 	}
 
-	auto horizontal(float padding) -> Layout {
-		return [padding](glm::vec2 pos, vec2 size, Widget_list& widgets) {
-			pos += vec2{padding, 0};
+	void Widget::unfocus() {
+		_on_unfocus();
 
-			for(auto& w : widgets) {
-				w->position(pos);
-				pos.x += w->size().x + padding;
-			}
-		};
+		if(_focused_child!=_children.end()) {
+			(*_focused_child)->unfocus();
+		}
+	}
+
+	void Widget::click(util::maybe<glm::vec2> position) {
+		_on_click(position);
+
+		if(_focused_child!=_children.end()) {
+			(*_focused_child)->click(position);
+		}
+	}
+
+	void Widget::drag_start(glm::vec2 position) {
+		_on_drag_start(position);
+
+		_drag_focus = _focused_child;
+
+		if(_focused_child!=_children.end()) {
+			(*_focused_child)->drag_start(position);
+		}
+	}
+
+	void Widget::drag_end(glm::vec2 position) {
+		_on_drag_end(position);
+
+		if(_focused_child!=_children.end()) {
+			(*_focused_child)->drag_end(position);
+		}
+		if(_drag_focus!=_children.end() && _drag_focus!=_focused_child) {
+			(*_drag_focus)->drag_end(position);
+		}
+	}
+
+	void Widget::update_layout(glm::vec2 center, glm::vec2 parent_size) {
+		auto size = parent_size;
+		size.x = _layout.size_percent.x > 0 ? size.x * _layout.size_percent.x
+		                                    : size.y * _layout.size_percent.y * _layout.aspect_ratio;
+
+		size.y = _layout.size_percent.y > 0 ? size.y * _layout.size_percent.y
+		                                    : size.x / _layout.aspect_ratio;
+
+		_global_center = center;
+		_global_size = size;
+
+		_on_layout_updated();
+
+		for(auto& c : _children) {
+			auto child_pos = center; // TODO
+
+			c->update_layout(child_pos, size);
+		}
 	}
 
 }

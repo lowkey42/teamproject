@@ -1,4 +1,4 @@
-/** a very very stupidly simple button ***************************************
+/** base classes for the simple game ui **************************************
  *                                                                           *
  * Copyright (c) 2014 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
@@ -9,30 +9,21 @@
 
 #include "widget.hpp"
 
+
 namespace lux {
+	class Engine;
+
 namespace gui {
 /*
-	class Button : public Widget {
+	class Ui : public Widget {
 		public:
-			Button(Ui_ctx& ctx, std::string label,
-			       Listerner clicked=Listerner{},
-			       Listerner focused=Listerner{});
+			Ui(Engine& engine);
+			virtual ~Ui() = default;
 
-			void draw  (bool active)override;
-
-			void on_activate  ()override;
-
-			auto size()const noexcept -> glm::vec2 override;
 
 		private:
-			Ui_texture   _border;
-			Ui_text      _label;
-
-			Listerner    _clicked;
-			Listerner    _focused;
-			bool         _last_active = false;
+			Engine& _engine;
 	};
-
 */
 }
 }

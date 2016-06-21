@@ -9,14 +9,10 @@
 
 #include "widget.hpp"
 
-#include "../renderer/primitives.hpp"
-#include "../renderer/text.hpp"
-#include "../audio/audio_ctx.hpp"
-
 
 namespace lux {
 namespace gui {
-
+/*
 	using Input_listerner = std::function<void(std::string)>;
 
 	class Input : public Widget {
@@ -41,7 +37,7 @@ namespace gui {
 			int32_t      _max;
 			bool         _last_active = false;
 	};
-
+*/
 
 }
 }

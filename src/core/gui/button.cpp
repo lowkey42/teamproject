@@ -3,7 +3,7 @@
 
 namespace lux {
 namespace gui {
-
+/*
 	using namespace glm;
 
 	Button::Button(Ui_ctx& ctx, std::string label,
@@ -45,6 +45,6 @@ namespace gui {
 	auto Button::size()const noexcept -> glm::vec2 {
 		return {_border->width(), _border->height()/3.f};
 	}
-
+*/
 }
 }

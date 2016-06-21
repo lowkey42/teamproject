@@ -3,7 +3,7 @@
 
 namespace lux {
 namespace gui {
-
+/*
 	using namespace glm;
 
 	Input::Input(Ui_ctx& ctx, Input_listerner finished, int32_t max, Listerner focused)
@@ -72,6 +72,6 @@ namespace gui {
 	auto Input::size()const noexcept -> glm::vec2 {
 		return {_border->width(), _border->height()/3.f};
 	}
-
+*/
 }
 }
