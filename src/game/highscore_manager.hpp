@@ -31,7 +31,8 @@ namespace lux {
 			void _update(Time delta_time);
 
 		private:
-			std::unordered_map<std::string, Highscore> _highscores; // local storage of highscores
+			std::unordered_map<std::string, std::vector<Highscore>> _highscores; // local storage of highscores
+																				 // --> <levelName, vectorAssociatedHighscores>
 			util::rest::Http_body _http_body;
 			bool _fetching; // set if _http_body is still to be fetched
 
