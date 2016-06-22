@@ -1,0 +1,35 @@
+vert_shader:simple = shader/simple.vert
+frag_shader:simple = shader/simple.frag
+
+vert_shader:particles = shader/particles.vert
+frag_shader:particles = shader/particles.frag
+
+vert_shader:sprite = shader/sprite.vert
+frag_shader:sprite = shader/sprite.frag
+frag_shader:sprite_bg = shader/sprite_bg.frag
+frag_shader:sprite_shadow = shader/sprite_shadowcaster.frag
+
+vert_shader:skybox = shader/skybox.vert
+frag_shader:skybox = shader/skybox.frag
+
+vert_shader:post = shader/post.vert
+frag_shader:post = shader/post.frag
+
+vert_shader:shadowmap = shader/shadowmap.vert
+frag_shader:shadowmap = shader/shadowmap.frag
+
+vert_shader:shadowfinal = shader/shadowfinal.vert
+frag_shader:shadowfinal = shader/shadowfinal.frag
+
+vert_shader:shadow_blur = shader/shadow_blur.vert
+frag_shader:shadow_blur = shader/shadow_blur.frag
+
+vert_shader:blur = shader/blur.vert
+frag_shader:blur = shader/blur.frag
+
+vert_shader:glow_filter = shader/post.vert
+frag_shader:glow_filter = shader/glow_filter.frag
+
+vert_shader:dashed_line = shader/dashed_line.vert
+frag_shader:dashed_line = shader/dashed_line.frag
+
