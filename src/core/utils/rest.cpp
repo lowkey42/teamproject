@@ -211,7 +211,7 @@ namespace rest {
 #endif
 
 
-	auto get_body(Http_body& f) -> maybe<std::string> {
+	auto get_content(Http_body& f) -> maybe<std::string> {
 		if(f.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
 			return just(f.get());
 		} else {
