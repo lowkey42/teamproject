@@ -1,6 +1,13 @@
 #include "highscore_manager.hpp"
 
-highscore_manager::highscore_manager()
-{
+namespace lux {
+
+	Highscore_manager::Highscore_manager(){
+
+	}
+
+	void Highscore_manager::_update(Time delta_time){
+
+	}
 
 }

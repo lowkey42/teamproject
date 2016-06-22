@@ -1,11 +1,21 @@
-#ifndef HIGHSCORE_H
-#define HIGHSCORE_H
+#pragma once
 
+#include <core/utils/md5.hpp>
 
-class highscore
-	{
-	public:
-		highscore();
+#include <string>
+
+namespace lux{
+
+	class Highscore	{
+
+		public:
+			Highscore();
+
+		private:
+			std::string _name;
+			std::string _level;
+			int32_t _score;
+			std::string _md5_hash;
+
 	};
-
-#endif // HIGHSCORE_H
+}

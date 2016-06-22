@@ -1,6 +1,9 @@
 #include "highscore.hpp"
 
-highscore::highscore()
-{
+namespace lux {
+
+	Highscore::Highscore() {
+
+	}
 
 }
