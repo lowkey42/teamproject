@@ -144,9 +144,9 @@ namespace renderer {
 		_animation_set = std::move(rhs._animation_set);
 		_curr_clip_id = std::move(rhs._curr_clip_id);
 		_curr_clip = std::move(rhs._curr_clip);
-		_frame = std::move(_frame);
-		_runtime = std::move(_runtime);
-		_speed_factor = std::move(_speed_factor);
+		_frame = std::move(rhs._frame);
+		_runtime = std::move(rhs._runtime);
+		_speed_factor = std::move(rhs._speed_factor);
 
 		if(_animation_set) {
 			_animation_set->_unregister_inst(rhs);
