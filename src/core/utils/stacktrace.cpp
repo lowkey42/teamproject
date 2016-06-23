@@ -280,6 +280,7 @@
 			void posix_signal_handler(int sig, siginfo_t *siginfo, void *) {
 			  switch(sig) {
 				case SIGSEGV:
+				  fputs("SEGFAULT\n", stderr);
 				  printStackTrace("Caught SIGSEGV: Segmentation Fault");
 				  break;
 				case SIGINT:
