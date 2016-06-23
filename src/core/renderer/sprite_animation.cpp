@@ -199,6 +199,7 @@ namespace renderer {
 				switch(clip.loop) {
 					case Loop_mode::no:
 						next_frame = clip.frames.size()-1;
+						frame_skip = next_frame - _frame;
 						_playing = false;
 						break;
 					case Loop_mode::yes:
