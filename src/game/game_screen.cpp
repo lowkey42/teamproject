@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <game/highscore_manager.hpp>
 
 namespace lux {
 	using namespace unit_literals;
@@ -33,9 +34,10 @@ namespace lux {
 	      _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _camera_ui(engine.graphics_ctx().viewport(),
 	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
-	      _current_level(level_id)
+		  _current_level(level_id)
 	{
-
+		Highscore_manager man;
+		man.test(engine.assets(), "highscore:level_one");
 		_mailbox.subscribe_to([&](input::Once_action& e){
 			switch(e.id) {
 				case "pause"_strid:

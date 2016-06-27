@@ -1,21 +1,23 @@
 #pragma once
 
-#include <core/utils/md5.hpp>
-#include <core/utils/rest.hpp>
-
 #include <string>
 #include <vector>
 
+#include <core/asset/asset_manager.hpp>
+
 namespace lux{
+
+	/*struct Highscore_loading_failed : public asset::Loading_failed {
+		explicit Highscore_loading_failed(const std::string& msg)noexcept : Loading_failed(msg){}
+	};*/
 
 	class Highscore	{
 
-		friend class Highscore_list;
-
 		public:
-			Highscore();
+			Highscore() = default;
+			//explicit Highscore(asset::istream stream) throw(Highscore_loading_failed);
+			Highscore(std::string n, int32_t s) : _name(n), _score(s){}
 
-		private:
 			std::string _name;
 			int32_t _score;
 
@@ -24,15 +26,30 @@ namespace lux{
 	class Highscore_list {
 
 		public:
-			Highscore_list(Highscore_list& other) {};
-			Highscore_list(std::string lev_name);
+			Highscore_list() = default;
+			Highscore_list(std::string level);
 
-		private:
 			std::string _level;
 			std::vector<Highscore> _scores;
-			util::rest::Http_body _http_body;
-			bool _loaded = false;
+
+		private:
+			bool fetching;
 
 	};
 
+/*
+namespace asset {
+	template<>
+	struct Loader<Highscore> {
+		using RT = std::shared_ptr<Highscore>;
+
+		static RT load(istream in) throw(Loading_failed){
+			return std::make_unique<Highscore>(std::move(in));
+		}
+
+		static void store(ostream out, const Highscore& asset) throw(Loading_failed) {
+			FAIL("NOT IMPLEMENTED, YET!");
+		}
+	};
+}*/
 }
