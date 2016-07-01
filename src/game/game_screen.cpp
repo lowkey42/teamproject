@@ -16,8 +16,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <game/highscore_manager.hpp>
-
 namespace lux {
 	using namespace unit_literals;
 	using namespace renderer;
@@ -36,8 +34,28 @@ namespace lux {
 	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
 		  _current_level(level_id)
 	{
-		Highscore_manager man;
-		man.test(engine.assets(), "highscore:level_one");
+
+		// TEMP Highscore-Manager
+
+		// TEMP vector with level IDs
+		std::vector<std::string> ids = {"level_a", "level_b", "level_c"};
+		std::vector<util::maybe<asset::Ptr<Highscore_list>>> ret_lists;
+
+		// TEMP testing get method of Highscore-Manager
+		ret_lists = _man.get_highscore(engine.assets(), ids);
+
+		// TEMP analyze received vector
+		for(auto& cur : ret_lists){
+			WARN("Received the following entries:");
+			if(cur.is_some()){
+				cur.process([&](asset::Ptr<Highscore_list> list){
+					WARN(list->level);
+				});
+			}
+		}
+
+
+
 		_mailbox.subscribe_to([&](input::Once_action& e){
 			switch(e.id) {
 				case "pause"_strid:
@@ -77,6 +95,8 @@ namespace lux {
 
 	void Game_screen::_update(Time dt) {
 		_mailbox.update_subscriptions();
+
+		_man.update(dt);
 
 		if(_fadeout)
 			_systems.update(dt, Update::animations | Update::movements | Update::gameplay);

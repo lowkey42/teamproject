@@ -8,10 +8,22 @@
 #include <core/utils/maybe.hpp>
 #include <core/asset/asset_manager.hpp>
 
+#include <sf2/sf2.hpp>
+
 #include "../core/engine.hpp"
 #include "highscore.hpp"
 
 namespace lux {
+
+	sf2_structDef(Highscore,
+		name,
+		score
+	)
+
+	sf2_structDef(Highscore_list,
+		level,
+		scores
+	)
 
 	class Highscore_manager	{
 
@@ -25,14 +37,12 @@ namespace lux {
 
 			void update(Time delta_time);
 
-			void test(asset::Asset_manager& assets, std::string level);
-
 		private:
-			std::vector<util::rest::Http_body> _bodies_to_parse;
-			std::unordered_map<std::string, Highscore_list> _highscores;
+			std::unordered_map<std::string, util::rest::Http_body> _bodies; // <level_id, Http_body>
+			// std::unordered_map<std::string, Highscore_list> _highscores;		// <level_id, Highscore_list>
 
 			// Methods
-			auto parse_highscore() -> Highscore_list;
+			void parse_highscore(util::rest::Http_body& body);
 
 	};
 
