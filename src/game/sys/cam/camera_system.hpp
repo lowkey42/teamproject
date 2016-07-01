@@ -55,6 +55,7 @@ namespace cam {
 			Position _slow_lerp_start {};
 			Position _slow_lerp_target {};
 			Time _slow_lerp_remainder {};
+			bool _slow_lerp_started = false;
 
 			auto _calc_target() -> Position;
 			auto _smooth_target(Position p, Time dt) -> Position;

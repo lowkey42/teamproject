@@ -85,6 +85,7 @@ namespace cam {
 		_slow_lerp_time = t;
 		_slow_lerp_remainder = t;
 		_slow_lerp_start = _last_target;
+		_slow_lerp_started = false;
 	}
 
 	void Camera_system::update(Time dt) {
@@ -101,7 +102,10 @@ namespace cam {
 		if(_slow_lerp_remainder>0_s) {
 			if(_targets.size()>0) {
 				_slow_lerp_remainder-=dt;
-				if(_slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001f) {
+
+				_slow_lerp_started |= _slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001;
+
+				if(_slow_lerp_started) {
 					auto alpha = 1.f - glm::clamp(_slow_lerp_remainder/_slow_lerp_time, 0.f, 1.f);
 					//alpha = glm::sin(alpha*glm::pi<float>()/2.f);
 					alpha = glm::smoothstep(0.f, 1.f, alpha);
