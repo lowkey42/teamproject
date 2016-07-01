@@ -183,12 +183,13 @@ namespace renderer {
 		                            bool shadowcaster, bool decals_intensity,
 		                            const renderer::Material& mat) {
 
-			const auto pc = 0.5f / mat.albedo().width();
+			const auto pc = 1.0f / mat.albedo().width();
 
 			auto add_vertex = [&](auto v) {
-				auto uv_clip = vec4{0.f, 0.f, 0.75f-pc, 0.75f-pc};
+				auto uv_clip = vec4{pc, pc, 0.75f-pc, 0.75f-pc};
 				auto uv = vec2{v.x,-v.y}*0.5f;
 				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
+
 				vertices.emplace_back(vec3(v,-0.04f), uv, uv_clip, vec2{1.f,0.f}, hc,
 				                      shadowcaster ? 1.f : 0.f, decals_intensity, &mat);
 			};
