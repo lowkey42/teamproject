@@ -37,6 +37,8 @@ namespace cam {
 
 			void update(Time);
 
+			void active_only(ecs::Entity& e);
+
 		private:
 			Camera_target_comp::Pool& _targets;
 			renderer::Camera_sidescroller _camera;

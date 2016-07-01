@@ -96,12 +96,12 @@ namespace util {
 			typedef std::ptrdiff_t                   difference_type;
 			typedef std::vector<char*>::iterator     chunk_iterator;
 
-			pool_iterator(Pool& pool, std::size_t index) : _pool(pool), _index(index) {};
+			pool_iterator(Pool& pool, std::size_t index) : _pool(std::ref(pool)), _index(index) {};
 
-			value_type operator*() {return _pool.get(_index);}
+			value_type operator*() {return _pool.get().get(_index);}
 
 			pool_iterator& operator++() {
-				INVARIANT(_index<_pool.size(), "overflow in pool_iterator");
+				INVARIANT(_index<=_pool.get().size(), "overflow in pool_iterator");
 				++_index;
 				return *this;
 			}
@@ -134,7 +134,7 @@ namespace util {
 			}
 
 		private:
-			Pool& _pool;
+			std::reference_wrapper<Pool> _pool;
 			std::size_t _index;
 	};
 

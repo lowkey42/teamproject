@@ -28,10 +28,14 @@ namespace cam {
 
 			Camera_target_comp(ecs::Entity& owner);
 
+			void active(bool a) {_active = a;}
+			auto active()const noexcept {return _active;}
 
 
 		private:
 			friend class Camera_system;
+
+			bool _active = true;
 	};
 
 }

@@ -157,6 +157,8 @@ namespace gameplay {
 			_game_timer = 0_s;
 			_first_update_after_reset = true;
 		}
+
+		_camera_sys.active_only(*_controller_sys.get_controlled());
 	}
 
 	namespace {
@@ -310,6 +312,7 @@ namespace gameplay {
 					c.b->manager().erase(c.b->shared_from_this());
 					be._smashed = true;
 					c.b = nullptr;
+					_controller_sys.set_controlled(ae.owner_ptr());
 				}
 			};
 		}
@@ -460,32 +463,35 @@ namespace gameplay {
 				} else {
 					auto solid = _is_solid(c, ray.get_or_throw().entity);
 					if(solid.interactive!=Light_color::black) {
+						auto interactive = &c;
+
 						if(solid.passive!=Light_color::black) {
 							auto offset = Position{direction.x * move_distance, direction.y * move_distance, 0_m};
-							_split_player(c, offset, solid.passive);
-							_color_player(c, solid.interactive);
+							interactive = &_split_player(c, {}, solid.interactive);
+							_color_player(c, solid.passive);
+							transform.move(offset);
 						}
 
-						move_distance = ray.get_or_throw().distance - c._radius*2.0f;
+						move_distance = ray.get_or_throw().distance - interactive->_radius*2.0f;
 
 						auto collision_point = pos.xy()+direction*move_distance;
-						auto reflective = _is_reflective(collision_point, c, ray.get_or_throw().entity);
+						auto reflective = _is_reflective(collision_point, *interactive, ray.get_or_throw().entity);
 
 						if(reflective.interactive!=Light_color::black) {
 							if(reflective.passive!=Light_color::black) {
 								auto offset = Position{direction.x * move_distance, direction.y * move_distance, 0_m};
-								auto& new_light = _split_player(c, offset, reflective.passive);
+								auto& new_light = _split_player(*interactive, offset, reflective.passive);
 								_disable_light(new_light, true, false);
 
-								_color_player(c, reflective.interactive);
+								_color_player(*interactive, reflective.interactive);
 							}
 
 							auto normal = ray.get_or_throw().normal;
-							c._direction = c._direction - 2.f*normal*dot(normal, c._direction);
-							c._air_time = 0_s;
+							interactive->_direction = interactive->_direction - 2.f*normal*dot(normal, interactive->_direction);
+							interactive->_air_time = 0_s;
 
 						} else {
-							_disable_light(c, true, false);
+							_disable_light(*interactive, true, false);
 						}
 					}
 				}

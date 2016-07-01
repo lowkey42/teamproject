@@ -154,6 +154,9 @@ namespace ecs {
 			std::size_t size()const noexcept {
 				return _pool.size();
 			}
+			bool empty()const noexcept {
+				return size()==0;
+			}
 
 		private:
 			pool_type _pool;

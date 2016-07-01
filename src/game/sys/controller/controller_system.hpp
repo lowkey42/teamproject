@@ -36,6 +36,13 @@ namespace controller {
 				_input_block_remainder = t;
 			}
 
+			auto get_controlled() {
+				return _active_controlled_entity;
+			}
+			void set_controlled(ecs::Entity_ptr e) {
+				_active_controlled_entity = e;
+			}
+
 		private:
 			util::Mailbox_collection _mailbox;
 			Input_controller_comp::Pool& _input_controllers;
@@ -52,7 +59,12 @@ namespace controller {
 			bool _transform = false;
 			bool _transform_canceled = false;
 
+			ecs::Entity_ptr _active_controlled_entity;
+			int _active_controlled_idx = 0;
+
 			Time _input_block_remainder {};
+
+			void _switch_controller(bool next);
 
 			static void _move(Input_controller_comp& c, physics::Dynamic_body_comp& body, float dir, Time dt);
 			static void _start_jump(Input_controller_comp& c, physics::Dynamic_body_comp& body, Time dt);
