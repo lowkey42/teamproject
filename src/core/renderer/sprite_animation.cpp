@@ -36,6 +36,7 @@ namespace renderer {
 		float width;
 		float height;
 		glm::vec2 pivot {0.5f, 0.5f};
+		int loop_begin = 0;
 		std::vector<Animation_event_desc> events;
 		Animation_clip_id next = ""_strid;
 
@@ -51,7 +52,7 @@ namespace renderer {
 		mutable std::vector<Sprite_animation_state*> _instances;
 	};
 
-	sf2_structDef(Sprite_animation_Clip, frames, fps, loop, width, height, pivot, events, next)
+	sf2_structDef(Sprite_animation_Clip, frames, fps, loop, width, height, pivot, loop_begin, events, next)
 
 	Sprite_animation_set::Sprite_animation_set(asset::istream& in) : _impl(std::make_unique<PImpl>()) {
 		std::string material_aid;
@@ -203,7 +204,10 @@ namespace renderer {
 						_playing = false;
 						break;
 					case Loop_mode::yes:
-						next_frame = next_frame % clip.frames.size();
+						next_frame = next_frame % clip.frames.size() + clip.loop_begin;
+						if(next_frame >= static_cast<int>(clip.frames.size()))
+							next_frame = next_frame % clip.frames.size() + clip.loop_begin;
+
 						break;
 					case Loop_mode::next:
 						set_clip(clip.next);
