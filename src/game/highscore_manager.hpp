@@ -1,3 +1,10 @@
+/** The Highscore-Manger for loading and publishing highscores ***************
+ *                                                                           *
+ * Copyright (c) 2016 Sebastian Schalow                                      *
+ *  This file is distributed under the MIT License                           *
+ *  See LICENSE file for details.                                            *
+\*****************************************************************************/
+
 #pragma once
 
 #include <vector>
@@ -29,20 +36,20 @@ namespace lux {
 
 		public:
 			// Constructors
-			Highscore_manager();
+			Highscore_manager(asset::Asset_manager& manager);
 
 			// Methods
-			auto get_highscore(asset::Asset_manager &manager, std::vector<std::string> levels) -> std::vector<util::maybe<asset::Ptr<Highscore_list>>>;
+			auto get_highscore(std::vector<std::string> levels) -> std::vector<util::maybe<asset::Ptr<Highscore_list>>>;
 			void push_highscore(Highscore& Highscore);
 
 			void update(Time delta_time);
 
 		private:
 			std::unordered_map<std::string, util::rest::Http_body> _bodies; // <level_id, Http_body>
-			// std::unordered_map<std::string, Highscore_list> _highscores;		// <level_id, Highscore_list>
+			asset::Asset_manager& _assets;
 
 			// Methods
-			void parse_highscore(util::rest::Http_body& body);
+			void parse_highscore(std::string level_id, std::string& content);
 
 	};
 

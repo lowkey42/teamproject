@@ -32,17 +32,18 @@ namespace lux {
 	      _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _camera_ui(engine.graphics_ctx().viewport(),
 	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
-		  _current_level(level_id)
+		  _current_level(level_id),
+		  _man(engine.assets())
 	{
 
 		// TEMP Highscore-Manager
 
 		// TEMP vector with level IDs
-		std::vector<std::string> ids = {"level_a", "level_b", "level_c"};
+		std::vector<std::string> ids = {"level_a", "level_b", "level_c", "level_1"};
 		std::vector<util::maybe<asset::Ptr<Highscore_list>>> ret_lists;
 
 		// TEMP testing get method of Highscore-Manager
-		ret_lists = _man.get_highscore(engine.assets(), ids);
+		ret_lists = _man.get_highscore(ids);
 
 		// TEMP analyze received vector
 		for(auto& cur : ret_lists){
