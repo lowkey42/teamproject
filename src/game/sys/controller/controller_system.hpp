@@ -8,7 +8,7 @@
 #pragma once
 
 #include "input_controller_comp.hpp"
-#include "ai_simple_comp.hpp"
+#include "ai_patrolling_comp.hpp"
 
 #include <core/renderer/camera.hpp>
 #include <core/engine.hpp>
@@ -46,7 +46,7 @@ namespace controller {
 		private:
 			util::Mailbox_collection _mailbox;
 			Input_controller_comp::Pool& _input_controllers;
-			Ai_simple_comp::Pool& _ai_controllers;
+			Ai_patrolling_comp::Pool& _ai_controllers;
 			physics::Physics_system& _physics_world;
 
 			bool _mouse_look = true;

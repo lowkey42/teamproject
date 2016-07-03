@@ -9,6 +9,7 @@
 #include "../physics/physics_system.hpp"
 
 #include "../gameplay/enlightened_comp.hpp"
+#include "../gameplay/player_tag_comp.hpp"
 
 #include "../graphic/sprite_comp.hpp"
 
@@ -26,7 +27,7 @@ namespace controller {
 	                                     physics::Physics_system& physics_world)
 	    : _mailbox(engine.bus()),
 	      _input_controllers(ecs.list<Input_controller_comp>()),
-	      _ai_controllers(ecs.list<Ai_simple_comp>()),
+	      _ai_controllers(ecs.list<Ai_patrolling_comp>()),
 	      _physics_world(physics_world) {
 
 		_mailbox.subscribe_to([&](input::Once_action& e) {
@@ -341,27 +342,47 @@ namespace controller {
 
 
 		for(auto& c : _ai_controllers) {
-			auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
-			auto cpos = remove_units(ctransform.position()).xy();
+			auto&transform_comp = c.owner().get<physics::Transform_comp>().get_or_throw();
+			auto position = remove_units(transform_comp.position()).xy();
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+
+			if(!c._start_position_set) {
+				c._start_position_set = true;
+				c._start_position = transform_comp.position();
+			}
 
 			auto dir = (c._moving_left ? -1.f : 1.f);
 
-			ctransform.flip_horizontal(c._moving_left);
+			if(c._flip_horizontal_on_return)
+				transform_comp.flip_horizontal(c._moving_left);
+			if(c._flip_vertical_on_return)
+				transform_comp.flip_vertical(c._moving_left);
 
-			auto ray = _physics_world.raycast(cpos, glm::vec2{dir,0.f}, 1.f);
-			if(ray.is_some()) {
+
+			auto next_pos = position + c._velocity * dir * dt.value()*4.f;
+			auto dist2 = glm::length2(remove_units(c._start_position.xy()) - next_pos);
+			auto ray = _physics_world.raycast(position, glm::vec2{dir,0.f}, 1.f);
+			auto turn = dist2>c._max_distance*c._max_distance;
+			if(ray.is_some() && ray.get_or_throw().entity) {
+				turn |= ray.get_or_throw().entity->has<gameplay::Player_tag_comp>();
+			}
+
+			if(turn) {
 				c._moving_left = !c._moving_left;
-				continue;
+				dir*=-0.5f;
 			}
 
 			auto target_vel = c._velocity * dir;
-			auto vel_diff = target_vel - body.velocity().x;
-			auto move_force = vel_diff * body.mass() / dt.value();
+			auto vel_diff = target_vel - body.velocity();
 
-			body.foot_friction(false);
-			body.apply_force({move_force, 0.f});
-			// TODO: flip sprite
+			if(body.kinematic()) {
+				body.velocity(body.velocity() + vel_diff*glm::min(1.f, dt.value()*4.f));
+
+			} else {
+				auto move_force = vel_diff * body.mass() / dt.value();
+				body.foot_friction(false);
+				body.apply_force(move_force);
+			}
 		}
 	}
 
