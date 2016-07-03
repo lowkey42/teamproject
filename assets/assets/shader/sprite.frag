@@ -39,6 +39,7 @@ uniform Dir_light light_sun;
 uniform Point_light light[6];
 
 uniform vec3 eye;
+uniform float alpha_cutoff;
 
 float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);
@@ -168,7 +169,7 @@ void main() {
 	float metalness = material.g;
 	float smoothness = 1.0-material.b;
 
-	if(albedo.a < 0.1) {
+	if(albedo.a < alpha_cutoff) {
 		discard;
 	}
 

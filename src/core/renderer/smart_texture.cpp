@@ -183,7 +183,7 @@ namespace renderer {
 		                            bool shadowcaster, bool decals_intensity,
 		                            const renderer::Material& mat) {
 
-			const auto pc = 1.0f / mat.albedo().width();
+			const auto pc = 2.0f / mat.albedo().width();
 
 			auto add_vertex = [&](auto v) {
 				auto uv_clip = vec4{pc, pc, 0.75f-pc, 0.75f-pc};

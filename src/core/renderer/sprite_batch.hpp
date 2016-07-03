@@ -57,23 +57,26 @@ namespace renderer {
 		              float shadow_resistence, float decals_intensity,
 		              const renderer::Material*);
 
-		bool operator<(std::tuple<float&, const renderer::Material*> rhs)const noexcept {
-			auto lhs_z = -std::floor(position.z*100.f);
+		bool operator<(std::tuple<float, const renderer::Material*> rhs)const noexcept {
 			auto lhs_alpha = material ? material->alpha() : false;
-			auto rhs_z = -std::floor(std::get<0>(rhs)*100.f);
+			auto lhs_z = -std::floor(position.z*1000.f);
 			auto rhs_alpha = std::get<1>(rhs) ? std::get<1>(rhs)->alpha() : false;
+			auto rhs_z = -std::floor(std::get<0>(rhs)*1000.f);
 
-			return std::tie(lhs_alpha, material, lhs_z)
-			     < std::tie(rhs_alpha, std::get<1>(rhs), rhs_z);
+			if(lhs_alpha && !rhs_alpha) {
+				return false;
+			} else if(!lhs_alpha && rhs_alpha) {
+				return true;
+			} else if(lhs_alpha && rhs_alpha) {
+				return std::make_pair(-lhs_z, material) < std::make_pair(-rhs_z, std::get<1>(rhs));
+			} else {
+				return std::tie(lhs_alpha, material, lhs_z)
+					   < std::tie(rhs_alpha, std::get<1>(rhs), rhs_z);
+			}
+
 		}
 		bool operator<(const Sprite_vertex& rhs)const noexcept {
-			auto lhs_z = -std::floor(position.z*100.f);
-			auto lhs_alpha = material ? material->alpha() : false;
-			auto rhs_z = -std::floor(rhs.position.z*100.f);
-			auto rhs_alpha = rhs.material ? rhs.material->alpha() : false;
-
-			return std::tie(lhs_alpha, material, lhs_z)
-			     < std::tie(rhs_alpha, rhs.material, rhs_z);
+			return *this < std::tie(rhs.position.z, rhs.material);
 		}
 	};
 

@@ -158,8 +158,8 @@ namespace renderer {
 		if(vertices.empty())
 			return;
 
-		auto first = vertices.front();
-		auto iter = _reserve_space(position.z, first.material, vertices.size());
+		auto begin = _reserve_space(position.z, vertices.front().material, vertices.size());
+		auto iter = begin;
 
 		for(auto& v : vertices) {
 			*iter = Sprite_vertex{v.position + position,
@@ -167,6 +167,8 @@ namespace renderer {
 			                      v.shadow_resistence, v.decals_intensity, v.material};
 			iter++;
 		}
+
+		//std::stable_sort(begin, iter);
 	}
 
 	void Sprite_batch::flush(Command_queue& queue) {
@@ -176,6 +178,8 @@ namespace renderer {
 	}
 
 	void Sprite_batch::_draw(Command_queue& queue) {
+		std::stable_sort(_vertices.begin(), _vertices.end());// FIXME: required because _reserve_space doesn't work as expected!
+
 		// draw one batch for each partition
 		auto last = _vertices.begin();
 		for(auto current = _vertices.begin(); current!=_vertices.end(); ++current) {
@@ -187,6 +191,16 @@ namespace renderer {
 
 		if(last!=_vertices.end())
 			queue.push_back(_draw_part(last, _vertices.end()));
+/*
+		DEBUG("draw");
+		float lastz = 0.0f;
+		for(auto& v : _vertices)
+			if(v.position.z!=lastz) {
+				lastz = v.position.z;
+				DEBUG("  " << v.position.z << "  " << (v.material->alpha() ? "alpha" : ""));
+			}
+		DEBUG("END draw");
+*/
 	}
 
 	auto Sprite_batch::_draw_part(Vertex_citer begin, Vertex_citer end) -> Command {
@@ -204,6 +218,8 @@ namespace renderer {
 		auto cmd = create_command()
 		        .shader(_shader)
 		        .object(_objects.at(obj_idx));
+
+		cmd.uniforms().emplace("alpha_cutoff",begin->material->alpha() ? 1.f/255 : 0.9f);
 
 		begin->material->set_textures(cmd);
 
