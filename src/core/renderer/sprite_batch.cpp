@@ -139,10 +139,10 @@ namespace renderer {
 		sprite_clip.y += tex_clip.y;
 		sprite_clip.w += tex_clip.y;
 
-		sprite_clip.x += 1.0f / sprite.material->albedo().width();
-		sprite_clip.y += 1.0f / sprite.material->albedo().height();
-		sprite_clip.z -= 1.0f / sprite.material->albedo().width();
-		sprite_clip.w -= 1.0f / sprite.material->albedo().height();
+		sprite_clip.x += 0.5f / sprite.material->albedo().width();
+		sprite_clip.y += 0.5f / sprite.material->albedo().height();
+		sprite_clip.z -= 0.5f / sprite.material->albedo().width();
+		sprite_clip.w -= 0.5f / sprite.material->albedo().height();
 
 		auto iter = _reserve_space(sprite.position.z, sprite.material, single_sprite_vert.size());
 

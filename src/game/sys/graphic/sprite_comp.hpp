@@ -17,6 +17,21 @@ namespace lux {
 namespace sys {
 namespace graphic {
 
+	inline auto rgb_to_hue(Rgb c) {
+		auto min = std::min({c.r, c.g, c.b});
+		auto max = std::max({c.r, c.g, c.b});
+		auto h = 0.f;
+
+		if(max==c.r)      h = (c.g-c.b)/(max-min);
+		else if(max==c.g) h = 2.0 + (c.b-c.r)/(max-min);
+		else if(max==c.b) h = 4.0 + (c.r-c.g)/(max-min);
+
+		h*=60.f;
+		if(h<0)
+			h+=360.f;
+		return Angle::from_degrees(h);
+	}
+
 	class Sprite_comp : public ecs::Component<Sprite_comp> {
 		public:
 			static constexpr const char* name() {return "Sprite";}
@@ -29,6 +44,10 @@ namespace graphic {
 
 			auto size()const noexcept {return _size;}
 			void size(glm::vec2 size) {_size = size;}
+
+			void hue_change_replacement(Angle a) {
+				_hue_change_replacement = a;
+			}
 
 		private:
 			friend class Graphic_system;
@@ -61,6 +80,10 @@ namespace graphic {
 			             renderer::Animation_clip_id id, float speed=1.f);
 			void play_next(renderer::Animation_clip_id id);
 			auto playing()const noexcept -> util::maybe<renderer::Animation_clip_id>;
+
+			void hue_change_replacement(Angle a) {
+				_hue_change_replacement = a;
+			}
 
 		private:
 			friend class Graphic_system;

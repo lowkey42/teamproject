@@ -24,6 +24,7 @@ namespace light {
 
 			Light_comp(ecs::Entity& owner);
 
+			auto color(Rgb color)noexcept {_color=color;}
 			auto color()const noexcept {return _color*_color_factor;}
 			auto radius()const noexcept {return _radius;}
 			auto offset()const noexcept {return _offset;}

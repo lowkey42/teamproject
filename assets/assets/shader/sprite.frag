@@ -168,7 +168,7 @@ void main() {
 	float metalness = material.g;
 	float smoothness = 1.0-material.b;
 
-	if(albedo.a < 0.01) {
+	if(albedo.a < 0.1) {
 		discard;
 	}
 

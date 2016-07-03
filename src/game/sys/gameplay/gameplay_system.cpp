@@ -54,6 +54,7 @@ namespace gameplay {
 	      _enlightened(ecs.list<Enlightened_comp>()),
 	      _players(ecs.list<Player_tag_comp>()),
 	      _lamps(ecs.list<Lamp_comp>()),
+	      _finish_marker(ecs.list<Finish_marker_comp>()),
 	      _physics_world(physics_world),
 	      _camera_sys(camera_sys),
 	      _controller_sys(controller_sys),
@@ -80,36 +81,66 @@ namespace gameplay {
 		ecs.register_component_type<Finish_marker_comp>();
 
 		_mailbox.subscribe_to([&](sys::physics::Collision& c) {
-			if(_level_finished) {
-				return; //< we are done here
+			if(!_level_finished) {
+				this->_on_collision(c);
 			}
-
-			this->_on_collision(c);
 		});
 		_mailbox.subscribe_to([&](sys::physics::Contact& c) {
-			if(_level_finished) {
-				return; //< we are done here
-			}
-
-			if(c.a && c.b && ((c.a->has<Player_tag_comp>() && c.b->has<Finish_marker_comp>())
-			               || (c.b->has<Player_tag_comp>() && c.a->has<Finish_marker_comp>()))) {
-				_level_finished = true;
-				_mailbox.send<Level_finished>();
-
-				auto player = c.a->has<Player_tag_comp>() ? c.a : c.b;
-				player->get<Enlightened_comp>().process([&](auto& e) {
-					this->_disable_light(e, false, false);
-					player->erase<Enlightened_comp>();
-				});
-
-				player->get<graphic::Anim_sprite_comp>().process([&](auto& s) {
-					s.play("leave"_strid);
-				});
+			if(!_level_finished) {
+				this->_on_contact(c);
 			}
 		});
 		_mailbox.subscribe_to([&](Animation_event& e){
 			_on_animation_event(e);
 		});
+	}
+
+	void Gameplay_system::_on_contact(sys::physics::Contact& c) {
+		if(c.a && c.b && (c.a->has<Player_tag_comp>() || c.b->has<Player_tag_comp>())) {
+			auto player = c.a->has<Player_tag_comp>() ? c.a : c.b;
+			auto other = c.a!=player ? c.a : c.b;
+
+			if(other->has<Finish_marker_comp>()) {
+				auto& marker = other->get<Finish_marker_comp>().get_or_throw();
+
+				auto player_color = Light_color::white;
+				player->get<Enlightened_comp>().process([&](auto& e) {
+					player_color = e._color;
+				});
+
+				auto marker_color = marker._required_color!=Light_color::black ? marker.colors_left() :	Light_color::white;
+				auto interactive_part = interactive_color(marker_color, player_color);
+				if(interactive_part!=Light_color::black) {
+					auto non_interactive_part = not_interactive_color(marker_color, player_color);
+					if (non_interactive_part != Light_color::black) {
+						_split_player(player->get<Enlightened_comp>().get_or_throw(), {}, non_interactive_part);
+						_color_player(player->get<Enlightened_comp>().get_or_throw(), interactive_part);
+					}
+
+					player->get<Enlightened_comp>().process([&](auto& e) {
+						this->_disable_light(e, false, false);
+					});
+					player->erase_other<graphic::Anim_sprite_comp, physics::Transform_comp>();
+					player->get<graphic::Anim_sprite_comp>().process([&](auto &s) {
+						s.play("exit"_strid);
+					});
+
+					marker.add_color(player_color);
+					other->get<light::Light_comp>().process([&](auto &l) {
+						l.color(to_rgb(marker._contained_colors)*6.f);
+					});
+
+					auto markers_left = std::any_of(_finish_marker.begin(), _finish_marker.end(), [](auto &m) {
+						return m.colors_left() != Light_color::black;
+					});
+
+					if (!markers_left) {
+						_level_finished = true;
+						_mailbox.send<Level_finished>();
+					}
+				}
+			}
+		}
 	}
 
 	void Gameplay_system::draw_blood(renderer::Command_queue& q, const renderer::Camera&) {
@@ -351,6 +382,10 @@ namespace gameplay {
 		switch(event.name) {
 			case "death_sound"_strid:
 				_engine.audio_ctx().play_static(*_engine.assets().load<audio::Sound>("sound:slime"_aid));
+				break;
+
+			case "left"_strid:
+				e.manager().erase(e.shared_from_this());
 				break;
 
 			case "dead"_strid: {

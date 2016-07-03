@@ -59,6 +59,14 @@ namespace gameplay {
 		auto ri = static_cast<uint8_t>(filter);
 		return static_cast<Light_color>(ci & ri) == filter;
 	}
+	inline auto to_rgb(Light_color c) {
+		auto ci = static_cast<uint8_t>(c);
+		return Rgb{
+				ci&0b100 ? 1:0,
+				ci&0b010 ? 1:0,
+				ci&0b001 ? 1:0
+		};
+	}
 
 	struct Light_op_res {
 		Light_color interactive;
