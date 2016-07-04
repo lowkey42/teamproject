@@ -29,7 +29,8 @@ namespace lux {
 
 	sf2_structDef(Highscore_list,
 		level,
-		scores
+		scores,
+		timestamp
 	)
 
 	class Highscore_manager	{

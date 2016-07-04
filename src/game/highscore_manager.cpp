@@ -1,6 +1,6 @@
 #include "highscore_manager.hpp"
 
-#include <sf2/sf2.hpp>
+#include <chrono>
 
 namespace lux {
 
@@ -25,14 +25,26 @@ namespace lux {
 
 			// Check if questioned Highscore-List could be loaded by Asset-Manager
 			if(hlist.is_some()){
-				hlist.process([&](auto reference){
-					ret.push_back(reference);
+				bool cont = false;
+				hlist.process([&](asset::Ptr<Highscore_list> reference){
+					// Check if difference between timestamp in hlist and cur-Time is lower than 30 minutes
+					int64_t curMins = 0;
+					{
+						using namespace std::chrono;
+						minutes mins = duration_cast<minutes>(system_clock::now().time_since_epoch());
+						curMins = mins.count();
+					}
+					if((curMins - reference->timestamp) < 30){
+						ret.push_back(reference);
+						cont = true;
+						DEBUG("Found Highscore-List " << level_id << " and placed it inside return-vector");
+					}
 				});
-				DEBUG("Found Highscore-List " << level_id << " and placed it inside return-vector");
-				continue;
+				if(cont)
+					continue;
 			}
 
-			WARN("Highscore-List " << level_id << " couldn't be loaded");
+			WARN("Highscore-List " << level_id << " couldn't be loaded / timestamp delta to high");
 			std::unordered_map<std::string, util::rest::Http_body>::iterator it = _bodies.find(level_id);
 
 			// Check if a fetching Http-Body allready exists for questioned Highscore-List
@@ -94,6 +106,14 @@ namespace lux {
 		Highscore_list list;
 		list.level = level_id;
 
+		{
+			using namespace std::chrono;
+
+			minutes mins = duration_cast<minutes>(system_clock::now().time_since_epoch());
+			list.timestamp = mins.count();
+
+		}
+
 		// Begin parsing highscores from given content-string
 		for(size_t i = 0; i < content.size(); i++){
 
@@ -145,8 +165,10 @@ namespace lux {
 			DEBUG(highscore.name << ": " << highscore.score << std::endl);
 		}
 
-		asset::AID saveAID("highscore:" + list.level);
-		_assets.save(saveAID, list);
+		if(list.scores.size() != 0){
+			asset::AID saveAID("highscore:" + list.level);
+			_assets.save(saveAID, list);
+		}
 
 	}
 

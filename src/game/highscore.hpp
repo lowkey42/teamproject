@@ -18,7 +18,7 @@ namespace lux{
 
 		std::string level;
 		std::vector<Highscore> scores;
-		long timestamp;
+		int64_t timestamp;
 
 	};
 }
