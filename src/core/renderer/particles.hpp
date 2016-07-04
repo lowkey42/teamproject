@@ -1,6 +1,6 @@
 /** 3D particle system *******************************************************
  *                                                                           *
- * Copyright (c) 2015 Florian Oetke                                          *
+ * Copyright (c) 2016 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
  *  See LICENSE file for details.                                            *
 \*****************************************************************************/
@@ -45,7 +45,7 @@ namespace renderer {
 
 		Float_range initial_alpha {1.f,1.f};
 		Float_range final_alpha {1.f,1.f};
-		Float_range initial_opacity {1.f,1.f}; // TODO synonym/spelling?
+		Float_range initial_opacity {1.f,1.f};
 		Float_range final_opacity {1.f,1.f};
 
 		Float_range initial_size {0.2f,0.2f};
@@ -53,10 +53,9 @@ namespace renderer {
 		Float_range rotation {0.f,0.f};
 		Float_range lifetime {1.f,1.f};
 
-		Float_range emision_rate {100.f, 100.f}; // TODO synonym/spelling?
+		Float_range emision_rate {100.f, 100.f};
 		int max_particle_count = 1000;
 
-		// TODO: configurable shape
 		Float_range spawn_x {-1.f,1.f};
 		Float_range spawn_y {-1.f,1.f};
 		Float_range spawn_z {-1.f,1.f};
@@ -75,28 +74,50 @@ namespace renderer {
 		Attractor_plane attractor_plane;
 		Attractor_point attractor_point;
 	};
-	using Particle_type_ptr = std::shared_ptr<const Particle_type>;
+	using Particle_type_ptr = asset::Ptr<Particle_type>;
 
-	class Particle_emiter;
-	using Particle_emiter_ptr = std::shared_ptr<Particle_emiter>;
+	class Particle_emitter {
+	public:
+		Particle_emitter() = default;
+		virtual ~Particle_emitter() = default;
 
-	extern void set_position(Particle_emiter&, glm::vec3 position);
-	extern void set_direction(Particle_emiter&, glm::vec3 eular_angles);
+		void position(glm::vec3 position) {
+			_position = position;
+		}
+		void direction(glm::vec3 euler_angles) {
+			_direction = glm::quat(euler_angles);
+		}
+
+		virtual auto texture()const noexcept -> const Texture* = 0;
+		virtual void update(Time dt) = 0;
+		virtual void draw(Command& cmd)const = 0;
+		virtual void disable() {_active = false;}
+		virtual bool dead()const noexcept {return !_active;}
+
+	protected:
+		glm::vec3 _position;
+		glm::quat _direction;
+		bool _active = true;
+	};
+	using Particle_emitter_ptr = std::shared_ptr<Particle_emitter>;
+
+	extern void set_position(Particle_emitter&, glm::vec3 position);
+	extern void set_direction(Particle_emitter&, glm::vec3 euler_angles);
 
 	class Particle_renderer {
 		public:
 			Particle_renderer(Engine&);
 
-			auto create_emiter(Particle_type_id) -> Particle_emiter_ptr;
+			auto create_emiter(Particle_type_id) -> Particle_emitter_ptr;
 
 			void update(Time dt);
 			void draw(Command_queue&)const;
 
 		private:
 			std::unordered_map<Particle_type_id, Particle_type_ptr> _types;
-			std::vector<Particle_emiter_ptr> _emiters;
+			std::vector<Particle_emitter_ptr> _emitters;
 
-			Shader_program _simple_shader;
+			mutable Shader_program _simple_shader;
 	};
 
 }

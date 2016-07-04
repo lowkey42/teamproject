@@ -1,13 +1,21 @@
+#define BUILD_SERIALIZER
+#define GLM_SWIZZLE
+
 #include "particles.hpp"
 
 #include "texture.hpp"
 #include "vertex_object.hpp"
+
+#include "../utils/random.hpp"
+#include "../utils/sf2_glm.hpp"
 
 #include <vector>
 
 
 namespace lux {
 namespace renderer {
+
+	using namespace unit_literals;
 
 	sf2_structDef(Float_range,
 		min, max
@@ -62,9 +70,8 @@ namespace renderer {
 		};
 
 		struct Particle_draw {
-			float ttl; //< required for deletion
-
 			glm::vec3 position;
+			glm::vec3 direction;
 			float rotation;
 			float frames;
 			float current_frame;
@@ -75,15 +82,15 @@ namespace renderer {
 		};
 		Vertex_layout simple_particle_vertex_layout {
 			Vertex_layout::Mode::triangle_strip,
-			vertex("xy",            &Base::vertex::xy,             0,0)
-			vertex("uv",            &Base::vertex::uv,             0,0)
+			vertex("xy",            &Particle_base_vertex::xy,     0,0),
+			vertex("uv",            &Particle_base_vertex::uv,     0,0),
 			vertex("position",      &Particle_draw::position,      1,1),
 			vertex("rotation",      &Particle_draw::rotation,      1,1),
 			vertex("frames",        &Particle_draw::frames,        1,1),
 			vertex("current_frame", &Particle_draw::current_frame, 1,1),
 			vertex("size",          &Particle_draw::size,          1,1),
 			vertex("alpha",         &Particle_draw::alpha,         1,1),
-			vertex("opacity",       &Particle_draw::opacity,       1,1),
+			vertex("opacity",       &Particle_draw::opacity,       1,1)
 		};
 		std::vector<Particle_base_vertex> simple_particle_vertices {
 			{{-.5,-.5}, {0,1}},
@@ -98,44 +105,35 @@ namespace renderer {
 
 			float initial_alpha;
 			float final_alpha;
-			float initial_opacity; // TODO synonym/spelling?
+			float initial_opacity;
 			float final_opacity;
 
 			float initial_size;
 			float final_size;
 
 			glm::quat direction;
-			float speed;
+			float initial_speed;
+			float final_speed;
+			float speed_pitch;
+			float speed_yaw;
+			float speed_roll;
 		};
+
+		glm::quat calculate_w(float pitch, float yaw, float roll) {
+			return glm::quat(0, roll, pitch, yaw);
+		}
+
+		auto rng = util::create_random_generator();
+
+		auto rand_val(Float_range r) {
+			return util::random_real(rng, r.min, r.max);
+		}
 	}
 
-	class Particle_emiter {
+
+	class Simple_particle_emitter : public Particle_emitter {
 		public:
-			Particle_emiter() = default;
-			virtual ~Particle_emiter() = default;
-
-			void position(glm::vec3 position) {
-				_position = position;
-			}
-			void direction(glm::vec3 eular_angles) {
-				_direction = eular_angles;
-			}
-
-			virtual auto texture()const noexcept -> const Texture* = 0;
-			virtual void update(Time dt) = 0;
-			virtual void draw(Command& cmd)const = 0;
-			virtual void disable() {_active = false;}
-			virtual bool dead()const noexcept {return !_active;}
-
-		protected:
-			glm::vec3 _position;
-			glm::vec3 _direction;
-			bool _active = true;
-	};
-
-	class Simple_particle_emiter : public Particle_emiter {
-		public:
-			Simple_particle_emiter(asset::Asset_manager&, assets, Particle_type& type)
+			Simple_particle_emitter(asset::Asset_manager& assets, const Particle_type& type)
 			    : _type(type),
 			      _obj(simple_particle_vertex_layout,
 			           create_buffer(simple_particle_vertices),
@@ -153,8 +151,9 @@ namespace renderer {
 				INVARIANT(_particles_draw.size()==_particles_sim.size(), "Size mismatch in particle sim/draw buffer.");
 
 				_dt_acc += dt;
-				_to_spawn = std::round(_type.emision_rate * _dt_acc.value());
-				_dt_acc-=Time(to_spawn/_spawn_rate);
+				auto spawn_now = util::random_int(rng,_type.emision_rate.min, _type.emision_rate.max);
+				_to_spawn = static_cast<decltype(_to_spawn)>(std::round(spawn_now * _dt_acc.value()));
+				_dt_acc-=Time(_to_spawn/spawn_now);
 
 				if(_active) {
 					_reap(dt);
@@ -162,18 +161,19 @@ namespace renderer {
 				}
 
 				_simulation(dt);
+
+				// TODO: sort?
+				_obj.buffer(1).set(_particles_draw);
 			}
 
 			void draw(Command& cmd)const override {
-				_obj.buffer(1).set(_particles_draw);
-				return cmd.object(_obj)
-				          .texture(Texture_unit::color, *_texture);
+				cmd.object(_obj).texture(Texture_unit::color, *_texture);
 			}
 
 			bool dead()const noexcept override {return !_active && _particles_draw.empty();}
 
 		private:
-			Particle_type& _type;
+			const Particle_type& _type;
 
 			Texture_ptr _texture;
 			Object _obj;
@@ -189,9 +189,8 @@ namespace renderer {
 				auto to_spawn = _to_spawn;
 				auto new_end = int_fast32_t(_particles_sim.size());
 
-				for(auto i=0; i<new_end, i++) {
+				for(auto i=0; i<new_end; i++) {
 					auto& curr = _particles_sim[i];
-					// TODO: optimize read after store?
 					curr.ttl-=dt;
 					auto dead = curr.ttl<=0_s;
 
@@ -200,15 +199,15 @@ namespace renderer {
 							_spawn_particle_at(i);
 							to_spawn--;
 						} else {
-							std::swap(curr, _particles_sim[new_end-1]);
-							std::swap(curr, _particles_draw[new_end-1]);
+							std::swap(_particles_sim[i], _particles_sim[new_end-1]);
+							std::swap(_particles_draw[i], _particles_draw[new_end-1]);
 							i--;
 							new_end--;
 						}
 					}
 				}
 
-				if(new_end<_particles_sim.size()) {
+				if(static_cast<std::size_t>(new_end) < _particles_sim.size()) {
 					_particles_sim.erase(_particles_sim.begin()+new_end,
 					                     _particles_sim.end());
 					_particles_draw.erase(_particles_draw.begin()+new_end,
@@ -219,9 +218,10 @@ namespace renderer {
 			}
 
 			void _spawn() {
-				_to_spawn = glm::min(_to_spawn, _type.max_particle_count - int(_particles_sim.size()));
+				auto max_spawn = static_cast<decltype(_to_spawn)>(_type.max_particle_count - _particles_sim.size());
+				_to_spawn = std::min(_to_spawn, max_spawn);
 
-				for(auto i : util::numeric_range(to_spawn)) {
+				for(auto i : util::range(_to_spawn)) {
 					(void)i;
 
 					_particles_sim.emplace_back();
@@ -230,13 +230,41 @@ namespace renderer {
 				}
 			}
 			void _spawn_particle_at(int_fast32_t idx) {
-				// TODO: create particle
+				Particle_sim& sim = _particles_sim[idx];
+				sim.ttl = sim.lifetime = rand_val(_type.lifetime) * second;
+				sim.initial_alpha = rand_val(_type.initial_alpha);
+				sim.final_alpha = rand_val(_type.final_alpha);
+				sim.initial_opacity = rand_val(_type.initial_opacity);
+				sim.final_opacity = rand_val(_type.final_opacity);
+				sim.initial_size = rand_val(_type.initial_size);
+				sim.final_size = rand_val(_type.final_size);
+				sim.initial_speed = rand_val(_type.initial_speed);
+				sim.final_speed = rand_val(_type.final_speed);
+				sim.speed_pitch = rand_val(_type.speed_pitch);
+				sim.speed_yaw = rand_val(_type.speed_yaw);
+				sim.speed_roll = rand_val(_type.speed_roll);
+				sim.direction = glm::normalize(_direction * glm::quat(glm::vec3(
+					rand_val(_type.initial_pitch),
+					rand_val(_type.initial_yaw),
+					rand_val(_type.initial_roll)
+				)));
+
+
+				Particle_draw& draw = _particles_draw[idx];
+				draw.position = _position;
+				draw.direction = glm::rotate(sim.direction, glm::vec4(1,0,0,1)).xyz();
+				draw.rotation = rand_val(_type.rotation);
+				draw.frames = _type.animation_frames;
+				draw.current_frame = 0;
+				draw.size = sim.initial_size;
+				draw.alpha = sim.initial_alpha;
+				draw.opacity = sim.initial_opacity;
 			}
 
 			void _simulation(Time dt) {
 				for(std::size_t i=0; i<_particles_sim.size(); i++) {
-					auto& curr_sim = _particles_sim[i];
-					auto& curr_draw = _particles_draw[i];
+					Particle_sim& curr_sim = _particles_sim[i];
+					Particle_draw& curr_draw = _particles_draw[i];
 
 					auto a = 1.f - curr_sim.ttl/curr_sim.lifetime;
 
@@ -251,73 +279,81 @@ namespace renderer {
 						curr_draw.current_frame = std::fmod(next_frame, curr_draw.frames);
 					}
 
-					// TODO: update position and rotation
+					auto speed = glm::mix(curr_sim.initial_speed, curr_sim.final_speed, a);
+
+					auto w = calculate_w(curr_sim.speed_pitch, curr_sim.speed_yaw, curr_sim.speed_roll);
+					curr_sim.direction = glm::normalize(curr_sim.direction + dt.value()*0.5f*curr_sim.direction*w);
+
+					// TODO: attractors
+
+					auto dir = glm::rotate(curr_sim.direction, glm::vec4(1,0,0,1));
+					curr_draw.position += dir.xyz() * speed;
+
+					curr_draw.direction = dir.xyz();
 				}
 			}
 	};
 
 
-	void set_position(Particle_emiter& e, glm::vec3 position) {
+	void set_position(Particle_emitter& e, glm::vec3 position) {
 		e.position(position);
 	}
 
-	void set_direction(Particle_emiter& e, glm::vec3 eular_angles) {
-		e.direction(eular_angles);
+	void set_direction(Particle_emitter& e, glm::vec3 euler_angles) {
+		e.direction(euler_angles);
 	}
 
 	Particle_renderer::Particle_renderer(Engine& e) {
-		_simple_shader.attach_shader(asset_manager.load<Shader>("vert_shader:particle"_aid))
-		              .attach_shader(asset_manager.load<Shader>("frag_shader:particle"_aid))
-		              .bind_all_attribute_locations(simple_particle_vertices)
+		_simple_shader.attach_shader(e.assets().load<Shader>("vert_shader:particle"_aid))
+		              .attach_shader(e.assets().load<Shader>("frag_shader:particle"_aid))
+		              .bind_all_attribute_locations(simple_particle_vertex_layout)
 		              .build()
 		              .uniforms(make_uniform_map(
 		                  "albedo_tex", int(Texture_unit::color),
 		                  "shadowmaps_tex", int(Texture_unit::shadowmaps),
 		                  "environment_tex", int(Texture_unit::environment),
-		                  "last_frame_tex", int(Texture_unit::last_frame),
+		                  "last_frame_tex", int(Texture_unit::last_frame)
 		              ));
 	}
 
-	auto Particle_renderer::create_emiter(Particle_type_id id) -> Particle_emiter_ptr {
+	auto Particle_renderer::create_emiter(Particle_type_id id) -> Particle_emitter_ptr {
 		auto iter = _types.find(id);
 		if(iter==_types.end()) {
 			WARN("Created emiter of unknown type '"<<id.str()<<"'");
 			iter = _types.begin();
 		}
 
-		auto emiter = Particle_emiter_ptr{};
+		auto emiter = Particle_emitter_ptr{};
 
 		if(iter->second->physics_simulation) {
 			FAIL("NOT IMPLEMENTED, YET!");
 		} else {
-			emiter = std::make_shared<Particle_emiter>(*iter->second);
+			emiter = std::make_shared<Simple_particle_emitter>(iter->second.mgr(), *iter->second);
 		}
 
-		_emiters.emplace_back(emiter);
-
-		std::sort(_emiters.begin(), _emiters.end(), [](auto& lhs, auto& rhs){
-			return lhs.texture() < rhs.texture();
-		})
+		_emitters.emplace_back(emiter);
 
 		return emiter;
 	}
 
 	void Particle_renderer::update(Time dt) {
-		for(auto& e : _emiters) {
-			if(e->use_count()<=1) {
+		for(auto& e : _emitters) {
+			if(e.use_count()<=1) {
 				e->disable();
 			}
 			e->update(dt);
 		}
 
-		_emiters.erase(std::remove_if(_emiters.begin(),_emiters.end(), [](auto& e){return e->dead();}), _emiters.end());
+		_emitters.erase(std::remove_if(_emitters.begin(),_emitters.end(), [](auto& e){return e->dead();}), _emitters.end());
 	}
 	void Particle_renderer::draw(Command_queue& queue)const {
-		for(auto& e : _emiters) {
-			queue.push_back(e->draw(
-			                    create_command().shader(_simple_shader)
-			));
-
+		for(auto& e : _emitters) {
+			auto cmd = create_command().shader(_simple_shader)
+					.require_not(Gl_option::depth_write)
+					.require(Gl_option::depth_test)
+					.require(Gl_option::blend);
+			e->draw(cmd);
+			queue.push_back(cmd);
 		}
 	}
 
