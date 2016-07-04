@@ -168,7 +168,9 @@ namespace renderer {
 			iter++;
 		}
 
-		//std::stable_sort(begin, iter);
+#ifdef NDEBUG
+		INVARIANT(std::is_sorted(vertices.begin(), vertices.end()), "inserted vertices nt sorted");
+#endif
 	}
 
 	void Sprite_batch::flush(Command_queue& queue) {
@@ -178,8 +180,6 @@ namespace renderer {
 	}
 
 	void Sprite_batch::_draw(Command_queue& queue) {
-		std::stable_sort(_vertices.begin(), _vertices.end());// FIXME: required because _reserve_space doesn't work as expected!
-
 		// draw one batch for each partition
 		auto last = _vertices.begin();
 		for(auto current = _vertices.begin(); current!=_vertices.end(); ++current) {
@@ -192,14 +192,26 @@ namespace renderer {
 		if(last!=_vertices.end())
 			queue.push_back(_draw_part(last, _vertices.end()));
 /*
-		DEBUG("draw");
-		float lastz = 0.0f;
-		for(auto& v : _vertices)
-			if(v.position.z!=lastz) {
-				lastz = v.position.z;
-				DEBUG("  " << v.position.z << "  " << (v.material->alpha() ? "alpha" : ""));
+		if(!_vertices.empty()) {
+			DEBUG("draw");
+			float lastz = std::floor(_vertices.front().position.z*1000.f);
+			bool last_alpha = _vertices.front().material->alpha();
+			for(auto& v : _vertices) {
+				auto z = std::floor(v.position.z*1000.f);
+				if(last_alpha)
+					INVARIANT(v.material->alpha(), "sort broken");
+
+				DEBUG("   "<<z);
+				if(!v.material->alpha()) {
+				//	INVARIANT(v.position.z <= lastz, "sort broken");
+				} else if(last_alpha == v.material->alpha()) {
+					INVARIANT(z >= lastz, "sort broken");
+				}
+
+				last_alpha = v.material->alpha();
+				lastz = z;
 			}
-		DEBUG("END draw");
+		}
 */
 	}
 

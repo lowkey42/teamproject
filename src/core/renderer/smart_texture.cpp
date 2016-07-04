@@ -240,6 +240,8 @@ namespace renderer {
 			auto add_sprite_points = [&](float d, vec2 tangent, vec2 tl, vec2 tr, vec2 bl, vec2 br,
 			                             vec4 uv_clip,
 			                             vec2 uv_tl, vec2 uv_tr, vec2 uv_bl, vec2 uv_br, bool later=false) {
+				d= 0.0f;
+
 				auto tex_clip = mat.albedo().clip_rect();
 				// rescale uv to texture clip_rect
 				uv_clip.x *= (tex_clip.z - tex_clip.x);
