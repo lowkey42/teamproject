@@ -148,7 +148,7 @@ vec3 hue_shift(vec3 in_color) {
 }
 vec4 read_albedo(vec2 uv) {
 	vec4 c = texture2D(albedo_tex, uv);
-	c.rgb = hue_shift(pow(c.rgb, vec3(2.2)));
+	c.rgb = hue_shift(pow(c.rgb, vec3(2.2))) * c.a;
 	return c;
 }
 

@@ -15,8 +15,8 @@ namespace lux {
 
 	namespace {
 
-		constexpr auto global_uniforms = 4+sys::light::light_uniforms;
-		constexpr auto global_uniforms_size = 4*(4*4)+sys::light::light_uniforms_size;
+		constexpr auto global_uniforms = 6+sys::light::light_uniforms;
+		constexpr auto global_uniforms_size = 6*(4*4)+sys::light::light_uniforms_size;
 		constexpr auto global_uniforms_avg_size = (int)(global_uniforms_size/global_uniforms + 0.5f);
 
 		using Global_uniform_map = renderer::Uniform_map<global_uniforms,
@@ -244,6 +244,8 @@ namespace lux {
 			queue.flush();
 		}
 
+		uniforms->emplace("view", cam.view());
+		uniforms->emplace("proj", cam.proj());
 		uniforms->emplace("vp", cam.vp());
 		uniforms->emplace("vp_inv", glm::inverse(cam.vp()));
 		uniforms->emplace("eye", cam.eye_position());

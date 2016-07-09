@@ -37,5 +37,7 @@
 		"friction": 0.0,
 		"resitution": 0.01,
 		"linear_damping": 0.1
+	},
+	"Particle": {
 	}
 }

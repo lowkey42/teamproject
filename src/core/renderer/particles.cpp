@@ -85,6 +85,7 @@ namespace renderer {
 			vertex("xy",            &Particle_base_vertex::xy,     0,0),
 			vertex("uv",            &Particle_base_vertex::uv,     0,0),
 			vertex("position",      &Particle_draw::position,      1,1),
+			vertex("direction",     &Particle_draw::direction,     1,1),
 			vertex("rotation",      &Particle_draw::rotation,      1,1),
 			vertex("frames",        &Particle_draw::frames,        1,1),
 			vertex("current_frame", &Particle_draw::current_frame, 1,1),
@@ -134,7 +135,7 @@ namespace renderer {
 	class Simple_particle_emitter : public Particle_emitter {
 		public:
 			Simple_particle_emitter(asset::Asset_manager& assets, const Particle_type& type)
-			    : _type(type),
+			    : Particle_emitter(type),
 			      _obj(simple_particle_vertex_layout,
 			           create_buffer(simple_particle_vertices),
 			           create_dynamic_buffer<Particle_draw>(type.max_particle_count)) {
@@ -150,20 +151,28 @@ namespace renderer {
 			void update(Time dt) override {
 				INVARIANT(_particles_draw.size()==_particles_sim.size(), "Size mismatch in particle sim/draw buffer.");
 
+				if(!_last_position_set) {
+					_last_position_set = true;
+					_last_position = _position;
+				}
+
 				_dt_acc += dt;
 				auto spawn_now = util::random_int(rng,_type.emision_rate.min, _type.emision_rate.max);
 				_to_spawn = static_cast<decltype(_to_spawn)>(std::round(spawn_now * _dt_acc.value()));
 				_dt_acc-=Time(_to_spawn/spawn_now);
-
-				if(_active) {
-					_reap(dt);
-					_spawn();
+				if(!_active) {
+					_to_spawn = 0;
 				}
+
+				_reap(dt);
+				_spawn();
 
 				_simulation(dt);
 
 				// TODO: sort?
 				_obj.buffer(1).set(_particles_draw);
+
+				_last_position = _position;
 			}
 
 			void draw(Command& cmd)const override {
@@ -173,8 +182,6 @@ namespace renderer {
 			bool dead()const noexcept override {return !_active && _particles_draw.empty();}
 
 		private:
-			const Particle_type& _type;
-
 			Texture_ptr _texture;
 			Object _obj;
 
@@ -183,6 +190,9 @@ namespace renderer {
 
 			int_fast16_t _to_spawn;
 			Time _dt_acc{0};
+
+			glm::vec3 _last_position;
+			bool _last_position_set = false;
 
 
 			void _reap(Time dt) {
@@ -251,7 +261,7 @@ namespace renderer {
 
 
 				Particle_draw& draw = _particles_draw[idx];
-				draw.position = _position;
+				draw.position = glm::mix(_last_position, _position, util::random_real(rng, 0.f, 1.f));
 				draw.direction = glm::rotate(sim.direction, glm::vec4(1,0,0,1)).xyz();
 				draw.rotation = rand_val(_type.rotation);
 				draw.frames = _type.animation_frames;
@@ -294,7 +304,9 @@ namespace renderer {
 			}
 	};
 
-
+	auto get_type(const Particle_emitter& e) -> Particle_type_id {
+		return e.type();
+	}
 	void set_position(Particle_emitter& e, glm::vec3 position) {
 		e.position(position);
 	}
@@ -303,17 +315,24 @@ namespace renderer {
 		e.direction(euler_angles);
 	}
 
-	Particle_renderer::Particle_renderer(Engine& e) {
-		_simple_shader.attach_shader(e.assets().load<Shader>("vert_shader:particle"_aid))
-		              .attach_shader(e.assets().load<Shader>("frag_shader:particle"_aid))
+	Particle_renderer::Particle_renderer(asset::Asset_manager& assets) {
+		_simple_shader.attach_shader(assets.load<Shader>("vert_shader:particles"_aid))
+		              .attach_shader(assets.load<Shader>("frag_shader:particles"_aid))
 		              .bind_all_attribute_locations(simple_particle_vertex_layout)
 		              .build()
 		              .uniforms(make_uniform_map(
-		                  "albedo_tex", int(Texture_unit::color),
+		                  "texture", int(Texture_unit::color),
 		                  "shadowmaps_tex", int(Texture_unit::shadowmaps),
 		                  "environment_tex", int(Texture_unit::environment),
 		                  "last_frame_tex", int(Texture_unit::last_frame)
 		              ));
+
+		auto type_aids = assets.list("particle"_strid);
+		for(auto& aid : type_aids) {
+			auto type = assets.load<Particle_type>(aid);
+			auto id = type->id;
+			_types.emplace(id, std::move(type));
+		}
 	}
 
 	auto Particle_renderer::create_emiter(Particle_type_id id) -> Particle_emitter_ptr {
@@ -351,7 +370,8 @@ namespace renderer {
 			auto cmd = create_command().shader(_simple_shader)
 					.require_not(Gl_option::depth_write)
 					.require(Gl_option::depth_test)
-					.require(Gl_option::blend);
+					.require(Gl_option::blend)
+					.order_dependent();
 			e->draw(cmd);
 			queue.push_back(cmd);
 		}

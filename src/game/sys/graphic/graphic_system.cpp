@@ -51,6 +51,8 @@ namespace graphic {
 	      _sprites(entity_manager.list<Sprite_comp>()),
 	      _anim_sprites(entity_manager.list<Anim_sprite_comp>()),
 	      _terrains(entity_manager.list<Terrain_comp>()),
+		  _particles(entity_manager.list<Particle_comp>()),
+		  _particle_renderer(asset_manager),
 	      _sprite_batch(512),
 	      _sprite_batch_bg(_background_shader, 256)
 	{
@@ -124,6 +126,8 @@ namespace graphic {
 
 		_sprite_batch.flush(queue);
 		_sprite_batch_bg.flush(queue);
+
+		_particle_renderer.draw(queue);
 	}
 	void Graphic_system::draw_shadowcaster(renderer::Sprite_batch& batch,
 	                                       const renderer::Camera&)const {
@@ -169,6 +173,36 @@ namespace graphic {
 		for(Anim_sprite_comp& sprite : _anim_sprites) {
 			sprite.state().update(dt, _mailbox.bus());
 		}
+
+		for(Particle_comp& particle : _particles) {
+			for(auto& id : particle._add_queue) {
+				if(id!=""_strid) {
+					auto existing = std::find_if(particle._emitters.begin(), particle._emitters.end(),
+					                            [&](auto& e){return e && e->type()==id;});
+
+					if(existing==particle._emitters.end()) {
+						auto empty = std::find(particle._emitters.begin(), particle._emitters.end(),
+						                       renderer::Particle_emitter_ptr{});
+						if (empty == particle._emitters.end())
+							empty = particle._emitters.begin();
+
+						*empty = _particle_renderer.create_emiter(id);
+					}
+					id = ""_strid;
+				}
+			}
+
+			auto& transform = particle.owner().get<physics::Transform_comp>().get_or_throw();
+			auto position = remove_units(transform.position()) + particle._offset;
+			for(auto& e : particle._emitters) {
+				if(e) {
+					renderer::set_position(*e,position);
+					renderer::set_direction(*e, glm::vec3(0,0,transform.rotation().value()));
+				}
+			}
+		}
+
+		_particle_renderer.update(dt);
 	}
 
 	void Graphic_system::_on_state_change(const State_change& s) {

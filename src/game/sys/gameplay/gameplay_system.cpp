@@ -8,6 +8,7 @@
 #include "../cam/camera_system.hpp"
 #include "../controller/controller_system.hpp"
 #include "../graphic/sprite_comp.hpp"
+#include "../graphic/particle_comp.hpp"
 #include "../physics/transform_comp.hpp"
 #include "../physics/physics_system.hpp"
 #include "../light/light_comp.hpp"
@@ -418,8 +419,10 @@ namespace gameplay {
 			c.owner().get<light::Light_comp>().process([&](auto& l){
 				l.brightness_factor(2.f);
 			});
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				particle.add("light_effect"_strid);
+			});
 		}
-		// TODO: set animation, start effects, ...
 	}
 	void Gameplay_system::_handle_light_disabled(Time dt, Enlightened_comp& c) {
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
@@ -434,6 +437,11 @@ namespace gameplay {
 			body.velocity(c._direction * c._velocity);
 			c._final_booster_left -= dt;
 		}
+
+		// TODO: shouldn't be necessary
+		c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+			particle.remove("light_effect"_strid);
+		});
 	}
 	void Gameplay_system::_handle_light_enabled(Time dt, Enlightened_comp& c) {
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
@@ -574,7 +582,11 @@ namespace gameplay {
 
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
-		// TODO: change animation/effect
+
+		c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+			particle.remove("light_effect"_strid);
+		});
+
 		c._state = Enlightened_State::disabled;
 		c._was_light = false;
 
@@ -586,7 +598,6 @@ namespace gameplay {
 		}
 
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
-		transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
 		transform.rotation(0_deg);
 
 		c.owner().get<light::Light_comp>().process([&](auto& l){

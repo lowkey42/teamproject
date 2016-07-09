@@ -78,7 +78,8 @@ namespace renderer {
 
 	class Particle_emitter {
 	public:
-		Particle_emitter() = default;
+		Particle_emitter(const Particle_type& type)
+				: _type(type) {}
 		virtual ~Particle_emitter() = default;
 
 		void position(glm::vec3 position) {
@@ -88,6 +89,7 @@ namespace renderer {
 			_direction = glm::quat(euler_angles);
 		}
 
+		auto type()const noexcept {return _type.id;}
 		virtual auto texture()const noexcept -> const Texture* = 0;
 		virtual void update(Time dt) = 0;
 		virtual void draw(Command& cmd)const = 0;
@@ -95,18 +97,21 @@ namespace renderer {
 		virtual bool dead()const noexcept {return !_active;}
 
 	protected:
+		const Particle_type& _type;
+
 		glm::vec3 _position;
 		glm::quat _direction;
 		bool _active = true;
 	};
 	using Particle_emitter_ptr = std::shared_ptr<Particle_emitter>;
 
+	extern auto get_type(const Particle_emitter&) -> Particle_type_id;
 	extern void set_position(Particle_emitter&, glm::vec3 position);
 	extern void set_direction(Particle_emitter&, glm::vec3 euler_angles);
 
 	class Particle_renderer {
 		public:
-			Particle_renderer(Engine&);
+			Particle_renderer(asset::Asset_manager& assets);
 
 			auto create_emiter(Particle_type_id) -> Particle_emitter_ptr;
 
