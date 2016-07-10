@@ -72,6 +72,13 @@ namespace {
 		assets().shrink_to_fit();
 	}
 
+	void Engine::add_event_filter(Sdl_event_filter& f) {
+		_event_filter.push_back(&f);
+	}
+	void Engine::remove_event_filter(Sdl_event_filter& f) {
+		util::erase_fast(_event_filter, &f);
+	}
+
 	namespace {
 		double current_time_sec() {
 #ifdef SDL_FRAMETIME
@@ -146,8 +153,18 @@ namespace {
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT)
 				_quit = true;
-			else
-				_input_manager->handle_event(event);
+			else {
+
+				auto filtered = std::find_if(_event_filter.begin(),
+				                             _event_filter.end(),
+				                             [&](auto f) {
+					return !f->propagate(event);
+				}) != _event_filter.end();
+
+				if(!filtered) {
+					_input_manager->handle_event(event);
+				}
+			}
 
 			if(event.type==SDL_KEYDOWN) {
 				if(event.key.keysym.sym==SDLK_F12)

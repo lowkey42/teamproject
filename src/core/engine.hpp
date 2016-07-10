@@ -16,21 +16,31 @@
 #include <memory>
 
 
+union SDL_Event;
+
 namespace lux {
 	namespace asset {class Asset_manager;}
 	namespace input {class Input_manager;}
 	namespace renderer {class Graphics_ctx;}
 	namespace audio {class Audio_ctx;}
 
+	struct Sdl_event_filter {
+		virtual ~Sdl_event_filter() = default;
+		bool propagate(SDL_Event&);
+	};
+
 	extern std::string get_sdl_error();
 
 	class Engine {
 		public:
 			Engine(const std::string& title, int argc, char** argv, char** env);
-			~Engine() noexcept;
+			virtual ~Engine() noexcept;
 
 			bool running() const noexcept {return !_quit;}
 			void exit() noexcept {_quit = true;}
+
+			void add_event_filter(Sdl_event_filter&);
+			void remove_event_filter(Sdl_event_filter&);
 
 			void on_frame();
 
@@ -47,7 +57,7 @@ namespace lux {
 
 		protected:
 			void _poll_events();
-			virtual void _on_frame(Time dt) {}
+			virtual void _on_frame(Time) {}
 
 		protected:
 			struct Sdl_wrapper {
@@ -63,6 +73,7 @@ namespace lux {
 			std::unique_ptr<renderer::Graphics_ctx> _graphics_ctx;
 			std::unique_ptr<audio::Audio_ctx> _audio_ctx;
 			std::unique_ptr<input::Input_manager> _input_manager;
+			std::vector<Sdl_event_filter*> _event_filter;
 
 			double _current_time = 0;
 			double _last_time = 0;
