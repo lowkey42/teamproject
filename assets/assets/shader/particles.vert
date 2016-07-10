@@ -12,11 +12,13 @@ attribute float current_frame;
 attribute float size;
 attribute float alpha;
 attribute float opacity;
+attribute float hue_change_out;
 
 
 varying vec2 uv_frag;
 varying float alpha_frag;
 varying float opacity_frag;
+varying float hue_change_out_frag;
 
 
 uniform mat4 view;
@@ -50,4 +52,5 @@ void main() {
 	uv_frag = vec2(uv.x*((current_frame+1.0)/frames), uv.y);
 	alpha_frag = alpha;
 	opacity_frag = opacity;
+	hue_change_out_frag = hue_change_out;
 }

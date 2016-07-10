@@ -196,8 +196,9 @@ namespace graphic {
 			auto position = remove_units(transform.position()) + particle._offset;
 			for(auto& e : particle._emitters) {
 				if(e) {
-					renderer::set_position(*e,position);
-					renderer::set_direction(*e, glm::vec3(0,0,transform.rotation().value()));
+					e->hue_change_out(particle._hue_change);
+					e->position(position);
+					e->direction(glm::vec3(0,0,transform.rotation().value()));
 				}
 			}
 		}

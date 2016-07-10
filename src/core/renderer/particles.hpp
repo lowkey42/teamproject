@@ -42,6 +42,7 @@ namespace renderer {
 
 		int animation_frames = 1;
 		float fps = 1.f;
+		float hue_change_in = 300;
 
 		Float_range initial_alpha {1.f,1.f};
 		Float_range final_alpha {1.f,1.f};
@@ -68,11 +69,17 @@ namespace renderer {
 		Float_range speed_yaw {0.f,0.f};
 		Float_range speed_roll {0.f,0.f};
 
+		Float_range speed_pitch_global {0.f,0.f};
+		Float_range speed_yaw_global {0.f,0.f};
+		Float_range speed_roll_global {0.f,0.f};
+
 		Float_range initial_speed {1.f,1.f};
 		Float_range final_speed {1.f,1.f};
 
 		Attractor_plane attractor_plane;
 		Attractor_point attractor_point;
+
+		float source_velocity_conservation = 0.f;
 	};
 	using Particle_type_ptr = asset::Ptr<Particle_type>;
 
@@ -88,6 +95,9 @@ namespace renderer {
 		void direction(glm::vec3 euler_angles) {
 			_direction = glm::quat(euler_angles);
 		}
+		void hue_change_out(Angle out) {
+			_hue_out = out;
+		}
 
 		auto type()const noexcept {return _type.id;}
 		virtual auto texture()const noexcept -> const Texture* = 0;
@@ -95,6 +105,8 @@ namespace renderer {
 		virtual void draw(Command& cmd)const = 0;
 		virtual void disable() {_active = false;}
 		virtual bool dead()const noexcept {return !_active;}
+		auto hue_change_in()const noexcept {return _type.hue_change_in;}
+		auto hue_change_out()const noexcept {return _hue_out;}
 
 	protected:
 		const Particle_type& _type;
@@ -102,12 +114,10 @@ namespace renderer {
 		glm::vec3 _position;
 		glm::quat _direction;
 		bool _active = true;
+		Angle _hue_out = Angle::from_degrees(300);
 	};
 	using Particle_emitter_ptr = std::shared_ptr<Particle_emitter>;
 
-	extern auto get_type(const Particle_emitter&) -> Particle_type_id;
-	extern void set_position(Particle_emitter&, glm::vec3 position);
-	extern void set_direction(Particle_emitter&, glm::vec3 euler_angles);
 
 	class Particle_renderer {
 		public:
@@ -126,4 +136,18 @@ namespace renderer {
 	};
 
 }
+}
+
+#include <sf2/sf2.hpp>
+
+namespace lux {
+	namespace asset {
+
+		template<>
+		struct Loader<renderer::Particle_type> {
+			static auto load(istream in) -> std::shared_ptr<renderer::Particle_type>;
+			static void store(ostream out, const renderer::Particle_type& asset);
+		};
+
+	}
 }

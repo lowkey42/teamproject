@@ -29,10 +29,15 @@ namespace graphic {
 			void add(renderer::Particle_type_id id);
 			void remove(renderer::Particle_type_id id);
 
+			void hue_change(Angle a) {
+				_hue_change = a;
+			}
+
 		private:
 			friend class Graphic_system;
 
 			glm::vec3 _offset;
+			Angle _hue_change;
 
 			std::array<renderer::Particle_type_id, 3> _add_queue;
 			std::array<renderer::Particle_emitter_ptr, 3> _emitters;

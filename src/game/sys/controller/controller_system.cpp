@@ -238,6 +238,13 @@ namespace controller {
 			return;
 		}
 
+		if(_transform || !_transform_pending) {
+			_transform_timer = 0_s;
+
+		} else if(_transform_pending) {
+			_transform_timer += dt;
+		}
+
 		auto effective_move = _move_dir;
 		if(_move_left>0)
 			effective_move-=1;
@@ -282,15 +289,18 @@ namespace controller {
 					}
 
 					// transforming to light
-					if(_transform_pending && transformation_allowed && light.disabled()) {
+					if (_transform_pending && transformation_allowed && light.disabled()) {
 						light.start_transformation();
-						sprite.process([&](auto& s){s.play("transform"_strid);});
+						sprite.process([&](auto &s) {
+							s.play("transform"_strid);
+						});
 					}
-					if(_transform_pending && transformation_allowed && !light.was_light()) {
-						if(glm::length2(dir)>0.1f) {
+					if (_transform_pending && transformation_allowed && !light.was_light()) {
+						if (glm::length2(dir) > 0.1f) {
 							light.direction(glm::normalize(dir));
 						}
 					}
+
 
 					// jump to cancel
 					if(_transform_canceled) {

@@ -18,11 +18,15 @@ namespace graphic {
 	void Particle_comp::load(sf2::JsonDeserializer& state,
 	                         asset::Asset_manager& assets) {
 		auto types = std::vector<renderer::Particle_type_id>{};
+		auto hue_change = _hue_change.in_degrees();
 
 		state.read_virtual(
 			sf2::vmember("offset", _offset),
-			sf2::vmember("emitters", types)
+			sf2::vmember("emitters", types),
+			sf2::vmember("hue_change", hue_change)
 		);
+
+		_hue_change = hue_change * 1_deg;
 
 		if(!types.empty()) {
 			for(auto& e : _emitters) {
@@ -38,13 +42,15 @@ namespace graphic {
 		types.reserve(_emitters.size());
 		for(auto& e : _emitters) {
 			if(e) {
-				types.emplace_back(renderer::get_type(*e));
+				types.emplace_back(e->type());
 			}
 		}
+		auto hue_change = _hue_change.in_degrees();
 
 		state.write_virtual(
 			sf2::vmember("offset", _offset),
-			sf2::vmember("emitters", types)
+			sf2::vmember("emitters", types),
+			sf2::vmember("hue_change", hue_change)
 		);
 	}
 
@@ -58,7 +64,7 @@ namespace graphic {
 	}
 	void Particle_comp::remove(renderer::Particle_type_id id) {
 		for(auto& e : _emitters) {
-			if(e && id == renderer::get_type(*e)) {
+			if(e && id == e->type()) {
 				e.reset();
 				return;
 			}

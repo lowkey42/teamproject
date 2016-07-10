@@ -410,6 +410,7 @@ namespace gameplay {
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 			body.active(true);
 			body.kinematic(true);
+			body.velocity({0,0});
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 
 			auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
@@ -420,7 +421,10 @@ namespace gameplay {
 				l.brightness_factor(2.f);
 			});
 			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
-				particle.add("light_effect"_strid);
+				if( c._color==Light_color::white)
+					particle.add("wlight_effect"_strid);
+				else
+					particle.add("light_effect"_strid);
 			});
 		}
 	}
@@ -436,14 +440,17 @@ namespace gameplay {
 		if(c._final_booster_left>0_s) {
 			body.velocity(c._direction * c._velocity);
 			c._final_booster_left -= dt;
+		} else {
+			// TODO: shouldn't be necessary
+			c.owner().get<graphic::Particle_comp>().process([&](auto &particle) {
+				particle.remove("light_effect"_strid);
+				particle.remove("wlight_effect"_strid);
+			});
 		}
-
-		// TODO: shouldn't be necessary
-		c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
-			particle.remove("light_effect"_strid);
-		});
 	}
 	void Gameplay_system::_handle_light_enabled(Time dt, Enlightened_comp& c) {
+		c._final_booster_left = 0_s;
+
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
@@ -582,11 +589,6 @@ namespace gameplay {
 
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
-
-		c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
-			particle.remove("light_effect"_strid);
-		});
-
 		c._state = Enlightened_State::disabled;
 		c._was_light = false;
 
@@ -595,6 +597,13 @@ namespace gameplay {
 			if(boost) {
 				c._final_booster_left = c._final_booster_time * 1_s;
 			}
+		}
+
+		if(c._final_booster_left <= 0_s) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto &particle) {
+				particle.remove("light_effect"_strid);
+				particle.remove("wlight_effect"_strid);
+			});
 		}
 
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
@@ -609,6 +618,18 @@ namespace gameplay {
 	void Gameplay_system::_color_player(Enlightened_comp& c, Light_color new_color) {
 		constexpr auto ns = "blueprint"_strid;
 		asset::AID blueprint;
+
+		if(c._color==Light_color::white && new_color!=Light_color::white) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				particle.remove("wlight_effect"_strid);
+				particle.add("light_effect"_strid);
+			});
+		} else if(c._color!=Light_color::white && new_color==Light_color::white) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				particle.add("wlight_effect"_strid);
+				particle.remove("light_effect"_strid);
+			});
+		}
 
 		switch(new_color) {
 			case Light_color::black:

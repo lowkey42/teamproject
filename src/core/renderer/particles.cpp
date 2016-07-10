@@ -32,6 +32,7 @@ namespace renderer {
 
 		animation_frames,
 		fps,
+		hue_change_in,
 
 		initial_alpha,
 		final_alpha,
@@ -56,11 +57,16 @@ namespace renderer {
 		speed_yaw,
 		speed_roll,
 
+		speed_pitch_global,
+		speed_yaw_global,
+		speed_roll_global,
+
 		initial_speed,
 		final_speed,
 
 		attractor_plane,
-		attractor_point
+		attractor_point,
+		source_velocity_conservation
 	)
 
 	namespace {
@@ -79,6 +85,7 @@ namespace renderer {
 
 			float alpha;
 			float opacity;
+			float hue_change_out;
 		};
 		Vertex_layout simple_particle_vertex_layout {
 			Vertex_layout::Mode::triangle_strip,
@@ -91,7 +98,8 @@ namespace renderer {
 			vertex("current_frame", &Particle_draw::current_frame, 1,1),
 			vertex("size",          &Particle_draw::size,          1,1),
 			vertex("alpha",         &Particle_draw::alpha,         1,1),
-			vertex("opacity",       &Particle_draw::opacity,       1,1)
+			vertex("opacity",       &Particle_draw::opacity,       1,1),
+			vertex("hue_change_out",&Particle_draw::hue_change_out,1,1)
 		};
 		std::vector<Particle_base_vertex> simple_particle_vertices {
 			{{-.5,-.5}, {0,1}},
@@ -112,12 +120,15 @@ namespace renderer {
 			float initial_size;
 			float final_size;
 
+			glm::quat source_direction;
 			glm::quat direction;
 			float initial_speed;
 			float final_speed;
-			float speed_pitch;
-			float speed_yaw;
-			float speed_roll;
+
+			glm::quat angular_speed_local;
+			glm::quat angular_speed_global;
+
+			glm::vec3 linear_speed;
 		};
 
 		glm::quat calculate_w(float pitch, float yaw, float roll) {
@@ -170,7 +181,9 @@ namespace renderer {
 				_simulation(dt);
 
 				// TODO: sort?
-				_obj.buffer(1).set(_particles_draw);
+				auto tmp = _particles_draw;
+				std::sort(tmp.begin(), tmp.end(), [](auto& lhs, auto& rhs){return lhs.position.z<rhs.position.z;});
+				_obj.buffer(1).set(tmp);
 
 				_last_position = _position;
 			}
@@ -250,25 +263,41 @@ namespace renderer {
 				sim.final_size = rand_val(_type.final_size);
 				sim.initial_speed = rand_val(_type.initial_speed);
 				sim.final_speed = rand_val(_type.final_speed);
-				sim.speed_pitch = rand_val(_type.speed_pitch);
-				sim.speed_yaw = rand_val(_type.speed_yaw);
-				sim.speed_roll = rand_val(_type.speed_roll);
-				sim.direction = glm::normalize(_direction * glm::quat(glm::vec3(
+
+				sim.angular_speed_local = calculate_w(
+					rand_val(_type.speed_pitch),
+					rand_val(_type.speed_yaw),
+					rand_val(_type.speed_roll)
+				);
+				sim.angular_speed_global = calculate_w(
+						rand_val(_type.speed_pitch_global),
+						rand_val(_type.speed_yaw_global),
+						rand_val(_type.speed_roll_global)
+				);
+				sim.source_direction = _direction;
+				sim.direction = glm::normalize(glm::quat(glm::vec3(
 					rand_val(_type.initial_pitch),
 					rand_val(_type.initial_yaw),
 					rand_val(_type.initial_roll)
 				)));
+				sim.linear_speed = (_position - _last_position) * _type.source_velocity_conservation;
 
 
 				Particle_draw& draw = _particles_draw[idx];
-				draw.position = glm::mix(_last_position, _position, util::random_real(rng, 0.f, 1.f));
-				draw.direction = glm::rotate(sim.direction, glm::vec4(1,0,0,1)).xyz();
+				draw.position = glm::mix(_last_position, _position, util::random_real(rng, 0.f, 1.f))
+								+ glm::rotate(_direction, glm::vec3(
+					rand_val(_type.spawn_x),
+					rand_val(_type.spawn_y),
+					rand_val(_type.spawn_z)
+				));
+				draw.direction = glm::rotate(sim.direction, glm::vec3(1,0,0));
 				draw.rotation = rand_val(_type.rotation);
 				draw.frames = _type.animation_frames;
 				draw.current_frame = 0;
 				draw.size = sim.initial_size;
 				draw.alpha = sim.initial_alpha;
 				draw.opacity = sim.initial_opacity;
+				draw.hue_change_out = _hue_out / (360_deg).value();
 			}
 
 			void _simulation(Time dt) {
@@ -291,15 +320,18 @@ namespace renderer {
 
 					auto speed = glm::mix(curr_sim.initial_speed, curr_sim.final_speed, a);
 
-					auto w = calculate_w(curr_sim.speed_pitch, curr_sim.speed_yaw, curr_sim.speed_roll);
-					curr_sim.direction = glm::normalize(curr_sim.direction + dt.value()*0.5f*curr_sim.direction*w);
+					auto& q = curr_sim.direction;
+					q = glm::normalize(q + dt.value()*0.5f * q * curr_sim.angular_speed_local);
+					q = glm::normalize(q + dt.value()*0.5f * curr_sim.angular_speed_global * q);
 
 					// TODO: attractors
 
-					auto dir = glm::rotate(curr_sim.direction, glm::vec4(1,0,0,1));
-					curr_draw.position += dir.xyz() * speed;
+					auto final_direction = glm::normalize(curr_sim.source_direction * q);
+					auto dir = glm::rotate(final_direction, glm::vec3(1,0,0));
+					curr_draw.position += dir * speed;
+					curr_draw.position += curr_sim.linear_speed;
 
-					curr_draw.direction = dir.xyz();
+					curr_draw.direction = dir;
 				}
 			}
 	};
@@ -372,10 +404,85 @@ namespace renderer {
 					.require(Gl_option::depth_test)
 					.require(Gl_option::blend)
 					.order_dependent();
+
+			cmd.uniforms().emplace("hue_change_in", e->hue_change_in() / (360_deg).value());
+
 			e->draw(cmd);
 			queue.push_back(cmd);
 		}
 	}
 
+}
+namespace asset {
+	auto Loader<renderer::Particle_type>::load(istream in) -> std::shared_ptr<renderer::Particle_type> {
+		auto r = std::make_shared<renderer::Particle_type>();
+
+		sf2::deserialize_json(in, [&](auto &msg, uint32_t row, uint32_t column) {
+			ERROR("Error parsing JSON from " << in.aid().str() << " at " << row << ":" << column << ": " <<
+				  msg);
+		}, *r);
+
+		auto from_deg = [](float& v) {
+			v = Angle::from_degrees(v).value();
+		};
+
+		from_deg(r->initial_pitch.min);
+		from_deg(r->initial_pitch.max);
+		from_deg(r->initial_yaw.min);
+		from_deg(r->initial_yaw.max);
+		from_deg(r->initial_roll.min);
+		from_deg(r->initial_roll.max);
+
+		from_deg(r->speed_pitch.min);
+		from_deg(r->speed_pitch.max);
+		from_deg(r->speed_yaw.min);
+		from_deg(r->speed_yaw.max);
+		from_deg(r->speed_roll.min);
+		from_deg(r->speed_roll.max);
+
+		from_deg(r->speed_pitch_global.min);
+		from_deg(r->speed_pitch_global.max);
+		from_deg(r->speed_yaw_global.min);
+		from_deg(r->speed_yaw_global.max);
+		from_deg(r->speed_roll_global.min);
+		from_deg(r->speed_roll_global.max);
+
+		from_deg(r->hue_change_in);
+
+		return r;
+	}
+
+	void Loader<renderer::Particle_type>::store(ostream out, const renderer::Particle_type &asset) {
+		auto to_deg = [](float& v) {
+			v = Angle{v}.in_degrees();
+		};
+
+		auto r = asset;
+
+		to_deg(r.initial_pitch.min);
+		to_deg(r.initial_pitch.max);
+		to_deg(r.initial_yaw.min);
+		to_deg(r.initial_yaw.max);
+		to_deg(r.initial_roll.min);
+		to_deg(r.initial_roll.max);
+
+		to_deg(r.speed_pitch.min);
+		to_deg(r.speed_pitch.max);
+		to_deg(r.speed_yaw.min);
+		to_deg(r.speed_yaw.max);
+		to_deg(r.speed_roll.min);
+		to_deg(r.speed_roll.max);
+
+		to_deg(r.speed_pitch_global.min);
+		to_deg(r.speed_pitch_global.max);
+		to_deg(r.speed_yaw_global.min);
+		to_deg(r.speed_yaw_global.max);
+		to_deg(r.speed_roll_global.min);
+		to_deg(r.speed_roll_global.max);
+
+		to_deg(r.hue_change_in);
+
+		sf2::serialize_json(out, r);
+	}
 }
 }
