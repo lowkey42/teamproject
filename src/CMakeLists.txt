@@ -7,7 +7,7 @@ project(into_the_light)
 
 set(VERSION_NAME "0.2")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024 -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
 
 include_directories(${ROOT_DIR}/src)
 

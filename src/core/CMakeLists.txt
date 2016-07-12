@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project(core)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024 -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter")
 
 set(WIN_LIBS "")
 
