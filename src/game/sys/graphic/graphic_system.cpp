@@ -75,7 +75,7 @@ namespace graphic {
 			                   position, trans.rotation(),
 			                   sprite._size*trans.scale(),
 			                   flip(glm::vec4{0,0,1,1}, trans.flip_vertical(), trans.flip_horizontal()),
-			                   sprite._shadowcaster ? 1.0f : 0.0f,
+			                   sprite._shadowcaster ? 1.0f : 1.f-sprite._shadow_receiver,
 			                   sprite._decals_intensity, *sprite._material};
 
 			sprite_data.hue_change = {
@@ -98,7 +98,7 @@ namespace graphic {
 			                   position, trans.rotation(),
 			                   sprite._size*trans.scale(),
 			                   flip(sprite.state().uv_rect(), trans.flip_vertical(), trans.flip_horizontal()),
-			                   sprite._shadowcaster ? 1.0f : 0.0f,
+			                   sprite._shadowcaster ? 1.0f : 1.f-sprite._shadow_receiver,
 			                   sprite._decals_intensity, sprite.state().material()};
 
 			sprite_data.hue_change = {

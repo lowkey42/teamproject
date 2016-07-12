@@ -258,7 +258,7 @@ namespace light {
 		// TODO: fade out light color, when they left the screen
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
-			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
+			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].transform->resolve_relative(lights[N].light->offset()));\
 \
 			uniforms.emplace("light["#N"].dir", lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\

@@ -55,6 +55,7 @@ namespace graphic {
 			renderer::Material_ptr _material;
 			glm::vec2 _size;
 			bool _shadowcaster = true;
+			float _shadow_receiver = 1.f;
 			float _decals_intensity = 0.f;
 			Angle _hue_change_target {0};
 			Angle _hue_change_replacement {0};
@@ -91,6 +92,7 @@ namespace graphic {
 			renderer::Sprite_animation_state _anim_state;
 			glm::vec2 _size;
 			bool _shadowcaster = true;
+			float _shadow_receiver = 1.f;
 			float _decals_intensity = 0.f;
 			Angle _hue_change_target {0};
 			Angle _hue_change_replacement {0};
