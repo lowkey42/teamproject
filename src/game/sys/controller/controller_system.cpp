@@ -278,6 +278,10 @@ namespace controller {
 				enlightened_comp >> [&](gameplay::Enlightened_comp& light) {
 					bool transformation_allowed = body.grounded() || light.can_air_transform() || light.pending();
 
+					if(_transform && !light.was_light()) {
+						light.late_untransform();
+					}
+
 					// transforming to physical
 					if(_transform_pending && light.enabled()) {
 						c._air_dash_timer = light.can_air_transform() ? air_dash_delay : dt/2.f;

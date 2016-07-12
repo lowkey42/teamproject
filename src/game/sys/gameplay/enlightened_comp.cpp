@@ -22,6 +22,7 @@ namespace gameplay {
 			sf2::vmember("air_transformations", _air_transformations),
 			sf2::vmember("radius", _radius),
 			sf2::vmember("final_booster_time", _final_booster_time),
+			sf2::vmember("latency_compensation", _latency_compensation),
 			sf2::vmember("max_air_time", _max_air_time),
 			sf2::vmember("smash_force", _smash_force),
 
@@ -31,7 +32,8 @@ namespace gameplay {
 			sf2::vmember("air_transforms_left", _air_transforms_left),
 			sf2::vmember("air_time", air_time),
 			sf2::vmember("final_booster_left", final_booster_left),
-			sf2::vmember("smashed", _smashed)
+			sf2::vmember("smashed", _smashed),
+			sf2::vmember("smash", _smash)
 		);
 
 		_air_time = air_time * 1_s;
@@ -46,6 +48,7 @@ namespace gameplay {
 			sf2::vmember("air_transformations", _air_transformations),
 			sf2::vmember("radius", _radius),
 			sf2::vmember("final_booster_time", _final_booster_time),
+			sf2::vmember("latency_compensation", _latency_compensation),
 			sf2::vmember("max_air_time", _max_air_time),
 			sf2::vmember("smash_force", _smash_force),
 
@@ -55,7 +58,8 @@ namespace gameplay {
 			sf2::vmember("air_transforms_left", _air_transforms_left),
 			sf2::vmember("air_time", _air_time/1_s),
 			sf2::vmember("final_booster_left", _final_booster_left/1_s),
-			sf2::vmember("smashed", _smashed)
+			sf2::vmember("smashed", _smashed),
+			sf2::vmember("smash", _smash)
 		);
 	}
 

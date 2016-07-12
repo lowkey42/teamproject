@@ -245,11 +245,22 @@ namespace gameplay {
 
 		for(Enlightened_comp& c : _enlightened) {
 			auto body_mb = c.owner().get<physics::Dynamic_body_comp>();
-			if(body_mb.is_nothing())
+			if(body_mb.is_nothing() || c._smashed)
 				continue;
 
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 			auto& body = body_mb.get_or_throw();
+
+			if(c._smash || c._forced_smash) {
+				if(c._forced_smash) {
+					transform.position(c._last_impact_point);
+				}
+
+				_on_smashed(c.owner());
+				continue;
+			}
+			c._forced_smash = false;
+			c._last_impact += dt;
 
 			c._direction = glm::normalize(c._direction);
 
@@ -339,7 +350,7 @@ namespace gameplay {
 		if(c.a && c.b) {
 			process(c.a->get<Enlightened_comp>(), c.b->get<Enlightened_comp>())
 			        >> [&](Enlightened_comp& ae, Enlightened_comp& be) {
-				if(!ae._smashed && !be._smashed && !ae.enabled() && !be.enabled()) {
+				if(!ae._smashed && !be._smashed && !ae._smash && !be._smash && !ae.enabled() && !be.enabled()) {
 					_color_player(ae, ae._color|be._color);
 					c.b->manager().erase(c.b->shared_from_this());
 					be._smashed = true;
@@ -349,7 +360,7 @@ namespace gameplay {
 			};
 		}
 
-		auto smashable = [&](ecs::Entity* e) {
+		auto try_smash = [&](ecs::Entity* e) {
 			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
 				ecs::Entity* other = (c.a==&elc.owner()) ? c.b : c.a;
 				auto deadly = other && other->has<Deadly_comp>();
@@ -357,14 +368,14 @@ namespace gameplay {
 			});
 		};
 
-		if(smashable(c.a)) {
-			_on_smashed(*c.a);
-		}
-		if(smashable(c.b)) {
-			_on_smashed(*c.b);
-		}
+		try_smash(c.a);
+		try_smash(c.b);
 	}
 	void Gameplay_system::_on_smashed(ecs::Entity& e) {
+		e.get<Enlightened_comp>().process([&](auto& e) {
+			e._smashed = true;
+		});
+
 		e.get<graphic::Anim_sprite_comp>().process([&](auto& s) {
 			s.play("die"_strid);
 			e.erase_other<physics::Transform_comp, Enlightened_comp, graphic::Anim_sprite_comp, Player_tag_comp>();
@@ -467,7 +478,7 @@ namespace gameplay {
 		if(max_ray_dist>0.01f) {
 			auto ray = _physics_world.raycast(pos.xy(), direction, max_ray_dist, c.owner());
 
-			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius*1.5f) {
+			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius) {
 				if(auto prism = ray.get_or_throw().entity->get<Prism_comp>()) {
 					auto prism_pos = ray.get_or_throw().entity->get<physics::Transform_comp>().get_or_throw().position();
 					prism_pos.z = pos.z*1_m;
@@ -523,7 +534,7 @@ namespace gameplay {
 							transform.move(offset);
 						}
 
-						move_distance = ray.get_or_throw().distance - interactive->_radius*2.0f;
+						move_distance = ray.get_or_throw().distance - interactive->_radius*2.f;
 
 						auto collision_point = pos.xy()+direction*move_distance;
 						auto reflective = _is_reflective(collision_point, *interactive, ray.get_or_throw().entity);
@@ -544,6 +555,13 @@ namespace gameplay {
 						} else {
 							_disable_light(*interactive, true, false);
 						}
+
+						c._last_impact = 0_s;
+						c._last_impact_point = glm::vec3{
+							pos.x+direction.x * move_distance,
+							pos.y+direction.y * move_distance,
+							pos.z
+						} * 1_m;
 					}
 				}
 			}
