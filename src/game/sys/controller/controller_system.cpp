@@ -23,6 +23,10 @@ namespace controller {
 	using namespace unit_literals;
 	using namespace glm;
 
+	namespace {
+		constexpr auto air_dash_delay = 0.7_s;
+	}
+
 	Controller_system::Controller_system(Engine& engine, ecs::Entity_manager& ecs,
 	                                     physics::Physics_system& physics_world)
 	    : _mailbox(engine.bus()),
@@ -238,13 +242,6 @@ namespace controller {
 			return;
 		}
 
-		if(_transform || !_transform_pending) {
-			_transform_timer = 0_s;
-
-		} else if(_transform_pending) {
-			_transform_timer += dt;
-		}
-
 		auto effective_move = _move_dir;
 		if(_move_left>0)
 			effective_move-=1;
@@ -283,21 +280,31 @@ namespace controller {
 
 					// transforming to physical
 					if(_transform_pending && light.enabled()) {
+						c._air_dash_timer = light.can_air_transform() ? air_dash_delay : dt/2.f;
 						light.start_transformation();
-						light.finish_transformation();
-						sprite.process([&](auto& s){s.play("untransform"_strid);});
+					}
+
+					if(c._air_dash_timer>0_s) {
+						c._air_dash_timer -= dt;
+						if(c._air_dash_timer<0_s) {
+							c._air_dash_timer = 0_s;
+							if(!_transform) {
+								light.finish_transformation();
+								sprite.process([&](auto& s){s.play("untransform"_strid);});
+							}
+						}
 					}
 
 					// transforming to light
-					if (_transform_pending && transformation_allowed && light.disabled()) {
+					if (_transform_pending && transformation_allowed && light.disabled() && c._air_dash_timer<=0_s) {
 						light.start_transformation();
 						sprite.process([&](auto &s) {
 							s.play("transform"_strid);
 						});
 					}
 					if (_transform_pending && transformation_allowed && !light.was_light()) {
-						if (glm::length2(dir) > 0.1f) {
-							light.direction(glm::normalize(dir));
+						if (glm::length2(dir) > 0.2f) {
+							light.direction(dir);
 						}
 					}
 
@@ -311,7 +318,9 @@ namespace controller {
 					// execute
 					if(_transform && (transformation_allowed || light.was_light())) {
 						light.finish_transformation();
-						sprite.process([&](auto& s){s.play_next("light"_strid);});
+						if(light.was_light()) {
+							sprite.process([&](auto &s) {s.play("untransform"_strid);});
+						}
 					}
 				};
 

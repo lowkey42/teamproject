@@ -58,7 +58,6 @@ namespace controller {
 			bool _transform_pending = false;
 			bool _transform = false;
 			bool _transform_canceled = false;
-			Time _transform_timer {0};
 
 			ecs::Entity_ptr _active_controlled_entity;
 			int _active_controlled_idx = 0;

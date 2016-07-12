@@ -70,7 +70,7 @@ namespace gameplay {
 
 			bool _was_light = false; //< state after the last update
 			Enlightened_State _state = Enlightened_State::disabled; //< state change request
-			glm::vec2 _direction {0,-1};
+			glm::vec2 _direction {0,1};
 			int _air_transforms_left=0;
 			Time _air_time{};
 			Time _final_booster_left{};

@@ -42,6 +42,7 @@ namespace controller {
 			Time _moving_time{0};
 			Time _air_time{0};
 			Time _jump_cooldown_timer{0};
+			Time _air_dash_timer {0};
 	};
 
 }

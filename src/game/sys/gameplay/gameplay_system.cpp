@@ -441,6 +441,7 @@ namespace gameplay {
 			body.velocity(c._direction * c._velocity);
 			c._final_booster_left -= dt;
 		} else {
+			c._direction = {0,1};
 			// TODO: shouldn't be necessary
 			c.owner().get<graphic::Particle_comp>().process([&](auto &particle) {
 				particle.remove("light_effect"_strid);
