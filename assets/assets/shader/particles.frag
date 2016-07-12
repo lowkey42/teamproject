@@ -1,7 +1,9 @@
 #version 100
 precision mediump float;
 
-varying vec2 uv_frag;
+varying float frames_frag;
+varying float current_frame_frag;
+varying float rotation_frag;
 varying float alpha_frag;
 varying float opacity_frag;
 varying float hue_change_out_frag;
@@ -35,8 +37,21 @@ vec4 read_albedo(vec2 uv) {
 	return c;
 }
 
+vec2 rotate(vec2 p, float a) {
+	vec2 r = mat2(cos(a), -sin(a), sin(a), cos(a)) * p;
+
+	return vec2(r.x, -r.y);
+}
+
 void main() {
-	vec4 c = read_albedo(uv_frag);
+	vec2 uv = gl_PointCoord;
+	uv.y = 1.0-uv.y;
+	uv -= vec2(0.5, 0.5);
+	uv = rotate(uv,rotation_frag);
+	uv += vec2(0.5, 0.5);
+	uv.x = uv.x/frames_frag + (current_frame_frag)/frames_frag;
+
+	vec4 c = read_albedo(uv);
 
 	gl_FragColor = vec4(c.rgb, opacity_frag) * c.a * alpha_frag;
 }

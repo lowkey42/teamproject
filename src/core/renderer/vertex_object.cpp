@@ -90,17 +90,6 @@ namespace renderer {
 
 		_elements = elements;
 
-#ifdef EMSCRIPTEN
-		// webgl on android sucks balls and wierds out if a VBO is updated.
-		// So we create a new one for every update, because who realy cares about performance m(
-		glDeleteBuffers(1, &_id);
-		glGenBuffers(1, &_id);
-		glBindBuffer(GL_ARRAY_BUFFER, _id);
-		glBufferData(GL_ARRAY_BUFFER, elements*_element_size, data,
-		             GL_DYNAMIC_DRAW);
-		_max_elements = elements;
-
-#else
 		glBindBuffer(GL_ARRAY_BUFFER, _id);
 
 		if(_max_elements>=elements) {
@@ -115,7 +104,6 @@ namespace renderer {
 			glBufferData(GL_ARRAY_BUFFER, elements*_element_size, data,
 			             GL_STREAM_DRAW);
 		}
-#endif
 	}
 
 	void Buffer::_bind()const {
@@ -173,6 +161,10 @@ namespace renderer {
 	}
 
 	void Object::draw()const {
+		if(_data.at(0).size()==0) {
+			return;
+		}
+
 		_layout->_build(_data);
 		glDrawArrays(to_gl(_mode), 0, _data.at(0).size());
 	}
@@ -207,6 +199,10 @@ namespace renderer {
 	}
 
 	void Object::draw()const {
+		if(_data.at(0).size()==0 || _data.back().size()==0) {
+			return;
+		}
+
 		glBindVertexArray(_vao_id);
 		if(!_instanced)
 			glDrawArrays(to_gl(_mode), 0, _data.at(0).size());

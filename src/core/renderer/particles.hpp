@@ -102,7 +102,7 @@ namespace renderer {
 		auto type()const noexcept {return _type.id;}
 		virtual auto texture()const noexcept -> const Texture* = 0;
 		virtual void update(Time dt) = 0;
-		virtual void draw(Command& cmd)const = 0;
+		virtual bool draw(Command& cmd)const = 0;
 		virtual void disable() {_active = false;}
 		virtual bool dead()const noexcept {return !_active;}
 		auto hue_change_in()const noexcept {return _type.hue_change_in;}

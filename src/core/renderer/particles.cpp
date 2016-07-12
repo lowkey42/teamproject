@@ -70,11 +70,6 @@ namespace renderer {
 	)
 
 	namespace {
-		struct Particle_base_vertex {
-			glm::vec2 xy;
-			glm::vec2 uv;
-		};
-
 		struct Particle_draw {
 			glm::vec3 position;
 			glm::vec3 direction;
@@ -88,24 +83,16 @@ namespace renderer {
 			float hue_change_out;
 		};
 		Vertex_layout simple_particle_vertex_layout {
-			Vertex_layout::Mode::triangle_strip,
-			vertex("xy",            &Particle_base_vertex::xy,     0,0),
-			vertex("uv",            &Particle_base_vertex::uv,     0,0),
-			vertex("position",      &Particle_draw::position,      1,1),
-			vertex("direction",     &Particle_draw::direction,     1,1),
-			vertex("rotation",      &Particle_draw::rotation,      1,1),
-			vertex("frames",        &Particle_draw::frames,        1,1),
-			vertex("current_frame", &Particle_draw::current_frame, 1,1),
-			vertex("size",          &Particle_draw::size,          1,1),
-			vertex("alpha",         &Particle_draw::alpha,         1,1),
-			vertex("opacity",       &Particle_draw::opacity,       1,1),
-			vertex("hue_change_out",&Particle_draw::hue_change_out,1,1)
-		};
-		std::vector<Particle_base_vertex> simple_particle_vertices {
-			{{-.5,-.5}, {0,1}},
-			{{ .5,-.5}, {1,1}},
-			{{-.5, .5}, {0,0}},
-			{{ .5, .5}, {1,0}}
+			Vertex_layout::Mode::points,
+			vertex("position",      &Particle_draw::position),
+			vertex("direction",     &Particle_draw::direction),
+			vertex("rotation",      &Particle_draw::rotation),
+			vertex("frames",        &Particle_draw::frames),
+			vertex("current_frame", &Particle_draw::current_frame),
+			vertex("size",          &Particle_draw::size),
+			vertex("alpha",         &Particle_draw::alpha),
+			vertex("opacity",       &Particle_draw::opacity),
+			vertex("hue_change_out",&Particle_draw::hue_change_out)
 		};
 
 		struct Particle_sim {
@@ -148,7 +135,6 @@ namespace renderer {
 			Simple_particle_emitter(asset::Asset_manager& assets, const Particle_type& type)
 			    : Particle_emitter(type),
 			      _obj(simple_particle_vertex_layout,
-			           create_buffer(simple_particle_vertices),
 			           create_dynamic_buffer<Particle_draw>(type.max_particle_count)) {
 
 				_texture = assets.load<Texture>(asset::AID{type.texture});
@@ -180,16 +166,18 @@ namespace renderer {
 
 				_simulation(dt);
 
-				// TODO: sort?
-				auto tmp = _particles_draw;
-				std::sort(tmp.begin(), tmp.end(), [](auto& lhs, auto& rhs){return lhs.position.z<rhs.position.z;});
-				_obj.buffer(1).set(tmp);
+				if(!_particles_draw.empty())
+					_obj.buffer().set(_particles_draw);
 
 				_last_position = _position;
 			}
 
-			void draw(Command& cmd)const override {
-				cmd.object(_obj).texture(Texture_unit::color, *_texture);
+			bool draw(Command& cmd)const override {
+				if(!_particles_draw.empty()) {
+					cmd.object(_obj).texture(Texture_unit::color, *_texture);
+					return true;
+				}
+				return false;
 			}
 
 			bool dead()const noexcept override {return !_active && _particles_draw.empty();}
@@ -312,7 +300,7 @@ namespace renderer {
 					curr_draw.size = glm::mix(curr_sim.initial_size, curr_sim.final_size, a);
 
 					if(_type.fps<0) {
-						curr_draw.current_frame = curr_draw.frames*a;
+						curr_draw.current_frame = (curr_draw.frames-1.0)*a;
 					} else {
 						auto next_frame = curr_draw.current_frame + _type.fps*dt.value();
 						curr_draw.current_frame = std::fmod(next_frame, curr_draw.frames);
@@ -407,8 +395,8 @@ namespace renderer {
 
 			cmd.uniforms().emplace("hue_change_in", e->hue_change_in() / (360_deg).value());
 
-			e->draw(cmd);
-			queue.push_back(cmd);
+			if(e->draw(cmd))
+				queue.push_back(cmd);
 		}
 	}
 

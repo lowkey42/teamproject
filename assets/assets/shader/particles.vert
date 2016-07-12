@@ -1,9 +1,6 @@
 #version 100
 precision mediump float;
 
-attribute vec2 xy;
-attribute vec2 uv;
-
 attribute vec3 position;
 attribute vec3 direction;
 attribute float rotation;
@@ -14,22 +11,15 @@ attribute float alpha;
 attribute float opacity;
 attribute float hue_change_out;
 
-
-varying vec2 uv_frag;
+varying float frames_frag;
+varying float current_frame_frag;
+varying float rotation_frag;
 varying float alpha_frag;
 varying float opacity_frag;
 varying float hue_change_out_frag;
 
-
 uniform mat4 view;
-uniform mat4 proj;
-
-
-vec2 rotate(vec2 p, float a) {
-	vec2 r = mat2(cos(a), -sin(a), sin(a), cos(a)) * p;
-
-	return vec2(r.x, -r.y);
-}
+uniform mat4 vp;
 
 void main() {
 	vec2 dir_view = (view * vec4(direction, 0.0)).xy;
@@ -44,12 +34,15 @@ void main() {
 			rot_dyn = asin(dir_view.y);
 	}
 
-	vec4 pos = view * vec4(position, 1.0);
-	pos += vec4(rotate(xy*size,rotation+rot_dyn), 0.0, 0.0);
+	vec4 clip_space_pos = vp * vec4(position, 1.0);
+	clip_space_pos/=clip_space_pos.w;
 
-	gl_Position = proj * pos;
+	gl_Position = clip_space_pos;
+	gl_PointSize = clip_space_pos.z * size * 50.0;
 
-	uv_frag = vec2(uv.x*((current_frame+1.0)/frames), uv.y);
+	frames_frag = frames;
+	current_frame_frag = floor(current_frame);
+	rotation_frag = rotation+rot_dyn;
 	alpha_frag = alpha;
 	opacity_frag = opacity;
 	hue_change_out_frag = hue_change_out;

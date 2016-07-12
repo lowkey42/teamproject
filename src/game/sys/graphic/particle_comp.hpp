@@ -24,7 +24,7 @@ namespace graphic {
 			void save(sf2::JsonSerializer& state)const override;
 
 			Particle_comp(ecs::Entity& owner, renderer::Particle_emitter_ptr e = {}) :
-				Component(owner), _emitters{e} {}
+				Component(owner), _emitters{{e}} {}
 
 			void add(renderer::Particle_type_id id);
 			void remove(renderer::Particle_type_id id);
