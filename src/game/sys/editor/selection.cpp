@@ -553,11 +553,12 @@ namespace editor {
 		return _selected_entity->manager().backup(_selected_entity);
 	}
 
-	void Selection::_change_selection(glm::vec2 point) {
+	void Selection::_change_selection(glm::vec2 point, bool cycle) {
 		ecs::Entity_ptr entity;
 		auto max_compv = std::make_pair(-1000.f, (void*) nullptr);
 		auto limit_compv = std::make_pair(1000.f, (void*) nullptr);
-		if(_selected_entity && is_inside(*_selected_entity, point, _world_cam)) {
+		cycle = cycle && _selected_entity && is_inside(*_selected_entity, point, _world_cam);
+		if(cycle) {
 			auto z = _selected_entity->get<physics::Transform_comp>().get_or_throw().position().z.value();
 			limit_compv = std::make_pair(z, static_cast<void*>(_selected_entity.get()));
 		}
@@ -574,7 +575,8 @@ namespace editor {
 			}
 		}
 
-		if(!entity && _selected_entity && is_inside(*_selected_entity, point, _world_cam)) {
+		if(!entity && cycle) {
+			_change_selection(point, false);
 			return;
 		}
 

@@ -7,8 +7,8 @@
 		"hue_change_replacement": 240
 	},
 	"Light": {
-		"color": {"r":1.0, "g":1.0, "b":3.0},
-		"radius": 6,
+		"color": {"r":0.25, "g":0.25, "b":5.0},
+		"radius": 7,
 		"offset": {"y":0.25, "z": 1.0},
 		"shadowcaster": false
 	},

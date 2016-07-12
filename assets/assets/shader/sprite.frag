@@ -141,6 +141,11 @@ vec3 hsv2rgb(vec3 c) {
 	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
+float luminance(vec3 c) {
+	vec3 f = vec3(0.299,0.587,0.114);
+	return sqrt(c.r*c.r*f.r + c.g*c.g*f.g + c.b*c.b*f.b);
+}
+
 vec3 hue_shift(vec3 in_color) {
 	vec3 hsv = rgb2hsv(in_color);
 	hsv.x = abs(hsv.x-hue_change_frag.x)<0.01 ? hue_change_frag.y : hsv.x;
@@ -187,10 +192,7 @@ void main() {
 	vec3 view_dir = normalize(pos_frag-eye);
 
 	vec3 ambient = (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
-	vec3 color = albedo.rgb * ambient;
-
-	color += calc_dir_light(light_sun, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
-
+	vec3 color = vec3(0.0);
 
 	for(int i=0; i<2; i++) {
 		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance) * calc_shadow(i);
@@ -198,6 +200,12 @@ void main() {
 	for(int i=2; i<6; i++) {
 		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 	}
+
+	// in low-light scene, discard colors but keep down-scaled luminance
+	color = mix(color, vec3(my_smoothstep(0.1, 0.2, pow(luminance(albedo.rgb), 3.3)*6000.0))*0.006, my_smoothstep(0.015, 0.005, length(color)));
+
+	color += albedo.rgb * ambient;
+	color += calc_dir_light(light_sun, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 
 	vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,normal), 10.0*roughness).rgb, vec3(2.2));
 	refl *= mix(vec3(1,1,1), albedo.rgb, metalness);
