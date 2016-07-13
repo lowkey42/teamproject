@@ -1,13 +1,17 @@
 #include "highscore_manager.hpp"
 
 #include <chrono>
+#include <sstream>
 
 namespace lux {
 
-	// Login-Information
+	// Login information
 	std::string host = "localhost";
 	int port = 80;
 	std::string path = "/databasePHP/database.php";
+
+	// Time-Delta for synchronizing entries with the database in minutes
+	const int TDELTA = 30;
 
 
 	Highscore_manager::Highscore_manager(asset::Asset_manager& m) : _assets(m){}
@@ -27,14 +31,14 @@ namespace lux {
 			if(hlist.is_some()){
 				bool cont = false;
 				hlist.process([&](asset::Ptr<Highscore_list> reference){
-					// Check if difference between timestamp in hlist and cur-Time is lower than 30 minutes
+					// Check if difference between timestamp in hlist and cur-Time is lower than TDELTA
 					int64_t curMins = 0;
 					{
 						using namespace std::chrono;
 						minutes mins = duration_cast<minutes>(system_clock::now().time_since_epoch());
 						curMins = mins.count();
 					}
-					if((curMins - reference->timestamp) < 30){
+					if((curMins - reference->timestamp) < TDELTA){
 						ret.push_back(reference);
 						cont = true;
 						DEBUG("Found Highscore-List " << level_id << " and placed it inside return-vector");
@@ -67,7 +71,53 @@ namespace lux {
 	}
 
 
+	void Highscore_manager::push_highscore(std::string level_id, Highscore& score){
+
+		// convert score-value from int to str
+		std::stringstream sstr;
+		sstr << score.score;
+
+		// building the http-request
+		util::rest::Http_parameters post_params {{"name", score.name}, {"level", level_id}, {"score", sstr.str()}, {"op", "phigh"}};
+		util::rest::Http_body body = util::rest::post_request(host, port, path, post_params, {});
+		_post_requests.push_back(std::move(body));
+
+
+		// check if a local copy of the level-highscores exists
+		asset::AID level_aid("highscore:" + level_id);
+		util::maybe<asset::Ptr<Highscore_list>> maybe = _assets.load_maybe<Highscore_list>(level_aid);
+		if(maybe.is_some()){
+			maybe.process([&](asset::Ptr<Highscore_list> hlist){
+				// set timestamp to 0 so that next time highscore-list is requested
+				// it is forced to load it from the server instead
+				// (posting new highscores changes hlist for corresponding level)
+				Highscore_list newList {hlist->level, hlist->scores, 0};
+				_assets.save(level_aid, newList);
+			});
+		}
+
+		DEBUG("pushed " + level_id + " to server!");
+
+
+
+	}
+
+
 	void Highscore_manager::update(Time delta_time){
+
+		for(auto it = _post_requests.begin(); it != _post_requests.end(); ){
+
+			auto content = util::rest::get_content(*it);
+			if(content.is_some()){
+				it = _post_requests.erase(it);
+				content.process([&](auto str){
+					DEBUG("Push result: " + str);
+				});
+			} else {
+				it++;
+			}
+
+		}
 
 		// Check entries inside the map, if any of the Http-body-objetcs got succesfully fetched
 		for(auto it=_bodies.begin(); it != _bodies.end(); ){
@@ -165,10 +215,8 @@ namespace lux {
 			DEBUG(highscore.name << ": " << highscore.score << std::endl);
 		}
 
-		if(list.scores.size() != 0){
-			asset::AID saveAID("highscore:" + list.level);
-			_assets.save(saveAID, list);
-		}
+		asset::AID saveAID("highscore:" + list.level);
+		_assets.save(saveAID, list);
 
 	}
 

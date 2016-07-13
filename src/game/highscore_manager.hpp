@@ -41,11 +41,12 @@ namespace lux {
 
 			// Methods
 			auto get_highscore(std::vector<std::string> levels) -> std::vector<util::maybe<asset::Ptr<Highscore_list>>>;
-			void push_highscore(Highscore& Highscore);
+			void push_highscore(std::string level_id, Highscore& Highscore);
 
 			void update(Time delta_time);
 
 		private:
+			std::vector<util::rest::Http_body> _post_requests;
 			std::unordered_map<std::string, util::rest::Http_body> _bodies; // <level_id, Http_body>
 			asset::Asset_manager& _assets;
 

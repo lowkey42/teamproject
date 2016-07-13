@@ -55,6 +55,13 @@ namespace lux {
 			}
 		}
 
+		// TEMP pushing a new highscore to server
+		Highscore score = {"Testing", static_cast<int>(42)};
+		_man.push_highscore("level_b", score);
+
+		// TEMP retrieve levels with given ids again
+		ret_lists = _man.get_highscore(ids);
+
 
 
 		_mailbox.subscribe_to([&](input::Once_action& e){
