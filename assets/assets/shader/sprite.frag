@@ -118,7 +118,7 @@ vec3 calc_point_light(Point_light light, vec3 normal, vec3 albedo, vec3 view_dir
 	theta = ((theta/(2.0*PI)) - floor(theta/(2.0*PI))) * 2.0*PI - PI;
 
 	float max_angle = (light.angle + my_smoothstep(1.8*PI, 2.0*PI, light.angle)*0.2) / 2.0;
-	attenuation *= my_smoothstep(0.0, 0.1, clamp(max_angle-abs(theta), -1.0, 1.0));
+	attenuation *= my_smoothstep(0.0, 0.5, clamp(max_angle-abs(theta), -1.0, 1.0));
 
 	return calc_light(light_dir, light.color, normal, albedo, view_dir, roughness, metalness, reflectance) * attenuation;
 }
@@ -202,7 +202,7 @@ void main() {
 	}
 
 	// in low-light scene, discard colors but keep down-scaled luminance
-	color = mix(color, vec3(my_smoothstep(0.1, 0.2, pow(luminance(albedo.rgb), 3.3)*6000.0))*0.006, my_smoothstep(0.015, 0.005, length(color)));
+	color = mix(color, vec3(my_smoothstep(0.1, 0.2, pow(luminance(albedo.rgb), 3.3)*6000.0))*0.008, my_smoothstep(0.015, 0.005, length(color)));
 
 	color += albedo.rgb * ambient;
 	color += calc_dir_light(light_sun, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
