@@ -7,3 +7,4 @@ cfg:levels = levels/level_list.json
 cfg:my_levels = my_levels.json
 cfg:savegame = savegame.json
 level: = levels/
+highscore: = highscores/

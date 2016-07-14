@@ -1,32 +1,24 @@
-/** deprecated | Manages the highscore list (load, store, add) ***************
- *                                                                           *
- * Copyright (c) 2014 Florian Oetke                                          *
- *  This file is distributed under the MIT License                           *
- *  See LICENSE file for details.                                            *
-\*****************************************************************************/
-
 #pragma once
 
 #include <string>
 #include <vector>
 
-namespace lux {
-	namespace asset{class Asset_manager;}
+#include <core/asset/asset_manager.hpp>
 
+namespace lux{
 
-	struct Score {
+	struct Highscore {
+
 		std::string name;
-		int32_t     score;
-		int32_t     level;
-		uint64_t    seed;
+		int32_t score;
+
 	};
 
-	extern void add_score(asset::Asset_manager& assets, Score score);
+	struct Highscore_list {
 
-	extern void prepare_list_scores(asset::Asset_manager& assets);
+		std::string level;
+		std::vector<Highscore> scores;
+		int64_t timestamp;
 
-	extern auto list_scores(asset::Asset_manager& assets) -> std::vector<Score>;
-
-	extern auto print_scores(std::vector<Score> scores) -> std::string;
-
+	};
 }

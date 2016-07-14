@@ -27,13 +27,13 @@ namespace lux {
 	}
 
 	Game_screen::Game_screen(Engine& engine, const std::string& level_id)
-	    : Screen(engine),
-	      _mailbox(engine.bus()),
-	      _systems(engine),
-	      _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
-	      _camera_ui(engine.graphics_ctx().viewport(),
-	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
-	      _current_level(level_id)
+		: Screen(engine),
+		  _mailbox(engine.bus()),
+		  _systems(engine),
+		  _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
+		  _camera_ui(engine.graphics_ctx().viewport(),
+					   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
+		  _current_level(level_id)
 	{
 
 		_mailbox.subscribe_to([&](input::Once_action& e){
@@ -90,9 +90,9 @@ namespace lux {
 			_fadeout_fadetimer+=dt;
 
 			_systems.light_config(glm::mix(_systems.lights.sun_light(), fadeout_sun, _fadeout_fadetimer/fadeout_delay),
-			                      _systems.lights.sun_dir(),
-			                      _systems.lights.ambient_brightness(),
-			                      _systems.lights.background_tint() );
+								  _systems.lights.sun_dir(),
+								  _systems.lights.ambient_brightness(),
+								  _systems.lights.background_tint() );
 
 			if(_fadeout_fadetimer>=fadeout_delay) {
 				unlock_next_levels(_engine, _current_level);
@@ -106,7 +106,7 @@ namespace lux {
 		_systems.draw();
 
 		_ui_text.draw(_render_queue, glm::vec2(-_camera_ui.size().x/2.f+_ui_text.size().x/2.f*0.5f + 1.f,
-		                                       -_camera_ui.size().y/2.f+_ui_text.size().y/2.f*0.5f + 1.f), glm::vec4(1,1,1,1), 0.5f);
+											   -_camera_ui.size().y/2.f+_ui_text.size().y/2.f*0.5f + 1.f), glm::vec4(1,1,1,1), 0.5f);
 
 		_render_queue.flush();
 	}
