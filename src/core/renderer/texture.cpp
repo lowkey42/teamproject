@@ -29,7 +29,7 @@ namespace renderer {
 				buffer.size(),
 				SOIL_LOAD_AUTO,
 				SOIL_CREATE_NEW_ID,
-				SOIL_FLAG_MULTIPLY_ALPHA,
+				0,
 				&_width,
 				&_height
 			);

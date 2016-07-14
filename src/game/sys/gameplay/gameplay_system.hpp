@@ -12,6 +12,7 @@
 #include "light_tag_comps.hpp"
 
 #include "../physics/physics_system.hpp"
+#include "finish_marker_comp.hpp"
 
 #include <core/renderer/camera.hpp>
 #include <core/renderer/texture_batch.hpp>
@@ -73,6 +74,7 @@ namespace gameplay {
 			Enlightened_comp::Pool& _enlightened;
 			Player_tag_comp::Pool& _players;
 			Lamp_comp::Pool& _lamps;
+			Finish_marker_comp::Pool& _finish_marker;
 			physics::Physics_system& _physics_world;
 			cam::Camera_system& _camera_sys;
 			controller::Controller_system& _controller_sys;
@@ -99,6 +101,7 @@ namespace gameplay {
 			void _on_animation_event(const renderer::Animation_event& event);
 
 			void _on_collision(sys::physics::Collision&);
+			void _on_contact(sys::physics::Contact&);
 
 			void _handle_light_pending(Time, Enlightened_comp&);
 			void _handle_light_disabled(Time, Enlightened_comp&);

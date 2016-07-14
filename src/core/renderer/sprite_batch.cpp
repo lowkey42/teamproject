@@ -139,10 +139,10 @@ namespace renderer {
 		sprite_clip.y += tex_clip.y;
 		sprite_clip.w += tex_clip.y;
 
-		sprite_clip.x += 1.0f / sprite.material->albedo().width();
-		sprite_clip.y += 1.0f / sprite.material->albedo().height();
-		sprite_clip.z -= 1.0f / sprite.material->albedo().width();
-		sprite_clip.w -= 1.0f / sprite.material->albedo().height();
+		sprite_clip.x += 0.5f / sprite.material->albedo().width();
+		sprite_clip.y += 0.5f / sprite.material->albedo().height();
+		sprite_clip.z -= 0.5f / sprite.material->albedo().width();
+		sprite_clip.w -= 0.5f / sprite.material->albedo().height();
 
 		auto iter = _reserve_space(sprite.position.z, sprite.material, single_sprite_vert.size());
 
@@ -158,8 +158,8 @@ namespace renderer {
 		if(vertices.empty())
 			return;
 
-		auto first = vertices.front();
-		auto iter = _reserve_space(position.z, first.material, vertices.size());
+		auto begin = _reserve_space(position.z, vertices.front().material, vertices.size());
+		auto iter = begin;
 
 		for(auto& v : vertices) {
 			*iter = Sprite_vertex{v.position + position,
@@ -167,6 +167,10 @@ namespace renderer {
 			                      v.shadow_resistence, v.decals_intensity, v.material};
 			iter++;
 		}
+
+#ifdef NDEBUG
+		INVARIANT(std::is_sorted(vertices.begin(), vertices.end()), "inserted vertices nt sorted");
+#endif
 	}
 
 	void Sprite_batch::flush(Command_queue& queue) {
@@ -187,6 +191,28 @@ namespace renderer {
 
 		if(last!=_vertices.end())
 			queue.push_back(_draw_part(last, _vertices.end()));
+/*
+		if(!_vertices.empty()) {
+			DEBUG("draw");
+			float lastz = std::floor(_vertices.front().position.z*1000.f);
+			bool last_alpha = _vertices.front().material->alpha();
+			for(auto& v : _vertices) {
+				auto z = std::floor(v.position.z*1000.f);
+				if(last_alpha)
+					INVARIANT(v.material->alpha(), "sort broken");
+
+				DEBUG("   "<<z);
+				if(!v.material->alpha()) {
+				//	INVARIANT(v.position.z <= lastz, "sort broken");
+				} else if(last_alpha == v.material->alpha()) {
+					INVARIANT(z >= lastz, "sort broken");
+				}
+
+				last_alpha = v.material->alpha();
+				lastz = z;
+			}
+		}
+*/
 	}
 
 	auto Sprite_batch::_draw_part(Vertex_citer begin, Vertex_citer end) -> Command {
@@ -204,6 +230,8 @@ namespace renderer {
 		auto cmd = create_command()
 		        .shader(_shader)
 		        .object(_objects.at(obj_idx));
+
+		cmd.uniforms().emplace("alpha_cutoff",begin->material->alpha() ? 1.f/255 : 0.9f);
 
 		begin->material->set_textures(cmd);
 

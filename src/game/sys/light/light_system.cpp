@@ -120,7 +120,9 @@ namespace light {
 				auto r = light.radius().value();
 				auto dist = glm::distance2(remove_units(trans.position()), eye_pos);
 
-				auto score = 1.f/dist + glm::clamp(r/2.f + glm::length2(light.color())/4.f, -0.001f, 0.001f) + (light.shadowcaster() ? 1.f : 0.f);
+				auto score = 1.f/dist;
+				if(dist<10.f)
+					score += glm::clamp(r/2.f + glm::length2(light.color())/4.f, -0.001f, 0.001f) + (light.shadowcaster() ? 1.f : 0.f);
 
 				if(index<max_lights) {
 					out[index].transform = &trans;
@@ -256,9 +258,9 @@ namespace light {
 		// TODO: fade out light color, when they left the screen
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
-			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
+			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].transform->resolve_relative(lights[N].light->offset()));\
 \
-			uniforms.emplace("light["#N"].dir", lights[N].transform->rotation().value()\
+			uniforms.emplace("light["#N"].dir", -lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\
 \
 			uniforms.emplace("light["#N"].angle", lights[N].light->_angle.value());\

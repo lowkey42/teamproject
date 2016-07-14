@@ -60,6 +60,20 @@ namespace physics {
 		}
 	}
 
+	auto Transform_comp::resolve_relative(glm::vec3 offset)const -> glm::vec3 {
+		offset.x *= _scale;
+		offset.y *= _scale;
+
+		if(_flip_horizontal)
+			offset.x *= -1.0;
+		if(_flip_vertical)
+			offset.y *= -1.0;
+
+		auto xy = rotate(glm::vec2{offset.x, offset.y}, _rotation);
+
+		return {xy.x, xy.y, offset.z};
+	}
+
 }
 }
 }

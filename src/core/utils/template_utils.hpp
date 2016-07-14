@@ -212,7 +212,7 @@ namespace util {
 			cast_iterator(Iter iter) : iter(iter) {};
 
 			reference operator*() {return *reinterpret_cast<pointer>(*iter);}
-			pointer operator->() {return reinterpret_cast<pointer>(&*iter);}
+			pointer operator->() {return reinterpret_cast<pointer>(*iter);}
 
 			cast_iterator& operator++() {
 				++iter;

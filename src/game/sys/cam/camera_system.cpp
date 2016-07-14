@@ -31,18 +31,22 @@ namespace cam {
 		_last_target = p;
 	}
 
+	void Camera_system::active_only(ecs::Entity& e) {
+		for(auto& target : _targets) {
+			target.active(&target.owner()==&e);
+		}
+	}
+
 	auto Camera_system::_calc_target() -> Position {
 		if(_targets.size()==0) {
 			return _last_target;
 
-		} else if(_targets.size()>1) {
-			// TODO: magic?
-			// calculate the avg position of all targets => x,y
-			// use the max distance to the avg position to calculate the camera distance => z
-			return _last_target;
-
 		} else {
-			auto& cam = *_targets.begin();
+			auto target = std::find_if(_targets.begin(), _targets.end(), [](auto& t) {return t.active();});
+			if(target==_targets.end())
+				return _last_target;
+
+			auto& cam = *target;
 			auto& transform = cam.owner().get<physics::Transform_comp>().get_or_throw();
 			auto grounded = cam.owner().get<physics::Dynamic_body_comp>().process(true, [](auto& b){return b.grounded();});
 
@@ -81,6 +85,7 @@ namespace cam {
 		_slow_lerp_time = t;
 		_slow_lerp_remainder = t;
 		_slow_lerp_start = _last_target;
+		_slow_lerp_started = false;
 	}
 
 	void Camera_system::update(Time dt) {
@@ -97,7 +102,10 @@ namespace cam {
 		if(_slow_lerp_remainder>0_s) {
 			if(_targets.size()>0) {
 				_slow_lerp_remainder-=dt;
-				if(_slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001f) {
+
+				_slow_lerp_started |= _slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001;
+
+				if(_slow_lerp_started) {
 					auto alpha = 1.f - glm::clamp(_slow_lerp_remainder/_slow_lerp_time, 0.f, 1.f);
 					//alpha = glm::sin(alpha*glm::pi<float>()/2.f);
 					alpha = glm::smoothstep(0.f, 1.f, alpha);

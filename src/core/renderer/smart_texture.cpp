@@ -183,12 +183,13 @@ namespace renderer {
 		                            bool shadowcaster, bool decals_intensity,
 		                            const renderer::Material& mat) {
 
-			const auto pc = 0.5f / mat.albedo().width();
+			const auto pc = 2.0f / mat.albedo().width();
 
 			auto add_vertex = [&](auto v) {
-				auto uv_clip = vec4{0.f, 0.f, 0.75f-pc, 0.75f-pc};
+				auto uv_clip = vec4{pc, pc, 0.75f-pc, 0.75f-pc};
 				auto uv = vec2{v.x,-v.y}*0.5f;
 				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
+
 				vertices.emplace_back(vec3(v,-0.04f), uv, uv_clip, vec2{1.f,0.f}, hc,
 				                      shadowcaster ? 1.f : 0.f, decals_intensity, &mat);
 			};
@@ -239,6 +240,8 @@ namespace renderer {
 			auto add_sprite_points = [&](float d, vec2 tangent, vec2 tl, vec2 tr, vec2 bl, vec2 br,
 			                             vec4 uv_clip,
 			                             vec2 uv_tl, vec2 uv_tr, vec2 uv_bl, vec2 uv_br, bool later=false) {
+				d= 0.0f;
+
 				auto tex_clip = mat.albedo().clip_rect();
 				// rescale uv to texture clip_rect
 				uv_clip.x *= (tex_clip.z - tex_clip.x);

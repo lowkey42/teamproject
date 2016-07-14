@@ -233,6 +233,8 @@ namespace renderer {
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+		glEnable(GL_POINT_SPRITE);
 		set_clear_color(0.0f,0.0f,0.0f);
 
 		init_font_renderer(assets);

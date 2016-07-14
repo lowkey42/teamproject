@@ -89,7 +89,7 @@ namespace editor {
 			auto _handle_multitouch(glm::vec2 mp1, glm::vec2 mp2) -> bool;
 			auto _handle_singletouch(glm::vec2 mp1_prev, glm::vec2 mp2_curr) -> bool;
 
-			void _change_selection(glm::vec2 point);
+			void _change_selection(glm::vec2 point, bool cycle=true);
 			void _move(glm::vec2 offset);
 			void _move_layer(float offset);
 			void _rotate(Angle offset);

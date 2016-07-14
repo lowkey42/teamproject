@@ -250,10 +250,17 @@ namespace asset {
 	std::vector<AID> Asset_manager::list(Asset_type type) {
 		std::vector<AID> res;
 
+		for(auto& d :_dispatcher) {
+			if(d.first.type()==type)
+				res.emplace_back(d.first);
+		}
+
 		_base_dir(type).process([&](const std::string& dir){
 			for(auto&& f : list_files(dir, "", ""))
 				res.emplace_back(type, f);
 		});
+
+		res.erase(std::unique(res.begin(), res.end()), res.end());
 
 		return res;
 	}

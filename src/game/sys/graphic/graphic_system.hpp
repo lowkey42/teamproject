@@ -9,11 +9,13 @@
 
 #include "sprite_comp.hpp"
 #include "terrain_comp.hpp"
+#include "particle_comp.hpp"
 
 #include "../../entity_events.hpp"
 
-#include <core/renderer/sprite_batch.hpp>
 #include <core/renderer/camera.hpp>
+#include <core/renderer/sprite_batch.hpp>
+#include <core/renderer/particles.hpp>
 #include <core/utils/messagebus.hpp>
 
 
@@ -40,7 +42,9 @@ namespace graphic {
 			Sprite_comp::Pool& _sprites;
 			Anim_sprite_comp::Pool& _anim_sprites;
 			Terrain_comp::Pool& _terrains;
+			Particle_comp::Pool& _particles;
 
+			renderer::Particle_renderer _particle_renderer;
 			mutable renderer::Sprite_batch _sprite_batch;
 			mutable renderer::Sprite_batch _sprite_batch_bg;
 	};

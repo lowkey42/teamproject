@@ -51,6 +51,9 @@
             "keys": {
                 "Escape": {"type":"once", "action":"pause"},
 
+                "Q": {"type":"once", "action":"prev_player"},
+                "E": {"type":"once", "action":"next_player"},
+
                 "A": {"type":"continuous", "action":"move_left"},
                 "Left": {"type":"continuous", "action":"move_left"},
                 "D": {"type":"continuous", "action":"move_right"},
@@ -68,11 +71,12 @@
             "pad_buttons": {
                 "x":  {"type":"continuous", "action":"jump"},
                 "a":  {"type":"continuous", "action":"transform"},
-                "left_shoulder":  {"type":"continuous", "action":"jump"},
                 "left_trigger":  {"type":"continuous", "action":"transform"},
-                "right_shoulder":  {"type":"continuous", "action":"jump"},
                 "right_trigger":  {"type":"continuous", "action":"transform"},
-                "start":  {"type":"once", "action":"pause"}
+                "start":  {"type":"once", "action":"pause"},
+
+                "left_shoulder": {"type":"once", "action":"prev_player"},
+                "right_shoulder": {"type":"once", "action":"next_player"}
             },
 
             "mouse_buttons": {

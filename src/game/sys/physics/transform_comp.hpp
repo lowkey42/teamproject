@@ -45,6 +45,8 @@ namespace physics {
 			auto changed_since(uint_fast32_t expected)const noexcept {return _revision!=expected;}
 			auto revision()const noexcept {return _revision;}
 
+			auto resolve_relative(glm::vec3 offset)const -> glm::vec3;
+
 			struct Persisted_state;
 			friend struct Persisted_state;
 

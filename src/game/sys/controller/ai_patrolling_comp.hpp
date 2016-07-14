@@ -16,20 +16,26 @@ namespace lux {
 namespace sys {
 namespace controller {
 
-	class Ai_simple_comp : public ecs::Component<Ai_simple_comp> {
+	class Ai_patrolling_comp : public ecs::Component<Ai_patrolling_comp> {
 		public:
-			static constexpr const char* name() {return "Ai_simple";}
+			static constexpr const char* name() {return "Ai_patrolling";}
 			void load(sf2::JsonDeserializer& state,
 			          asset::Asset_manager& asset_mgr)override;
 			void save(sf2::JsonSerializer& state)const override;
 
-			Ai_simple_comp(ecs::Entity& owner) : Component(owner) {}
+			Ai_patrolling_comp(ecs::Entity& owner) : Component(owner) {}
 
 		private:
 			friend class Controller_system;
 
-			float _velocity = 1.f;
+			glm::vec2 _velocity = {1.f, 0.f};
+			float _max_distance = -1.f;
+			bool _flip_horizontal_on_return = false;
+			bool _flip_vertical_on_return = false;
+
 			bool _moving_left = false;
+			Position _start_position;
+			bool _start_position_set = false;
 	};
 
 }

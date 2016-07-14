@@ -8,6 +8,7 @@
 #include "../cam/camera_system.hpp"
 #include "../controller/controller_system.hpp"
 #include "../graphic/sprite_comp.hpp"
+#include "../graphic/particle_comp.hpp"
 #include "../physics/transform_comp.hpp"
 #include "../physics/physics_system.hpp"
 #include "../light/light_comp.hpp"
@@ -54,6 +55,7 @@ namespace gameplay {
 	      _enlightened(ecs.list<Enlightened_comp>()),
 	      _players(ecs.list<Player_tag_comp>()),
 	      _lamps(ecs.list<Lamp_comp>()),
+	      _finish_marker(ecs.list<Finish_marker_comp>()),
 	      _physics_world(physics_world),
 	      _camera_sys(camera_sys),
 	      _controller_sys(controller_sys),
@@ -80,36 +82,66 @@ namespace gameplay {
 		ecs.register_component_type<Finish_marker_comp>();
 
 		_mailbox.subscribe_to([&](sys::physics::Collision& c) {
-			if(_level_finished) {
-				return; //< we are done here
+			if(!_level_finished) {
+				this->_on_collision(c);
 			}
-
-			this->_on_collision(c);
 		});
 		_mailbox.subscribe_to([&](sys::physics::Contact& c) {
-			if(_level_finished) {
-				return; //< we are done here
-			}
-
-			if(c.a && c.b && ((c.a->has<Player_tag_comp>() && c.b->has<Finish_marker_comp>())
-			               || (c.b->has<Player_tag_comp>() && c.a->has<Finish_marker_comp>()))) {
-				_level_finished = true;
-				_mailbox.send<Level_finished>();
-
-				auto player = c.a->has<Player_tag_comp>() ? c.a : c.b;
-				player->get<Enlightened_comp>().process([&](auto& e) {
-					this->_disable_light(e, false, false);
-					player->erase<Enlightened_comp>();
-				});
-
-				player->get<graphic::Anim_sprite_comp>().process([&](auto& s) {
-					s.play("leave"_strid);
-				});
+			if(!_level_finished) {
+				this->_on_contact(c);
 			}
 		});
 		_mailbox.subscribe_to([&](Animation_event& e){
 			_on_animation_event(e);
 		});
+	}
+
+	void Gameplay_system::_on_contact(sys::physics::Contact& c) {
+		if(c.a && c.b && (c.a->has<Player_tag_comp>() || c.b->has<Player_tag_comp>())) {
+			auto player = c.a->has<Player_tag_comp>() ? c.a : c.b;
+			auto other = c.a!=player ? c.a : c.b;
+
+			if(other->has<Finish_marker_comp>()) {
+				auto& marker = other->get<Finish_marker_comp>().get_or_throw();
+
+				auto player_color = Light_color::white;
+				player->get<Enlightened_comp>().process([&](auto& e) {
+					player_color = e._color;
+				});
+
+				auto marker_color = marker._required_color!=Light_color::black ? marker.colors_left() :	Light_color::white;
+				auto interactive_part = interactive_color(marker_color, player_color);
+				if(interactive_part!=Light_color::black) {
+					auto non_interactive_part = not_interactive_color(marker_color, player_color);
+					if (non_interactive_part != Light_color::black) {
+						_split_player(player->get<Enlightened_comp>().get_or_throw(), {}, non_interactive_part);
+						_color_player(player->get<Enlightened_comp>().get_or_throw(), interactive_part);
+					}
+
+					player->get<Enlightened_comp>().process([&](auto& e) {
+						this->_disable_light(e, false, false);
+					});
+					player->erase_other<graphic::Anim_sprite_comp, physics::Transform_comp>();
+					player->get<graphic::Anim_sprite_comp>().process([&](auto &s) {
+						s.play("exit"_strid);
+					});
+
+					marker.add_color(player_color);
+					other->get<light::Light_comp>().process([&](auto &l) {
+						l.color(to_rgb(marker._contained_colors)*6.f);
+					});
+
+					auto markers_left = std::any_of(_finish_marker.begin(), _finish_marker.end(), [](auto &m) {
+						return m.colors_left() != Light_color::black;
+					});
+
+					if (!markers_left) {
+						_level_finished = true;
+						_mailbox.send<Level_finished>();
+					}
+				}
+			}
+		}
 	}
 
 	void Gameplay_system::draw_blood(renderer::Command_queue& q, const renderer::Camera&) {
@@ -157,6 +189,8 @@ namespace gameplay {
 			_game_timer = 0_s;
 			_first_update_after_reset = true;
 		}
+
+		_camera_sys.active_only(*_controller_sys.get_controlled());
 	}
 
 	namespace {
@@ -211,11 +245,22 @@ namespace gameplay {
 
 		for(Enlightened_comp& c : _enlightened) {
 			auto body_mb = c.owner().get<physics::Dynamic_body_comp>();
-			if(body_mb.is_nothing())
+			if(body_mb.is_nothing() || c._smashed)
 				continue;
 
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 			auto& body = body_mb.get_or_throw();
+
+			if(c._smash || c._forced_smash) {
+				if(c._forced_smash) {
+					transform.position(c._last_impact_point);
+				}
+
+				_on_smashed(c.owner());
+				continue;
+			}
+			c._forced_smash = false;
+			c._last_impact += dt;
 
 			c._direction = glm::normalize(c._direction);
 
@@ -305,16 +350,17 @@ namespace gameplay {
 		if(c.a && c.b) {
 			process(c.a->get<Enlightened_comp>(), c.b->get<Enlightened_comp>())
 			        >> [&](Enlightened_comp& ae, Enlightened_comp& be) {
-				if(!ae._smashed && !be._smashed && !ae.enabled() && !be.enabled()) {
+				if(!ae._smashed && !be._smashed && !ae._smash && !be._smash && !ae.enabled() && !be.enabled()) {
 					_color_player(ae, ae._color|be._color);
 					c.b->manager().erase(c.b->shared_from_this());
 					be._smashed = true;
 					c.b = nullptr;
+					_controller_sys.set_controlled(ae.owner_ptr());
 				}
 			};
 		}
 
-		auto smashable = [&](ecs::Entity* e) {
+		auto try_smash = [&](ecs::Entity* e) {
 			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
 				ecs::Entity* other = (c.a==&elc.owner()) ? c.b : c.a;
 				auto deadly = other && other->has<Deadly_comp>();
@@ -322,14 +368,14 @@ namespace gameplay {
 			});
 		};
 
-		if(smashable(c.a)) {
-			_on_smashed(*c.a);
-		}
-		if(smashable(c.b)) {
-			_on_smashed(*c.b);
-		}
+		try_smash(c.a);
+		try_smash(c.b);
 	}
 	void Gameplay_system::_on_smashed(ecs::Entity& e) {
+		e.get<Enlightened_comp>().process([&](auto& e) {
+			e._smashed = true;
+		});
+
 		e.get<graphic::Anim_sprite_comp>().process([&](auto& s) {
 			s.play("die"_strid);
 			e.erase_other<physics::Transform_comp, Enlightened_comp, graphic::Anim_sprite_comp, Player_tag_comp>();
@@ -348,6 +394,10 @@ namespace gameplay {
 		switch(event.name) {
 			case "death_sound"_strid:
 				_engine.audio_ctx().play_static(*_engine.assets().load<audio::Sound>("sound:slime"_aid));
+				break;
+
+			case "left"_strid:
+				e.manager().erase(e.shared_from_this());
 				break;
 
 			case "dead"_strid: {
@@ -371,6 +421,7 @@ namespace gameplay {
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 			body.active(true);
 			body.kinematic(true);
+			body.velocity({0,0});
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 
 			auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
@@ -380,8 +431,13 @@ namespace gameplay {
 			c.owner().get<light::Light_comp>().process([&](auto& l){
 				l.brightness_factor(2.f);
 			});
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				if( c._color==Light_color::white)
+					particle.add("wlight_effect"_strid);
+				else
+					particle.add("light_effect"_strid);
+			});
 		}
-		// TODO: set animation, start effects, ...
 	}
 	void Gameplay_system::_handle_light_disabled(Time dt, Enlightened_comp& c) {
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
@@ -395,9 +451,18 @@ namespace gameplay {
 		if(c._final_booster_left>0_s) {
 			body.velocity(c._direction * c._velocity);
 			c._final_booster_left -= dt;
+		} else {
+			c._direction = {0,1};
+			// TODO: shouldn't be necessary
+			c.owner().get<graphic::Particle_comp>().process([&](auto &particle) {
+				particle.remove("light_effect"_strid);
+				particle.remove("wlight_effect"_strid);
+			});
 		}
 	}
 	void Gameplay_system::_handle_light_enabled(Time dt, Enlightened_comp& c) {
+		c._final_booster_left = 0_s;
+
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
@@ -413,7 +478,7 @@ namespace gameplay {
 		if(max_ray_dist>0.01f) {
 			auto ray = _physics_world.raycast(pos.xy(), direction, max_ray_dist, c.owner());
 
-			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius*1.5f) {
+			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius) {
 				if(auto prism = ray.get_or_throw().entity->get<Prism_comp>()) {
 					auto prism_pos = ray.get_or_throw().entity->get<physics::Transform_comp>().get_or_throw().position();
 					prism_pos.z = pos.z*1_m;
@@ -460,33 +525,43 @@ namespace gameplay {
 				} else {
 					auto solid = _is_solid(c, ray.get_or_throw().entity);
 					if(solid.interactive!=Light_color::black) {
+						auto interactive = &c;
+
 						if(solid.passive!=Light_color::black) {
 							auto offset = Position{direction.x * move_distance, direction.y * move_distance, 0_m};
-							_split_player(c, offset, solid.passive);
-							_color_player(c, solid.interactive);
+							interactive = &_split_player(c, {}, solid.interactive);
+							_color_player(c, solid.passive);
+							transform.move(offset);
 						}
 
-						move_distance = ray.get_or_throw().distance - c._radius*2.0f;
+						move_distance = ray.get_or_throw().distance - interactive->_radius*2.f;
 
 						auto collision_point = pos.xy()+direction*move_distance;
-						auto reflective = _is_reflective(collision_point, c, ray.get_or_throw().entity);
+						auto reflective = _is_reflective(collision_point, *interactive, ray.get_or_throw().entity);
 
 						if(reflective.interactive!=Light_color::black) {
 							if(reflective.passive!=Light_color::black) {
 								auto offset = Position{direction.x * move_distance, direction.y * move_distance, 0_m};
-								auto& new_light = _split_player(c, offset, reflective.passive);
+								auto& new_light = _split_player(*interactive, offset, reflective.passive);
 								_disable_light(new_light, true, false);
 
-								_color_player(c, reflective.interactive);
+								_color_player(*interactive, reflective.interactive);
 							}
 
 							auto normal = ray.get_or_throw().normal;
-							c._direction = c._direction - 2.f*normal*dot(normal, c._direction);
-							c._air_time = 0_s;
+							interactive->_direction = interactive->_direction - 2.f*normal*dot(normal, interactive->_direction);
+							interactive->_air_time = 0_s;
 
 						} else {
-							_disable_light(c, true, false);
+							_disable_light(*interactive, true, false);
 						}
+
+						c._last_impact = 0_s;
+						c._last_impact_point = glm::vec3{
+							pos.x+direction.x * move_distance,
+							pos.y+direction.y * move_distance,
+							pos.z
+						} * 1_m;
 					}
 				}
 			}
@@ -533,7 +608,6 @@ namespace gameplay {
 
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
-		// TODO: change animation/effect
 		c._state = Enlightened_State::disabled;
 		c._was_light = false;
 
@@ -544,8 +618,14 @@ namespace gameplay {
 			}
 		}
 
+		if(c._final_booster_left <= 0_s) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto &particle) {
+				particle.remove("light_effect"_strid);
+				particle.remove("wlight_effect"_strid);
+			});
+		}
+
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
-		transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
 		transform.rotation(0_deg);
 
 		c.owner().get<light::Light_comp>().process([&](auto& l){
@@ -557,6 +637,18 @@ namespace gameplay {
 	void Gameplay_system::_color_player(Enlightened_comp& c, Light_color new_color) {
 		constexpr auto ns = "blueprint"_strid;
 		asset::AID blueprint;
+
+		if(c._color==Light_color::white && new_color!=Light_color::white) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				particle.remove("wlight_effect"_strid);
+				particle.add("light_effect"_strid);
+			});
+		} else if(c._color!=Light_color::white && new_color==Light_color::white) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				particle.add("wlight_effect"_strid);
+				particle.remove("light_effect"_strid);
+			});
+		}
 
 		switch(new_color) {
 			case Light_color::black:
