@@ -47,7 +47,7 @@ namespace lux {
 
 		private:
 			std::vector<util::rest::Http_body> _post_requests;
-			std::unordered_map<std::string, util::rest::Http_body> _bodies; // <level_id, Http_body>
+			std::unordered_map<std::string, util::rest::Http_body> _bodies;
 			asset::Asset_manager& _assets;
 
 			// Methods

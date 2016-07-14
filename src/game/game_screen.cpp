@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+
 namespace lux {
 	using namespace unit_literals;
 	using namespace renderer;
@@ -26,43 +27,14 @@ namespace lux {
 	}
 
 	Game_screen::Game_screen(Engine& engine, const std::string& level_id)
-	    : Screen(engine),
-	      _mailbox(engine.bus()),
-	      _systems(engine),
-	      _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
-	      _camera_ui(engine.graphics_ctx().viewport(),
-	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
-		  _current_level(level_id),
-		  _man(engine.assets())
+		: Screen(engine),
+		  _mailbox(engine.bus()),
+		  _systems(engine),
+		  _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
+		  _camera_ui(engine.graphics_ctx().viewport(),
+					   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
+		  _current_level(level_id)
 	{
-
-		// TEMP Highscore-Manager
-
-		// TEMP vector with level IDs
-		std::vector<std::string> ids = {"level_a", "level_b", "level_c", "level_1"};
-		std::vector<util::maybe<asset::Ptr<Highscore_list>>> ret_lists;
-
-		// TEMP testing get method of Highscore-Manager
-		ret_lists = _man.get_highscore(ids);
-
-		// TEMP analyze received vector
-		for(auto& cur : ret_lists){
-			WARN("Received the following entries:");
-			if(cur.is_some()){
-				cur.process([&](asset::Ptr<Highscore_list> list){
-					WARN(list->level);
-				});
-			}
-		}
-
-		// TEMP pushing a new highscore to server
-		Highscore score = {"Testing", static_cast<int>(42)};
-		_man.push_highscore("level_b", score);
-
-		// TEMP retrieve levels with given ids again
-		ret_lists = _man.get_highscore(ids);
-
-
 
 		_mailbox.subscribe_to([&](input::Once_action& e){
 			switch(e.id) {
@@ -104,8 +76,6 @@ namespace lux {
 	void Game_screen::_update(Time dt) {
 		_mailbox.update_subscriptions();
 
-		_man.update(dt);
-
 		if(_fadeout)
 			_systems.update(dt, Update::animations | Update::movements | Update::gameplay);
 		else
@@ -120,9 +90,9 @@ namespace lux {
 			_fadeout_fadetimer+=dt;
 
 			_systems.light_config(glm::mix(_systems.lights.sun_light(), fadeout_sun, _fadeout_fadetimer/fadeout_delay),
-			                      _systems.lights.sun_dir(),
-			                      _systems.lights.ambient_brightness(),
-			                      _systems.lights.background_tint() );
+								  _systems.lights.sun_dir(),
+								  _systems.lights.ambient_brightness(),
+								  _systems.lights.background_tint() );
 
 			if(_fadeout_fadetimer>=fadeout_delay) {
 				unlock_next_levels(_engine, _current_level);
@@ -136,7 +106,7 @@ namespace lux {
 		_systems.draw();
 
 		_ui_text.draw(_render_queue, glm::vec2(-_camera_ui.size().x/2.f+_ui_text.size().x/2.f*0.5f + 1.f,
-		                                       -_camera_ui.size().y/2.f+_ui_text.size().y/2.f*0.5f + 1.f), glm::vec4(1,1,1,1), 0.5f);
+											   -_camera_ui.size().y/2.f+_ui_text.size().y/2.f*0.5f + 1.f), glm::vec4(1,1,1,1), 0.5f);
 
 		_render_queue.flush();
 	}

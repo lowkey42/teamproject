@@ -162,8 +162,14 @@ namespace rest {
 						on_complete,
 						req.get() );
 
-				req->connection.request(method, path, nullptr,
-				                        reinterpret_cast<const unsigned char*>(post.data()), post.size());
+				const char* headers[3] {nullptr};
+				if(!post.empty()) {
+					headers[0] = "Content-Type";
+					headers[1] = "application/x-www-form-urlencoded";
+				}
+
+				req->connection.request(method, path, headers,
+										reinterpret_cast<const unsigned char*>(post.data()), post.size());
 
 				auto response = req->promise.get_future();
 

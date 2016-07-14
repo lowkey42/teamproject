@@ -49,9 +49,6 @@ namespace lux {
 			bool _fadeout = false;
 			Time _fadeout_fadetimer {};
 
-			// TEMP Highscore-Manager attribute
-			Highscore_manager _man;
-
 	};
 
 }
