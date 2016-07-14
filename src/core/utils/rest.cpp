@@ -169,7 +169,7 @@ namespace rest {
 				}
 
 				req->connection.request(method, path, headers,
-										reinterpret_cast<const unsigned char*>(post.data()), post.size());
+				                        reinterpret_cast<const unsigned char*>(post.data()), post.size());
 
 				auto response = req->promise.get_future();
 

@@ -15,8 +15,6 @@
 #include <core/engine.hpp>
 #include <core/utils/maybe.hpp>
 
-#include <game/highscore_manager.hpp>
-
 
 namespace lux {
 
@@ -48,7 +46,6 @@ namespace lux {
 
 			bool _fadeout = false;
 			Time _fadeout_fadetimer {};
-
 	};
 
 }
