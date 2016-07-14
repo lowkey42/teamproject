@@ -153,7 +153,7 @@ namespace renderer {
 	}
 
 
-#if defined(ANDROID) || defined(EMSCRIPTEN)
+#if defined(ANDROID)
 	void Object::_init(const Vertex_layout& layout) {
 		_layout = &layout;
 	}
