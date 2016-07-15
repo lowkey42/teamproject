@@ -25,14 +25,14 @@ namespace asset {
 	}
 
 	template<typename T>
-	auto Asset_manager::load_maybe(const AID& id, bool cache) throw(Loading_failed) -> util::maybe<Ptr<T>> {
+	auto Asset_manager::load_maybe(const AID& id, bool cache, bool warn) throw(Loading_failed) -> util::maybe<Ptr<T>> {
 		auto res = _assets.find(id);
 		if(res!=_assets.end())
 			return Ptr<T>{*this, id, std::static_pointer_cast<const T>(res->second.data)};
 
 		Location_type type;
 		std::string path;
-		std::tie(type, path) = _locate(id);
+		std::tie(type, path) = _locate(id, warn);
 
 		auto asset = std::shared_ptr<T>{};
 

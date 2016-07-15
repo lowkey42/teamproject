@@ -6,5 +6,6 @@ cfg:editor = settings/editor.json
 cfg:levels = levels/level_list.json
 cfg:my_levels = my_levels.json
 cfg:savegame = savegame.json
+cfg:remote_highscore = settings/remote_highscore.json
 level: = levels/
 highscore: = highscores/

@@ -21,7 +21,7 @@ namespace lux {
 
 	struct Highscore {
 		std::string name;
-		int32_t score;
+		float time;
 	};
 
 	struct Highscore_list {
@@ -30,7 +30,7 @@ namespace lux {
 		int64_t timestamp;
 	};
 
-	using Highscore_list_ptr = asset::Ptr<Highscore_list>;
+	using Highscore_list_ptr = std::shared_ptr<const Highscore_list>;
 	using Highscore_list_results = std::vector<util::maybe<Highscore_list_ptr>>;
 
 
@@ -47,6 +47,9 @@ namespace lux {
 			void update(Time delta_time);
 
 		private:
+			std::string _remote_host;
+			int _remote_port;
+			std::string _remote_path;
 			std::vector<util::rest::Http_body> _post_requests;
 			std::unordered_map<std::string, util::rest::Http_body> _running_requests;
 			asset::Asset_manager& _assets;

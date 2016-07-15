@@ -76,7 +76,7 @@ namespace asset {
 			auto load(const AID& id, bool cache=true) throw(Loading_failed) -> Ptr<T>;
 
 			template<typename T>
-			auto load_maybe(const AID& id, bool cache=true) throw(Loading_failed) -> util::maybe<Ptr<T>>;
+			auto load_maybe(const AID& id, bool cache=true, bool warn=true) throw(Loading_failed) -> util::maybe<Ptr<T>>;
 
 			auto load_raw(const AID& id) -> util::maybe<istream>;
 
