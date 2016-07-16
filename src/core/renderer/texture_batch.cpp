@@ -67,7 +67,8 @@ namespace renderer {
 		_objects.reserve(expected_size*0.25f);
 	}
 
-	void Texture_batch::insert(const Texture& texture, glm::vec2 pos, glm::vec2 size, Angle rotation) {
+	void Texture_batch::insert(const Texture& texture, glm::vec2 pos, glm::vec2 size,
+	                           Angle rotation, glm::vec4 clip_rect) {
 		auto scale = vec2 {
 			size.x,
 			size.y
@@ -78,7 +79,7 @@ namespace renderer {
 		};
 
 		auto tex_clip = texture.clip_rect();
-		auto sprite_clip = glm::vec4{0,0,1,1};
+		auto sprite_clip = clip_rect;
 
 		// rescale uv to texture clip_rect
 		sprite_clip.x *= (tex_clip.z - tex_clip.x);
@@ -112,7 +113,7 @@ namespace renderer {
 
 	void Texture_batch::_draw(Command_queue& queue) {
 		// partition _vertices by texture
-		std::stable_sort(_vertices.begin(), _vertices.end());
+		//std::stable_sort(_vertices.begin(), _vertices.end());
 
 		// draw one batch for each partition
 		auto last = _vertices.begin();

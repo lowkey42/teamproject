@@ -249,72 +249,13 @@ namespace editor {
 		_icon_scale  = engine.assets().load<Texture>("tex:selection_icon_scale"_aid);
 
 
-		// TODO: move to method
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
 			switch(e.id) {
 				case "copy_drag"_strid:
 					_copy_dragging = e.begin;
 					break;
-				case "mouse_down"_strid:
-					if(e.begin) {
-						if(_selected_entity) {
-							_curr_copy = _copy_dragging;
-							_curr_copy_created = false;
-
-							_current_action = Action_type::none;
-							auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-
-							_prev_entity_position = remove_units(transform.position());
-							_prev_entity_rotation = transform.rotation();
-							_prev_entity_scale = transform.scale();
-
-							_curr_entity_position = _prev_entity_position;
-							_curr_entity_rotation = _prev_entity_rotation;
-							_curr_entity_scale    = _prev_entity_scale;
-						}
-					} else {
-						if(_selected_entity && _current_action!=Action_type::none && _current_action!=Action_type::inactive) {
-
-							if(_current_action==Action_type::mod_form) {
-								if(_snap_to_grid) {
-									_curr_point_position = glm::round(_curr_point_position*2.f) / 2.f;
-								}
-								_commands.execute<Point_moved_cmd>(_selected_entity,
-								                                   _current_shape_index,
-								                                   _point_created,
-								                                   _curr_point_position,
-								                                   _prev_point_position);
-
-							} else {
-								auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-								_commands.execute<Transform_cmd>(*this, _selected_entity,
-								                                 _curr_copy && _curr_copy_created,
-								                                 transform.position(),
-								                                 transform.rotation(),
-								                                 transform.scale(),
-								                                 _prev_entity_position*1_m,
-								                                 _prev_entity_rotation,
-								                                 _prev_entity_scale);
-							}
-						}
-
-						_current_action = Action_type::inactive;
-					}
-					break;
-			}
-
-		});
-		// TODO: move to method
-		_mailbox.subscribe_to([&](input::Once_action& e) {
-			switch(e.id) {
-				case "mouse_click"_strid: {
-					auto mp = _input_manager.last_pointer_screen_position();
-					_change_selection(mp);
-					break;
-				}
 			}
 		});
-
 	}
 
 	void Selection::draw(renderer::Command_queue& queue, renderer::Camera& cam) {
@@ -404,12 +345,73 @@ namespace editor {
 		_mailbox.update_subscriptions();
 	}
 
+	void Selection::_on_mouse_pressed(glm::vec2 mp) {
+		if(_selected_entity) {
+			_curr_copy = _copy_dragging;
+			_curr_copy_created = false;
+
+			_current_action = Action_type::none;
+			auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+
+			_prev_entity_position = remove_units(transform.position());
+			_prev_entity_rotation = transform.rotation();
+			_prev_entity_scale = transform.scale();
+
+			_curr_entity_position = _prev_entity_position;
+			_curr_entity_rotation = _prev_entity_rotation;
+			_curr_entity_scale    = _prev_entity_scale;
+		}
+	}
+	void Selection::_on_mouse_released(glm::vec2 mp) {
+		if(_selected_entity && _current_action!=Action_type::none && _current_action!=Action_type::inactive) {
+			if(_current_action==Action_type::mod_form) {
+				if(_snap_to_grid) {
+					_curr_point_position = glm::round(_curr_point_position*2.f) / 2.f;
+				}
+				_commands.execute<Point_moved_cmd>(_selected_entity,
+				                                   _current_shape_index,
+				                                   _point_created,
+				                                   _curr_point_position,
+				                                   _prev_point_position);
+
+			} else {
+				auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+				_commands.execute<Transform_cmd>(*this, _selected_entity,
+				                                 _curr_copy && _curr_copy_created,
+				                                 transform.position(),
+				                                 transform.rotation(),
+				                                 transform.scale(),
+				                                 _prev_entity_position*1_m,
+				                                 _prev_entity_rotation,
+				                                 _prev_entity_scale);
+			}
+		}
+
+		_current_action = Action_type::inactive;
+
+
+		// if click
+		if(glm::length2(mp-_mouse_pressed_pos)<5.f) {
+			_change_selection(_mouse_pressed_pos);
+		}else {
+			DEBUG("DRAG: "<<glm::length2(mp-_mouse_pressed_pos));
+		}
+	}
+
 	auto Selection::handle_pointer(const util::maybe<glm::vec2> mp1,
 	                               const util::maybe<glm::vec2> mp2) -> bool {
 		ON_EXIT {
 			_last_primary_pointer_pos = mp1;
 			_last_secondary_pointer_pos = mp2;
 		};
+
+		if(mp1.is_some() && !_last_primary_pointer_pos.is_some()) {
+			_mouse_pressed_pos = mp1.get_or_throw();
+			_on_mouse_pressed(_mouse_pressed_pos);
+
+		} else if(!mp1.is_some() && _last_primary_pointer_pos.is_some()) {
+			_on_mouse_released(_input_manager.last_pointer_screen_position());
+		}
 
 		if(mp1.is_nothing() || _last_primary_pointer_pos.is_nothing()
 		        || !_selected_entity || _current_action==Action_type::inactive)

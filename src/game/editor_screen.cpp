@@ -136,11 +136,12 @@ namespace lux {
 	      _input_manager(engine.input()),
 	      _systems(engine),
 	      _camera_menu(engine.graphics_ctx().viewport(),
-	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
+	                   calculate_vscreen(engine, 1080)),
 	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, 5_m, 100_m),
 	      _debug_Text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _selection(engine, _systems.entity_manager, _camera_world, _commands),
-	      _editor_sys(engine, _commands, _selection, _systems.entity_manager, engine.assets()),
+	      _editor_sys(engine, _commands, _selection, _systems.entity_manager, engine.assets(),
+	                  engine.input(), _camera_world, _camera_menu, glm::vec2{_camera_menu.size().x/2.f, 0}),
 	      _clipboard(util::nothing()),
 	      _last_pointer_pos(util::nothing())
 	{
@@ -302,21 +303,16 @@ namespace lux {
 
 	auto Editor_screen::_handle_pointer_menu(util::maybe<glm::vec2> mp1,
 	                                         util::maybe<glm::vec2> mp2) -> bool {
-		if(mp1.is_nothing())
-			return false;
 
-		auto msrc = _camera_menu.screen_to_world(mp1.get_or_throw()).xy();
+		//auto mp1_menu = _camera_menu.screen_to_world(mp1.get_or_throw()).xy();
 
-		auto blueprint_offset = glm::vec2 {
-			_camera_menu.area().z, _camera_menu.area().x
-		};
-		auto blueprint = _editor_sys.find_blueprint(msrc, blueprint_offset);
-
-		// TODO
-		return blueprint.is_some();
+		return _editor_sys.handle_pointer(mp1,mp2);
 	}
 	auto Editor_screen::_handle_pointer_cam(util::maybe<glm::vec2> mp1,
 	                                        util::maybe<glm::vec2>) -> bool {
+
+		_cam_mouse_active = _last_pointer_pos.is_some() && mp1.is_some();
+
 		process(_last_pointer_pos,mp1) >> [&](auto last, auto curr) {
 			auto wsrc = this->_camera_world.screen_to_world(last, glm::vec3(0,0,0));
 			auto wtarget = this->_camera_world.screen_to_world(curr, glm::vec3(0,0,0));
@@ -324,6 +320,7 @@ namespace lux {
 			this->_camera_world.move((wsrc-wtarget)* 1_m);
 			// TODO: multi-touch => zoom
 		};
+
 		return true;
 	}
 
@@ -332,7 +329,7 @@ namespace lux {
 
 		_systems.update(dt, Update::animations);
 		_selection.update();
-		_editor_sys.update(dt);
+		_editor_sys.update();
 
 		if(_selection.selection()) {
 			auto& transform = _selection.selection()->get<sys::physics::Transform_comp>().get_or_throw();
@@ -344,11 +341,22 @@ namespace lux {
 		auto mp1 = _input_manager.pointer_screen_position(0);
 		auto mp2 = _input_manager.pointer_screen_position(1);
 
-		bool unhandled = !_handle_pointer_menu(mp1,mp2)
-		                 && !_selection.handle_pointer(mp1,mp2);
-
-		if(unhandled) {
+		if(_cam_mouse_active) {
 			_handle_pointer_cam(mp1,mp2);
+		} else if(_selection.active()) {
+			_selection.handle_pointer(mp1,mp2);
+
+			// TODO: refactor. Should be located in selection class
+			if(mp1.is_nothing() && _selection.selection() &&
+			        _editor_sys.is_in_delete_zone(_input_manager.last_pointer_screen_position(0))) {
+				_commands.execute<Delete_cmd>(_selection);
+			}
+
+		} else {
+			bool unhandled = !_handle_pointer_menu(mp1,mp2) &&
+			                 !_selection.handle_pointer(mp1,mp2) &&
+			                 !_handle_pointer_cam(mp1,mp2);
+			(void)unhandled;
 		}
 
 		_last_pointer_pos = mp1;
@@ -358,16 +366,13 @@ namespace lux {
 
 
 	void Editor_screen::_draw() {
-		//_render_queue.shared_uniforms()->emplace("vp", _camera_world.vp());
 
 		_systems.draw(_camera_world);
+		_render_queue.shared_uniforms()->emplace("vp", _camera_menu.vp());
+
+		_editor_sys.draw(_render_queue);
+
 		_selection.draw(_render_queue, _camera_menu);
-
-		auto blueprint_offset = glm::vec2 {
-			_camera_menu.area().z, _camera_menu.area().x
-		};
-
-		_editor_sys.draw_blueprint_list(_render_queue, blueprint_offset);
 
 		_debug_Text.draw(_render_queue, glm::vec2(-_camera_menu.size().x/2.f+_debug_Text.size().x/2.f*0.4f,
 		                                          _camera_menu.size().y/2.f-_debug_Text.size().y/2.f*0.4f - 1.f), glm::vec4(1,1,1,1), 0.4f);

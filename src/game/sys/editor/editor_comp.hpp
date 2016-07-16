@@ -17,7 +17,7 @@ namespace lux {
 namespace sys {
 namespace editor {
 
-	class Editor_system;
+	class Blueprint_bar;
 
 	class Editor_comp : public ecs::Component<Editor_comp> {
 		public:
@@ -33,7 +33,7 @@ namespace editor {
 			auto bounds(Position bounds) {_bounds = bounds;}
 
 		private:
-			friend class Editor_system;
+			friend class Blueprint_bar;
 
 			Position _bounds;
 	};

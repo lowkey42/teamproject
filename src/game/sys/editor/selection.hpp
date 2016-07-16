@@ -38,6 +38,7 @@ namespace editor {
 			void update();
 			auto handle_pointer(util::maybe<glm::vec2> mp1,
 			                    util::maybe<glm::vec2> mp2) -> bool; //< true = mouse-input has been used
+			auto active()const -> bool {return _current_action!=Action_type::inactive;}
 
 			auto copy_content()const -> std::string;
 
@@ -78,6 +79,7 @@ namespace editor {
 
 			util::maybe<glm::vec2> _last_primary_pointer_pos;
 			util::maybe<glm::vec2> _last_secondary_pointer_pos;
+			glm::vec2              _mouse_pressed_pos;
 
 			Action_type _current_action = Action_type::inactive;
 			int _current_shape_index = 0;
@@ -88,6 +90,8 @@ namespace editor {
 			// all coordinates in screen space
 			auto _handle_multitouch(glm::vec2 mp1, glm::vec2 mp2) -> bool;
 			auto _handle_singletouch(glm::vec2 mp1_prev, glm::vec2 mp2_curr) -> bool;
+			void _on_mouse_pressed(glm::vec2 mp);
+			void _on_mouse_released(glm::vec2 mp);
 
 			void _change_selection(glm::vec2 point, bool cycle=true);
 			void _move(glm::vec2 offset);

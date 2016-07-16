@@ -10,7 +10,7 @@
 #include "level.hpp"
 #include "meta_system.hpp"
 
-#include "sys/editor/editor_system.hpp"
+#include "sys/editor/blueprint_bar.hpp"
 #include "sys/editor/selection.hpp"
 
 #include <core/renderer/camera.hpp>
@@ -63,9 +63,10 @@ namespace lux {
 			renderer::Command_queue _render_queue;
 
 			sys::editor::Selection _selection;
-			sys::editor::Editor_system _editor_sys;
+			sys::editor::Blueprint_bar _editor_sys;
 			util::maybe<std::string> _clipboard;
 			util::maybe<glm::vec2> _last_pointer_pos;
+			bool _cam_mouse_active = false;
 
 			glm::vec2 _cam_speed;
 
