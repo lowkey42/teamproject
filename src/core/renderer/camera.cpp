@@ -30,7 +30,7 @@ namespace renderer {
 		float width = engine.graphics_ctx().viewport().z;
 		float height = engine.graphics_ctx().viewport().w;
 
-		float vwidth  = std::round(width * (height / static_cast<float>(target_height)));
+		float vwidth  = std::round(width * (static_cast<float>(target_height))/height);
 
 		return {vwidth, target_height};
 	}

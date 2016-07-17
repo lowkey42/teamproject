@@ -95,6 +95,7 @@
 				"C": {"type":"once", "action":"copy"},
 				"X": {"type":"once", "action":"cut"},
 				"V": {"type":"once", "action":"paste"},
+				"L": {"type":"once", "action":"light"},
 				"LControl": {"type":"continuous", "action":"copy_drag"},
                 "Delete": {"type":"once", "action":"delete"},
                 "Left": {"type":"continuous", "action":"scroll_l"},

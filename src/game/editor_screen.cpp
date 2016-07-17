@@ -228,7 +228,18 @@ namespace lux {
 					}
 					break;
 
+				case "light"_strid: {
+					auto ambient = 10.f;
+					if(_real_ambient_light.is_some()) {
+						ambient = _real_ambient_light.get_or_throw();
+						_real_ambient_light = util::nothing();
+					} else {
+						_real_ambient_light = _level_metadata.ambient_brightness;
+					}
 
+					_systems.light_config(_level_metadata.environment_light_color, _level_metadata.environment_light_direction, ambient, _level_metadata.background_tint);
+					break;
+				}
 
 				case "save"_strid:
 					save_level(_engine, _systems.entity_manager, _level_metadata);

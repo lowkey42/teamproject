@@ -67,8 +67,8 @@ namespace lux {
 			util::maybe<std::string> _clipboard;
 			util::maybe<glm::vec2> _last_pointer_pos;
 			bool _cam_mouse_active = false;
-
 			glm::vec2 _cam_speed;
+			util::maybe<float> _real_ambient_light = util::nothing();
 
 			Level_info _level_metadata;
 
