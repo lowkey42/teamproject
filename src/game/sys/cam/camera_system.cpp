@@ -14,7 +14,7 @@ namespace cam {
 	using namespace unit_literals;
 
 	namespace {
-		constexpr auto cam_distance = 5_m;
+		constexpr auto cam_distance = 2_m;
 
 		template<class T>
 		T save_mix(const T& x, const T& y, float a) {
@@ -54,7 +54,7 @@ namespace cam {
 			auto y = transform.position().y;
 
 			if(_type == Camera_move_type::lazy) {
-				if(!grounded && glm::abs(remove_unit(_last_target.y-y))<6.f) {
+				if(!grounded && glm::abs(remove_unit(_last_target.y-y))<3.f) {
 					y = _last_target.y;
 				}
 

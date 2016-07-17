@@ -36,7 +36,7 @@ uniform sampler2D last_frame_tex;
 
 uniform float light_ambient;
 uniform Dir_light light_sun;
-uniform Point_light light[6];
+uniform Point_light light[8];
 
 uniform vec3 eye;
 uniform float alpha_cutoff;
@@ -197,12 +197,12 @@ void main() {
 	for(int i=0; i<2; i++) {
 		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance) * calc_shadow(i);
 	}
-	for(int i=2; i<6; i++) {
+	for(int i=2; i<8; i++) {
 		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 	}
 
 	// in low-light scene, discard colors but keep down-scaled luminance
-	color = mix(color, vec3(my_smoothstep(0.1, 0.2, pow(luminance(albedo.rgb), 3.3)*6000.0))*0.008, my_smoothstep(0.015, 0.005, length(color)));
+	color = mix(color, vec3(my_smoothstep(0.1, 0.2, pow(luminance(albedo.rgb), 3.3)*6000.0))*0.007, my_smoothstep(0.015, 0.005, length(color)));
 
 	color += albedo.rgb * ambient;
 	color += calc_dir_light(light_sun, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
@@ -211,7 +211,7 @@ void main() {
 	refl *= mix(vec3(1,1,1), albedo.rgb, metalness);
 	color += refl*reflectance*0.2;
 
-	color += albedo.rgb*3.0*emmision;
+	color = mix(color, albedo.rgb*3.0, emmision);
 
 	gl_FragColor = vec4(color, albedo.a);
 }

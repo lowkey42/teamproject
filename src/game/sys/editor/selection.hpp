@@ -38,7 +38,7 @@ namespace editor {
 			void update();
 			auto handle_pointer(util::maybe<glm::vec2> mp1,
 			                    util::maybe<glm::vec2> mp2) -> bool; //< true = mouse-input has been used
-			auto active()const -> bool {return _current_action!=Action_type::inactive;}
+			auto active()const -> bool {return _current_action!=Action_type::inactive && _current_action!=Action_type::none;}
 
 			auto copy_content()const -> std::string;
 

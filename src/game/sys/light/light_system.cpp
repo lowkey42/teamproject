@@ -17,7 +17,7 @@
 #include <core/renderer/graphics_ctx.hpp>
 
 
-#define NUM_LIGHTS_MACRO 6
+#define NUM_LIGHTS_MACRO 8
 
 namespace lux {
 namespace sys {
@@ -112,17 +112,24 @@ namespace light {
 		                               Light_comp::Pool& lights,
 		                               std::array<Light_info, max_lights>& out) {
 			auto eye_pos = camera.eye_position();
+
+			static glm::vec3 last_ep;
+			if(glm::length2(eye_pos-last_ep)>2.f) {
+				last_ep=eye_pos;
+				DEBUG("eye: "<<eye_pos.x<<"/"<<eye_pos.y<<"/"<<eye_pos.z);
+			}
+
 			auto index = 0;
 
 			for(Light_comp& light : lights) {
 				auto& trans = light.owner().get<physics::Transform_comp>().get_or_throw();
 
 				auto r = light.radius().value();
-				auto dist = glm::distance2(remove_units(trans.position()), eye_pos);
+				auto dist = glm::distance2(remove_units(trans.position()).xy(), eye_pos.xy());
 
 				auto score = 1.f/dist;
 				if(dist<10.f)
-					score += glm::clamp(r/2.f + glm::length2(light.color())/4.f, -0.001f, 0.001f) + (light.shadowcaster() ? 1.f : 0.f);
+					score += glm::clamp(r/2.f + glm::length2(light.color())/4.f, -0.001f, 0.001f) + (light.shadowcaster() ? 0.1f : 0.f);
 
 				if(index<max_lights) {
 					out[index].transform = &trans;
