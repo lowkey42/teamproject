@@ -101,6 +101,7 @@ namespace light {
 		const Light_comp* light = nullptr;
 		float score = 0.f;
 		glm::vec2 flat_pos;
+		bool shadowcaster = true;
 
 		bool operator<(const Light_info& rhs)const noexcept {
 			return score>rhs.score;
@@ -116,7 +117,6 @@ namespace light {
 			static glm::vec3 last_ep;
 			if(glm::length2(eye_pos-last_ep)>2.f) {
 				last_ep=eye_pos;
-				DEBUG("eye: "<<eye_pos.x<<"/"<<eye_pos.y<<"/"<<eye_pos.z);
 			}
 
 			auto index = 0;
@@ -135,6 +135,7 @@ namespace light {
 					out[index].transform = &trans;
 					out[index].light = &light;
 					out[index].score = score;
+					out[index].shadowcaster = light.shadowcaster();
 					index++;
 
 				} else { // too many lights => select brightest/closest
@@ -145,6 +146,7 @@ namespace light {
 						min->transform = &trans;
 						min->light = &light;
 						min->score = score;
+						min->shadowcaster = light.shadowcaster();
 					}
 				}
 			}
@@ -153,7 +155,8 @@ namespace light {
 		}
 
 		void bind_light_positions(renderer::Shader_program& prog, gsl::span<Light_info> lights) {
-#define SET_LIGHT_UNIFORM(I) prog.set_uniform("light_positions["#I"]", lights[I].flat_pos);
+#define SET_LIGHT_UNIFORM(I) prog.set_uniform("light_positions["#I"]", lights[I].flat_pos);\
+			                 prog.set_uniform("light_shadow["#I"]", lights[I].shadowcaster ? 1.f : 0.f);
 			M_REPEAT(NUM_LIGHTS_MACRO, SET_LIGHT_UNIFORM);
 #undef SET_LIGHT_UNIFORM
 		}
