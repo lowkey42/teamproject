@@ -109,7 +109,7 @@ namespace gameplay {
 					player_color = e._color;
 				});
 
-				auto marker_color = marker._required_color!=Light_color::black ? marker.colors_left() :	Light_color::white;
+				auto marker_color = marker._required_color!=Light_color::black || marker._activated ? marker.colors_left() :	Light_color::white;
 				auto interactive_part = interactive_color(marker_color, player_color);
 				if(interactive_part!=Light_color::black) {
 					auto non_interactive_part = not_interactive_color(marker_color, player_color);
