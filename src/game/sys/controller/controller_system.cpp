@@ -252,6 +252,13 @@ namespace controller {
 
 		effective_move = glm::clamp(effective_move, -1.f, 1.f);
 
+		for(auto& c : _input_controllers) {
+			if(&c.owner()!=_active_controlled_entity.get()) {
+				auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+				_move(c, body, 0, dt);
+			}
+		}
+
 		if(_active_controlled_entity) {
 			auto controller = _active_controlled_entity->get<Input_controller_comp>();
 			if(controller.is_some()) {

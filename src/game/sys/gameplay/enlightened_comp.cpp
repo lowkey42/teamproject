@@ -25,6 +25,9 @@ namespace gameplay {
 			sf2::vmember("latency_compensation", _latency_compensation),
 			sf2::vmember("max_air_time", _max_air_time),
 			sf2::vmember("smash_force", _smash_force),
+			sf2::vmember("initial_booster_time", _initial_booster_time),
+			sf2::vmember("initial_booster_factor", _initial_booster_factor),
+			sf2::vmember("initial_acceleration_time", _initial_acceleration_time),
 
 			sf2::vmember("was_light", _was_light),
 			sf2::vmember("state", _state),
@@ -51,6 +54,9 @@ namespace gameplay {
 			sf2::vmember("latency_compensation", _latency_compensation),
 			sf2::vmember("max_air_time", _max_air_time),
 			sf2::vmember("smash_force", _smash_force),
+			sf2::vmember("initial_booster_time", _initial_booster_time),
+			sf2::vmember("initial_booster_factor", _initial_booster_factor),
+			sf2::vmember("initial_acceleration_time", _initial_acceleration_time),
 
 			sf2::vmember("was_light", _was_light),
 			sf2::vmember("state", _state),

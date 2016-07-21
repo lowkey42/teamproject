@@ -72,6 +72,9 @@ namespace gameplay {
 			float _max_air_time = -1.f;
 			Light_color _color;
 			float _smash_force = 40.f;
+			float _initial_booster_time = 0.f;
+			float _initial_booster_factor = 1.f;
+			float _initial_acceleration_time = 0.f;
 
 			bool _was_light = false; //< state after the last update
 			Enlightened_State _state = Enlightened_State::disabled; //< state change request
@@ -84,6 +87,7 @@ namespace gameplay {
 			bool _smashed = false;
 			bool _smash = false;
 			bool _forced_smash = false;
+			Time _initial_timer {};
 	};
 
 }

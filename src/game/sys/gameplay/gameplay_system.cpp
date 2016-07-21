@@ -182,7 +182,7 @@ namespace gameplay {
 			// set camera to slowly lerp back to player and block input
 			// TODO: maybe make the lerp time dependent on the distance to the start position
 			_camera_sys.start_slow_lerp(1.0_s);
-			_controller_sys.block_input(0.8_s);
+			_controller_sys.block_input(0.5_s);
 
 			_mailbox.disable();
 			_reload();
@@ -418,6 +418,8 @@ namespace gameplay {
 
 	void Gameplay_system::_handle_light_pending(Time dt, Enlightened_comp& c) {
 		if(!c._was_light) {
+			c._initial_timer = 0_s;
+
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 			body.active(true);
 			body.kinematic(true);
@@ -473,6 +475,21 @@ namespace gameplay {
 
 		auto move_distance = std::abs(c._velocity * dt.value());
 		auto direction = c._direction;
+
+
+		c._initial_timer += dt;
+		if(c._initial_timer.value()<=c._initial_booster_time+c._initial_acceleration_time) {
+			auto t = c._initial_timer.value();
+
+			auto a_accel = glm::clamp(t/c._initial_acceleration_time, 0.f, 1.f);
+			t-=c._initial_acceleration_time;
+			move_distance *= a_accel;
+
+
+			auto a_booster = glm::clamp(t/c._initial_booster_time, 0.f, 1.f);
+			move_distance *= 1.0f + (1.f-a_booster)*c._initial_booster_factor;
+		}
+
 
 		float max_ray_dist = c._radius*2.f+move_distance;
 		if(max_ray_dist>0.01f) {
@@ -551,6 +568,7 @@ namespace gameplay {
 							auto normal = ray.get_or_throw().normal;
 							interactive->_direction = interactive->_direction - 2.f*normal*dot(normal, interactive->_direction);
 							interactive->_air_time = 0_s;
+							c._initial_timer = 0_s;
 
 						} else {
 							_disable_light(*interactive, true, false);
