@@ -9,6 +9,7 @@ uniform vec2 texture_size;
 uniform float exposure;
 uniform float gamma;
 uniform float bloom;
+uniform float contrast_boost;
 
 
 vec3 heji_dawson(vec3 color) {
@@ -79,6 +80,8 @@ vec3 sample_fxaa() {
 
 void main() {
 	vec3 color = sample_fxaa() + texture2D(texture_glow, uv_frag).rgb*bloom;
+
+	color = mix(color, pow(color, vec3(1.3))*4.0, contrast_boost);
 
 	gl_FragColor = vec4(tone_mapping(color), 1.0);
 }

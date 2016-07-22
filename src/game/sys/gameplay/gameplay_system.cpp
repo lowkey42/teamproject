@@ -240,8 +240,6 @@ namespace gameplay {
 	}
 
 	void Gameplay_system::_update_light(Time dt) {
-		bool any_one_lighted = false;
-		bool any_one_not_grounded = false;
 
 		for(Enlightened_comp& c : _enlightened) {
 			auto body_mb = c.owner().get<physics::Dynamic_body_comp>();
@@ -317,19 +315,28 @@ namespace gameplay {
 			if(res_color!=c._color) {
 				_color_player(c, res_color);
 			}
-
-			any_one_lighted |= c.enabled();
-			any_one_not_grounded |= !body.grounded();
 		}
 
-		if(any_one_lighted) {
-			_light_timer = 1_s;
+
+		static constexpr auto cam_effect_fade_time = 0.5_s;
+		if(_controller_sys.get_controlled()) {
+			process(_controller_sys.get_controlled()->get<Enlightened_comp>(),
+			        _controller_sys.get_controlled()->get<physics::Dynamic_body_comp>())
+			        >> [&](auto& light, auto& body) {
+				if(light.enabled()) {
+					static constexpr auto cam_fade_time = 1_s;
+					_light_timer = cam_fade_time;
+					_light_effects_timer = cam_effect_fade_time;
+				} else if(_light_effects_timer>0_s) {
+					_light_effects_timer -= dt;
+				}
+				if(_light_timer>0_s && body.grounded()) {
+					_light_timer -= dt;
+				}
+			};
 		}
 
-		if(_light_timer>0_s && !any_one_not_grounded) {
-			_light_timer -= dt;
-		}
-
+		_camera_sys.motion_blur(_light_effects_timer/cam_effect_fade_time);
 		_camera_sys.type(_light_timer>0_s ? cam::Camera_move_type::centered
 		                                  : cam::Camera_move_type::lazy);
 

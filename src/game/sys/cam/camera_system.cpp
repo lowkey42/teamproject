@@ -107,7 +107,7 @@ namespace cam {
 			if(_targets.size()>0) {
 				_slow_lerp_remainder-=dt;
 
-				_slow_lerp_started |= _slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001;
+				_slow_lerp_started |= _slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001f;
 
 				if(_slow_lerp_started) {
 					auto alpha = 1.f - glm::clamp(_slow_lerp_remainder/_slow_lerp_time, 0.f, 1.f);
@@ -130,6 +130,11 @@ namespace cam {
 
 		} else {
 			target = save_mix(remove_units(_last_target), remove_units(target), std::min(dt.value()*30.f,1.f)) * 1_m;
+		}
+
+		auto diff = remove_units(target - _last_target).xy();
+		if(glm::length2(diff)>0.01f) {
+			_motion_blur_dir = glm::normalize(diff);
 		}
 
 		_last_target = target;

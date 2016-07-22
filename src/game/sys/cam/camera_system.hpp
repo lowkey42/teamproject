@@ -42,6 +42,11 @@ namespace cam {
 				_screen_shake_time_left = t;
 				_screen_shake_force = force;
 			}
+			void motion_blur(float intensity) {
+				_motion_blur = intensity;
+			}
+			auto motion_blur_dir()const {return _motion_blur_dir;}
+			auto motion_blur()const {return _motion_blur;}
 
 		private:
 			Camera_target_comp::Pool& _targets;
@@ -63,6 +68,9 @@ namespace cam {
 
 			Time _screen_shake_time_left {};
 			float _screen_shake_force = 0.f;
+
+			glm::vec2 _motion_blur_dir;
+			float _motion_blur = 0.f;
 
 			auto _calc_target() -> Position;
 			auto _smooth_target(Position p, Time dt) -> Position;
