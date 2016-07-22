@@ -19,6 +19,7 @@ vec3 heji_dawson(vec3 color) {
 
 vec3 tone_mapping(vec3 color) {
 	color *= exposure;
+	// TODO: for light-form?: color = pow(color, vec3(1.5))*10.0;
 	color = heji_dawson(color);
 
 	// Gamma correction

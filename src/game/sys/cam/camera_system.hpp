@@ -38,6 +38,10 @@ namespace cam {
 			void update(Time);
 
 			void active_only(ecs::Entity& e);
+			void screen_shake(Time t, float force) {
+				_screen_shake_time_left = t;
+				_screen_shake_force = force;
+			}
 
 		private:
 			Camera_target_comp::Pool& _targets;
@@ -56,6 +60,9 @@ namespace cam {
 			Position _slow_lerp_target {};
 			Time _slow_lerp_remainder {};
 			bool _slow_lerp_started = false;
+
+			Time _screen_shake_time_left {};
+			float _screen_shake_force = 0.f;
 
 			auto _calc_target() -> Position;
 			auto _smooth_target(Position p, Time dt) -> Position;

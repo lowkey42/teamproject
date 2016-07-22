@@ -70,7 +70,7 @@ namespace lux {
 				            .uniforms(make_uniform_map(
 				                "texture", int(Texture_unit::last_frame),
 				                "texture_glow", int(Texture_unit::temporary),
-				                "gamma", 2.2f,
+				                "gamma", graphics_ctx.settings().gamma,
 				                "texture_size", shadowbuffer_size(engine),
 				                "exposure", 1.0f,
 				                "bloom", (graphics_ctx.settings().bloom ? 1.f : 0.f)

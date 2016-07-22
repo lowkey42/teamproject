@@ -14,6 +14,7 @@
 #include "../graphic/sprite_comp.hpp"
 
 #include <core/input/events.hpp>
+#include <core/input/input_manager.hpp>
 
 
 namespace lux {
@@ -30,6 +31,7 @@ namespace controller {
 	Controller_system::Controller_system(Engine& engine, ecs::Entity_manager& ecs,
 	                                     physics::Physics_system& physics_world)
 	    : _mailbox(engine.bus()),
+	      _input_manager(engine.input()),
 	      _input_controllers(ecs.list<Input_controller_comp>()),
 	      _ai_controllers(ecs.list<Ai_patrolling_comp>()),
 	      _physics_world(physics_world) {
@@ -56,17 +58,12 @@ namespace controller {
 
 				case "jump"_strid:
 					_jump = e.begin;
-					if(_jump && _transform_pending) {
-						_transform_canceled = true;
-						_transform_pending = false;
-					}
 					break;
 
 				case "transform"_strid:
 					_transform_pending = e.begin;
 					if(!e.begin) {
-						_transform = !_transform_canceled;
-						_transform_canceled = false;
+						_transform = true;
 					}
 					break;
 			}
@@ -92,24 +89,16 @@ namespace controller {
 	}
 
 	void Controller_system::_move(Input_controller_comp& c, physics::Dynamic_body_comp& body,
-	                              float effective_move, Time dt) {
+	                              float effective_move, bool grounded, Time dt) {
 		auto& ctransform = c.owner().get<physics::Transform_comp>().get_or_throw();
 
 		auto ground_normal = body.ground_normal();
 		auto ground_angle = Angle{glm::atan(-ground_normal.x, ground_normal.y)};
-		auto grounded = body.grounded() && abs(ground_angle)<40_deg;
 
 		auto move_force = vec2{0,0};
 		auto walking = glm::abs(effective_move)>0.01f;
-		auto target_rotation = 0.f;
+		auto target_rotation = grounded ? ground_angle.value()*0.75f : 0.f;
 
-
-		if(grounded) { // we are on the ground
-			c._air_time = 0_s;
-			target_rotation = ground_angle.value()*0.75f;
-		} else {
-			c._air_time += dt;
-		}
 		ctransform.rotation(Angle{glm::mix(normalize(ctransform.rotation()).value(), normalize(Angle{target_rotation}).value(), 10*dt.value())});
 
 		auto same_dir = glm::sign(effective_move)==glm::sign(c._last_velocity) || glm::abs(c._last_velocity)<1.f;
@@ -248,6 +237,10 @@ namespace controller {
 		if(_move_right>0)
 			effective_move+=1;
 
+		if(_mouse_look) {
+			_target_dir = _input_manager.last_pointer_world_position(0);
+		}
+
 		// TODO: add touch-controls here
 
 		effective_move = glm::clamp(effective_move, -1.f, 1.f);
@@ -255,7 +248,7 @@ namespace controller {
 		for(auto& c : _input_controllers) {
 			if(&c.owner()!=_active_controlled_entity.get()) {
 				auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
-				_move(c, body, 0, dt);
+				_move(c, body, 0, body.grounded(), dt);
 			}
 		}
 
@@ -275,15 +268,20 @@ namespace controller {
 
 				// normalize dir to N° steps
 				if(glm::length2(dir)>0.1f) {
-					constexpr auto dir_step_size = 22.5_deg;
+					constexpr auto dir_step_size = 45_deg/4.f;
 					auto dir_angle = Angle{glm::atan(dir.y, dir.x)};
 					dir_angle = Angle::from_degrees(std::round(dir_angle.in_degrees() / dir_step_size.in_degrees()) * dir_step_size.in_degrees());
 					dir = glm::rotate(glm::vec2{1,0}, dir_angle.value());
 				}
 
+
+				auto ground_normal = body.ground_normal();
+				auto ground_angle = Angle{glm::atan(-ground_normal.x, ground_normal.y)};
+				auto grounded = body.grounded() && abs(ground_angle)<40_deg;
+
 				auto enlightened_comp = c.owner().get<gameplay::Enlightened_comp>();
 				enlightened_comp >> [&](gameplay::Enlightened_comp& light) {
-					bool transformation_allowed = body.grounded() || light.can_air_transform() || light.pending();
+					bool transformation_allowed = grounded || c._air_time<0.1_s || light.can_air_transform() || light.pending();
 
 					if(_transform && !light.was_light()) {
 						light.late_untransform();
@@ -291,7 +289,7 @@ namespace controller {
 
 					// transforming to physical
 					if(_transform_pending && light.enabled()) {
-						c._air_dash_timer = light.can_air_transform() ? air_dash_delay : dt/2.f;
+						c._air_dash_timer = transformation_allowed ? air_dash_delay : dt/2.f;
 						light.start_transformation();
 					}
 
@@ -319,16 +317,10 @@ namespace controller {
 						}
 					}
 
-
-					// jump to cancel
-					if(_transform_canceled) {
-						light.cancel_transformation();
-						sprite.process([&](auto& s){s.play_next("untransform"_strid);});
-					}
-
 					// execute
 					if(_transform && (transformation_allowed || light.was_light())) {
 						light.finish_transformation();
+						c._air_dash_timer = 0_s;
 						if(light.was_light()) {
 							sprite.process([&](auto &s) {s.play("untransform"_strid);});
 						}
@@ -337,8 +329,15 @@ namespace controller {
 
 				bool is_light = enlightened_comp.process(false, [](auto& l){return !l.disabled();});
 
+
+				if(grounded && !is_light) { // we are on the ground
+					c._air_time = 0_s;
+				} else {
+					c._air_time += dt;
+				}
+
 				if(!is_light) {
-					_move(c, body, effective_move, dt);
+					_move(c, body, effective_move, grounded, dt);
 
 					if(_jump) {
 						_start_jump(c, body, dt);

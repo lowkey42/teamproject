@@ -7,6 +7,9 @@
 
 #include <core/renderer/graphics_ctx.hpp>
 
+#include <glm/gtx/random.hpp>
+
+
 namespace lux {
 namespace sys {
 namespace cam {
@@ -54,11 +57,12 @@ namespace cam {
 			auto y = transform.position().y;
 
 			if(_type == Camera_move_type::lazy) {
-				if(!grounded && glm::abs(remove_unit(_last_target.y-y))<3.f) {
+				auto dist_y = glm::abs(remove_unit(_last_target.y-y));
+				if(!(grounded && dist_y>0.5f) && dist_y<6.f) {
 					y = _last_target.y;
 				}
 
-				if(glm::abs(remove_unit(_last_target.x-x))<8.f && !_moving)
+				if(glm::abs(remove_unit(_last_target.x-x))<4.f && !_moving)
 					x = _last_target.x;
 
 				_moving = glm::abs(remove_unit(_last_target.x-x))>0.05f;
@@ -128,9 +132,14 @@ namespace cam {
 			target = save_mix(remove_units(_last_target), remove_units(target), std::min(dt.value()*30.f,1.f)) * 1_m;
 		}
 
-		_camera.position(target);
-
 		_last_target = target;
+
+		if(_screen_shake_time_left>0_s) {
+			_screen_shake_time_left -= dt;
+			target += glm::sphericalRand(0.1f*_screen_shake_force) * 1_m;
+		}
+
+		_camera.position(target);
 	}
 	auto Camera_system::screen_to_world(glm::vec2 screen_pos) const noexcept -> glm::vec3 {
 		auto exp_p = remove_units(_last_target);

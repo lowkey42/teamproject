@@ -27,9 +27,9 @@
 		"velocity": 14.0,
 		"air_transformations": 0,
 		"radius": 0.25,
-		"max_air_time": 0.8,
+		"max_air_time": 0.75,
 		"final_booster_time": 0.2,
-		"latency_compensation": 0.2,
+		"latency_compensation": 0.15,
 		"initial_booster_time": 0.2,
 		"initial_booster_factor": 1.75,
 		"initial_acceleration_time": 0.1

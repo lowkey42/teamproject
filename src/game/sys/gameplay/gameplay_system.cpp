@@ -364,7 +364,14 @@ namespace gameplay {
 			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
 				ecs::Entity* other = (c.a==&elc.owner()) ? c.b : c.a;
 				auto deadly = other && other->has<Deadly_comp>();
-				return (elc._final_booster_left>0_s || c.impact>=elc._smash_force || deadly) && elc.smash();
+				if((elc._final_booster_left>0_s && c.impact>=elc._smash_force*0.1f) || c.impact>=elc._smash_force || deadly) {
+					return elc.smash();
+				} else {
+					auto fp = c.impact/elc._smash_force;
+					if(fp>=0.75f)
+						_camera_sys.screen_shake(0.2_s, 0.5f*fp);
+					return false;
+				}
 			});
 		};
 
@@ -384,6 +391,8 @@ namespace gameplay {
 			WARN("smashed a not animated entity");
 			e.manager().erase(e.shared_from_this());
 		});
+
+		_camera_sys.screen_shake(0.2_s, 0.5f);
 	}
 	void Gameplay_system::_on_animation_event(const Animation_event& event) {
 		if(!event.owner)
@@ -416,7 +425,7 @@ namespace gameplay {
 		}
 	}
 
-	void Gameplay_system::_handle_light_pending(Time dt, Enlightened_comp& c) {
+	void Gameplay_system::_handle_light_pending(Time, Enlightened_comp& c) {
 		if(!c._was_light) {
 			c._initial_timer = 0_s;
 
@@ -428,7 +437,6 @@ namespace gameplay {
 
 			auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
 			transform.rotation(angle);
-			round_player_pos(transform, std::min(dt/0.1_s, 1.f));
 
 			c.owner().get<light::Light_comp>().process([&](auto& l){
 				l.brightness_factor(2.f);
