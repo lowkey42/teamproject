@@ -95,6 +95,10 @@ namespace renderer {
 		void direction(glm::vec3 euler_angles) {
 			_direction = glm::quat(euler_angles);
 		}
+		void scale(float s) {
+			_scale = s;
+		}
+
 		void hue_change_out(Angle out) {
 			_hue_out = out;
 		}
@@ -113,6 +117,7 @@ namespace renderer {
 
 		glm::vec3 _position;
 		glm::quat _direction;
+		float _scale = 1.f;
 		bool _active = true;
 		Angle _hue_out = Angle::from_degrees(300);
 	};

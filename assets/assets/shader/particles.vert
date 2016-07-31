@@ -38,7 +38,7 @@ void main() {
 	clip_space_pos/=clip_space_pos.w;
 
 	gl_Position = clip_space_pos;
-	gl_PointSize = clip_space_pos.z * size * 50.0;
+	gl_PointSize = (1.0-clip_space_pos.z) * size * 200.0;
 
 	frames_frag = frames;
 	current_frame_frag = floor(current_frame);

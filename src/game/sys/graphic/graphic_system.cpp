@@ -199,6 +199,7 @@ namespace graphic {
 					e->hue_change_out(particle._hue_change);
 					e->position(position);
 					e->direction(glm::vec3(0,0,transform.rotation().value()));
+					e->scale(transform.scale());
 				}
 			}
 		}

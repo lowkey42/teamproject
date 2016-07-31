@@ -139,8 +139,8 @@ namespace renderer {
 
 				_texture = assets.load<Texture>(asset::AID{type.texture});
 
-				_particles_draw.reserve(type.max_particle_count);
-				_particles_sim.reserve(type.max_particle_count);
+				_particles_draw.reserve(type.max_particle_count * _scale);
+				_particles_sim.reserve(type.max_particle_count * _scale);
 			}
 
 			auto texture()const noexcept -> const Texture* override {return &*_texture;}
@@ -154,7 +154,8 @@ namespace renderer {
 				}
 
 				_dt_acc += dt;
-				auto spawn_now = util::random_int(rng,_type.emision_rate.min, _type.emision_rate.max);
+				auto count_scale = std::max(_scale, 0.01f);
+				auto spawn_now = util::random_int(rng,_type.emision_rate.min, _type.emision_rate.max) * count_scale;
 				_to_spawn = static_cast<decltype(_to_spawn)>(std::round(spawn_now * _dt_acc.value()));
 				_dt_acc-=Time(_to_spawn/spawn_now);
 				if(!_active) {
@@ -189,7 +190,7 @@ namespace renderer {
 			std::vector<Particle_draw> _particles_draw;
 			std::vector<Particle_sim> _particles_sim;
 
-			int_fast16_t _to_spawn;
+			int_fast32_t _to_spawn;
 			Time _dt_acc{0};
 
 			glm::vec3 _last_position;
@@ -229,8 +230,11 @@ namespace renderer {
 			}
 
 			void _spawn() {
-				auto max_spawn = static_cast<decltype(_to_spawn)>(_type.max_particle_count - _particles_sim.size());
-				_to_spawn = std::min(_to_spawn, max_spawn);
+				using IT = decltype(_to_spawn);
+
+				auto count_scale = std::max(_scale, 0.01f);
+				auto max_spawn = static_cast<IT>(_type.max_particle_count * count_scale - _particles_sim.size());
+				_to_spawn = std::max(static_cast<IT>(0), std::min(_to_spawn, max_spawn));
 
 				for(auto i : util::range(_to_spawn)) {
 					(void)i;
@@ -250,7 +254,7 @@ namespace renderer {
 				sim.initial_size = rand_val(_type.initial_size);
 				sim.final_size = rand_val(_type.final_size);
 				sim.initial_speed = rand_val(_type.initial_speed);
-				sim.final_speed = rand_val(_type.final_speed);
+				sim.final_speed = rand_val(_type.final_speed) ;
 
 				sim.angular_speed_local = calculate_w(
 					rand_val(_type.speed_pitch),
@@ -274,8 +278,8 @@ namespace renderer {
 				Particle_draw& draw = _particles_draw[idx];
 				draw.position = glm::mix(_last_position, _position, util::random_real(rng, 0.f, 1.f))
 								+ glm::rotate(_direction, glm::vec3(
-					rand_val(_type.spawn_x),
-					rand_val(_type.spawn_y),
+					rand_val(_type.spawn_x) * _scale,
+					rand_val(_type.spawn_y) * _scale,
 					rand_val(_type.spawn_z)
 				));
 				draw.direction = glm::rotate(sim.direction, glm::vec3(1,0,0));
