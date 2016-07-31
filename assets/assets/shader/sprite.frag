@@ -68,6 +68,10 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 	float denom = dotNH * dotNH *(alphaSqr - 1.0) + 1.0;
 	D = alphaSqr / (pi * denom * denom);
 
+	float spec_mod_factor = 2.0 + metalness*40.0; //< not physicaly accurate, but makes metals more shiny
+	D*=mix(spec_mod_factor, 0.0, roughness); // TODO(this is a workaround): specular is to powerfull for realy rough surfaces
+	D = clamp(D, 0.0, 1000.0);
+
 	// Fresnel (Schlick)
 	vec3 F0 = mix(vec3(0.16*reflectance*reflectance), albedo.rgb, 0.0);
 	float dotLH5 = pow (1.0 - dotLH, 5.0);
@@ -85,9 +89,6 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 	diffuse*=(1.0 - metalness);
 
 	light_color = mix(light_color, light_color*albedo, metalness);
-
-	specular*=(1.0 + metalness*20.0); //< not physicaly accurate, but makes metals more shiny
-	specular*=(1.0-roughness); // TODO(this is a workaround): specular is to powerfull for realy rough surfaces
 
 	return (diffuse + specular) * light_color * dotNL;
 }
