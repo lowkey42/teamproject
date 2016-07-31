@@ -69,6 +69,7 @@ namespace physics {
 				body->SetBullet(def.bullet);
 				body->SetLinearDamping(def.linear_damping);
 				body->SetAngularDamping(def.angular_damping);
+				body->SetType(btype);
 
 			} else {
 				b2BodyDef bd;
@@ -208,9 +209,12 @@ namespace physics {
 	void Dynamic_body_comp::_update_body(b2World& world) {
 		auto org_aabb = _body ? util::just(calc_aabb()) : util::nothing();
 
+		_def.velocity = velocity();
+
 		std::tie(_fixture_foot, _size) =
 		        update_body(world, _body, _def, owner(), _def.kinematic ? b2_kinematicBody : b2_dynamicBody);
-		_body->SetLinearVelocity({_def.velocity.x,_def.velocity.y});
+
+		velocity(_def.velocity);
 
 		_last_body_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};
 		_initial_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};

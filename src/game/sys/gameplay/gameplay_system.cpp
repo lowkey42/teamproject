@@ -31,6 +31,7 @@ namespace gameplay {
 
 	namespace {
 		constexpr auto blood_stain_radius = 2.0f;
+		constexpr auto blood_collision_scale = 0.75f;
 
 		float dot(vec2 a, vec2 b) {
 			return a.x*b.x + a.y*b.y;
@@ -217,7 +218,7 @@ namespace gameplay {
 			auto reflected = Light_color::black;
 
 			for(auto& bs : _blood_stains) {
-				if(glm::length2(bs.position-pos)<blood_stain_radius*blood_stain_radius) {
+				if(glm::length2(bs.position-pos)<blood_stain_radius*blood_stain_radius*bs.scale*blood_collision_scale) {
 					reflected = reflected | interactive_color(bs.color, light._color);
 				}
 			}
@@ -437,9 +438,9 @@ namespace gameplay {
 			c._initial_timer = 0_s;
 
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+			body.velocity({0,0});
 			body.active(true);
 			body.kinematic(true);
-			body.velocity({0,0});
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 
 			auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};

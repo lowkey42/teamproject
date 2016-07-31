@@ -25,7 +25,7 @@ namespace controller {
 	using namespace glm;
 
 	namespace {
-		constexpr auto air_dash_delay = 0.7_s;
+		constexpr auto air_dash_delay = 0.25_s;
 	}
 
 	Controller_system::Controller_system(Engine& engine, ecs::Entity_manager& ecs,
