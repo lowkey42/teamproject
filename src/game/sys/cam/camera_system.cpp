@@ -58,14 +58,15 @@ namespace cam {
 
 			if(_type == Camera_move_type::lazy) {
 				auto dist_y = glm::abs(remove_unit(_last_target.y-y));
-				if(!(grounded && dist_y>0.5f) && dist_y<6.f) {
+				auto move_y = (grounded && dist_y>0.1f) || dist_y>6.f;
+				if(!move_y) {
 					y = _last_target.y;
 				}
 
 				if(glm::abs(remove_unit(_last_target.x-x))<4.f && !_moving)
 					x = _last_target.x;
 
-				_moving = glm::abs(remove_unit(_last_target.x-x))>0.05f;
+				_moving = glm::abs(remove_unit(_last_target.x-x))>0.01f;
 			}
 
 			return Position{x, y, cam_distance};
@@ -111,7 +112,6 @@ namespace cam {
 
 				if(_slow_lerp_started) {
 					auto alpha = 1.f - glm::clamp(_slow_lerp_remainder/_slow_lerp_time, 0.f, 1.f);
-					//alpha = glm::sin(alpha*glm::pi<float>()/2.f);
 					alpha = glm::smoothstep(0.f, 1.f, alpha);
 					target = save_mix(remove_units(_slow_lerp_start), remove_units(_slow_lerp_target), alpha) * 1_m;
 				} else {
@@ -124,7 +124,6 @@ namespace cam {
 			auto org_target = target;
 			target.x = save_mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
 			target.y = save_mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*10.f,1.f))*1_m;
-			target = _smooth_target(target, dt);
 			if(glm::length2(remove_units(target-org_target))<0.005f)
 				target = org_target;
 
@@ -138,6 +137,9 @@ namespace cam {
 		}
 
 		_last_target = target;
+		if(_type == Camera_move_type::lazy) {
+			target = _smooth_target(target, dt);
+		}
 
 		if(_screen_shake_time_left>0_s) {
 			_screen_shake_time_left -= dt;

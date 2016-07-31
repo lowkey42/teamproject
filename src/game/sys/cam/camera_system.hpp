@@ -53,7 +53,7 @@ namespace cam {
 			renderer::Camera_sidescroller _camera;
 			bool _first_target = true;
 			Position _last_target;
-			std::array<Position, 4> _target_history;
+			std::array<Position, 8> _target_history;
 			int _target_history_curr = 0;
 			bool _moving = false;
 
