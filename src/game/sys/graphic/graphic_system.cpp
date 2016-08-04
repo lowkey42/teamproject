@@ -174,6 +174,9 @@ namespace graphic {
 			sprite.state().update(dt, _mailbox.bus());
 		}
 
+		_update_particles(dt);
+	}
+	void Graphic_system::_update_particles(Time dt) {
 		for(Particle_comp& particle : _particles) {
 			for(auto& id : particle._add_queue) {
 				if(id!=""_strid) {
@@ -205,6 +208,20 @@ namespace graphic {
 		}
 
 		_particle_renderer.update(dt);
+	}
+
+	void Graphic_system::post_load() {
+		_particle_renderer.clear();
+
+		// create initial emiters
+		_update_particles(0_s);
+
+		// warmup emiters
+		for(auto i : util::range(4*30.f)) {
+			(void)i;
+
+			_particle_renderer.update(1_s/30.f);
+		}
 	}
 
 	void Graphic_system::_on_state_change(const State_change& s) {

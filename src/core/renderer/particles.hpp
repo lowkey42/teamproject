@@ -133,6 +133,8 @@ namespace renderer {
 			void update(Time dt);
 			void draw(Command_queue&)const;
 
+			void clear();
+
 		private:
 			std::unordered_map<Particle_type_id, Particle_type_ptr> _types;
 			std::vector<Particle_emitter_ptr> _emitters;

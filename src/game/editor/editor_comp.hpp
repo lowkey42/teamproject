@@ -14,7 +14,6 @@
 
 
 namespace lux {
-namespace sys {
 namespace editor {
 
 	class Blueprint_bar;
@@ -38,6 +37,5 @@ namespace editor {
 			Position _bounds;
 	};
 
-}
 }
 }

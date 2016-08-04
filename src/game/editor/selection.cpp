@@ -3,9 +3,10 @@
 #include "selection.hpp"
 
 #include "editor_comp.hpp"
+#include "editor_cmds.hpp"
 
-#include "../physics/transform_comp.hpp"
-#include "../graphic/graphic_system.hpp"
+#include "../sys/physics/transform_comp.hpp"
+#include "../sys/graphic/graphic_system.hpp"
 
 #include <core/input/input_manager.hpp>
 #include <core/renderer/primitives.hpp>
@@ -16,187 +17,15 @@
 
 
 namespace lux {
-namespace sys {
 namespace editor {
 
 	using namespace unit_literals;
 	using namespace renderer;
-	using namespace graphic;
+	using namespace lux::sys;
+	using namespace sys::graphic;
 	using namespace glm;
 
 	namespace {
-		struct Selection_change_cmd : util::Command {
-			public:
-				Selection_change_cmd(Selection& mgr, ecs::Entity_ptr e)
-				    : _name("Selection changed "+ecs::entity_name(e)),
-				      _selection_mgr(mgr), _selection(e) {}
-
-				void execute()override {
-					_prev_selection = _selection_mgr.selection();
-					_selection_mgr.select(_selection);
-				}
-				void undo()override {
-					_selection_mgr.select(_prev_selection);
-				}
-				auto name()const -> const std::string& override{
-					return _name;
-				}
-
-			private:
-				const std::string _name;
-				Selection& _selection_mgr;
-
-				ecs::Entity_ptr _selection;
-				ecs::Entity_ptr _prev_selection;
-		};
-
-		struct Transform_cmd : util::Command {
-			public:
-				Transform_cmd(Selection& selection_mgr, ecs::Entity_ptr e, bool copy,
-				              Position new_pos, Angle new_rot, float new_scale,
-				              Position prev_pos, Angle prev_rot, float prev_scale)
-				    : _name("Entity Transformed "+ecs::entity_name(e)+" "+util::to_string(prev_scale)+" => "+util::to_string(new_scale)),
-				      _selection_mgr(selection_mgr), _entity(e), _copied_entity(copy),
-				      _new_position(new_pos), _new_rotation(new_rot), _new_scale(new_scale),
-				      _prev_position(prev_pos), _prev_rotation(prev_rot), _prev_scale(prev_scale) {}
-
-				void execute()override {
-					if(_copied_entity && !_saved_state.empty()) {
-						_entity->manager().restore(_entity, _saved_state);
-						_selection_mgr.select(_entity);
-						return;
-					}
-
-					auto& transform = _entity->get<physics::Transform_comp>().get_or_throw();
-
-					transform.position(_new_position);
-					transform.rotation(_new_rotation);
-					transform.scale(_new_scale);
-				}
-				void undo()override {
-					if(_copied_entity) {
-						_selection_mgr.select({});
-						_saved_state = _entity->manager().backup(_entity);
-						_entity->manager().erase(_entity);
-						return;
-					}
-
-					auto& transform = _entity->get<physics::Transform_comp>().get_or_throw();
-
-					transform.position(_prev_position);
-					transform.rotation(_prev_rotation);
-					transform.scale(_prev_scale);
-				}
-				auto name()const -> const std::string& override{
-					return _name;
-				}
-
-			private:
-				const std::string _name;
-
-				Selection& _selection_mgr;
-				ecs::Entity_ptr _entity;
-				bool            _copied_entity;
-				std::string     _saved_state;
-
-				Position  _new_position;
-				Angle     _new_rotation;
-				float     _new_scale;
-
-				Position  _prev_position;
-				Angle     _prev_rotation;
-				float     _prev_scale;
-		};
-
-		struct Point_deleted_cmd : util::Command {
-			public:
-				/// positions in model-space
-				Point_deleted_cmd(ecs::Entity_ptr e, int index, glm::vec2 prev_pos)
-				    : _name("Smart texture modified. Point "+util::to_string(index)+" of "+ecs::entity_name(e)+" "+glm::to_string(prev_pos)+" deleted"),
-				      _entity(e),
-				      _index(index), _prev_pos(prev_pos) {}
-
-				void execute()override {
-					if(_first_exec) {
-						_first_exec = false;
-						return;
-					}
-
-					auto& terrain = _entity->get<graphic::Terrain_comp>().get_or_throw();
-					auto& tex = terrain.smart_texture();
-
-					tex.erase_point(_index);
-				}
-				void undo()override {
-					auto& terrain = _entity->get<graphic::Terrain_comp>().get_or_throw();
-					auto& tex = terrain.smart_texture();
-
-					tex.insert_point(_index, _prev_pos);
-				}
-				auto name()const -> const std::string& override{
-					return _name;
-				}
-
-			private:
-				const std::string _name;
-
-				ecs::Entity_ptr _entity;
-
-				bool      _first_exec = true;
-				int       _index;
-				glm::vec2 _prev_pos;
-		};
-
-		struct Point_moved_cmd : util::Command {
-			public:
-				/// positions in model-space
-				Point_moved_cmd(ecs::Entity_ptr e, int index, bool new_point, glm::vec2 new_pos, glm::vec2 prev_pos)
-				    : _name("Smart texture modified. Point "+util::to_string(index)+" of "+ecs::entity_name(e)+" "+glm::to_string(prev_pos)+" => "+glm::to_string(new_pos)),
-				      _entity(e),
-				      _index(index), _new_point(new_point), _new_pos(new_pos), _prev_pos(prev_pos) {}
-
-				void execute()override {
-					if(_first_exec) {
-						// skip first because the point already exists on the current position
-						_first_exec = false;
-						return;
-					}
-
-					auto& terrain = _entity->get<graphic::Terrain_comp>().get_or_throw();
-					auto& tex = terrain.smart_texture();
-
-					if(_new_point) {
-						tex.insert_point(_index, _new_pos);
-
-					} else {
-						tex.move_point(_index, _new_pos);
-					}
-				}
-				void undo()override {
-					auto& terrain = _entity->get<graphic::Terrain_comp>().get_or_throw();
-					auto& tex = terrain.smart_texture();
-
-					if(_new_point) {
-						tex.erase_point(_index);
-					} else {
-						tex.move_point(_index, _prev_pos);
-					}
-				}
-				auto name()const -> const std::string& override{
-					return _name;
-				}
-
-			private:
-				const std::string _name;
-
-				ecs::Entity_ptr _entity;
-
-				bool      _first_exec = true;
-				int       _index;
-				bool      _new_point;
-				glm::vec2 _new_pos;
-				glm::vec2 _prev_pos;
-		};
 
 		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam, bool forgiving=false) {
 			bool inside = false;
@@ -685,6 +514,5 @@ namespace editor {
 		}
 	}
 
-}
 }
 }

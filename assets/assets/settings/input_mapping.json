@@ -127,7 +127,7 @@
 
             "mouse_buttons": {
                 {"button":1, "clicks":0}: {"type":"continuous", "action":"mouse_down"},
-                {"button":1, "clicks":1}: {"type":"once", "action":"mouse_click"}
+                {"button":1, "clicks":-1}: {"type":"once", "action":"mouse_click"}
             }
 		}
 	}

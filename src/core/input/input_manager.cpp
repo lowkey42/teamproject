@@ -174,7 +174,7 @@ namespace input {
 				break;
 
 			case SDL_MOUSEBUTTONUP:
-				_mapper->on_mouse_button_released(event.button.button, event.button.clicks);
+				_mapper->on_mouse_button_released(event.button.button, static_cast<int8_t>(event.button.clicks));
 				_pointer_active[0] = false;
 				break;
 

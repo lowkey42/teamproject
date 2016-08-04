@@ -65,7 +65,7 @@ namespace input {
 			void on_pad_button_released(Input_source src, Pad_button);
 
 			void on_mouse_button_pressed (Mouse_button, float pressure=1.f);
-			void on_mouse_button_released(Mouse_button, uint8_t clicks);
+			void on_mouse_button_released(Mouse_button, int8_t clicks);
 
 			void on_pad_stick_change(Input_source src, Pad_stick, glm::vec2 rel, glm::vec2 abs);
 
@@ -104,7 +104,7 @@ namespace input {
 			void add(Action_id action, Key k);
 			void add(Action_id action, Pad_button b);
 			void add(Action_id action, Pad_stick s);
-			void add(Action_id action, Mouse_button m, uint8_t clicks);
+			void add(Action_id action, Mouse_button m, int8_t clicks);
 			void add_mwheel(Action_id action, bool up);
 			void add_move(Action_id action);
 			void add_drag(Action_id action);

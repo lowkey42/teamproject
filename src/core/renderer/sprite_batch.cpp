@@ -180,6 +180,8 @@ namespace renderer {
 	}
 
 	void Sprite_batch::_draw(Command_queue& queue) {
+		_reserve_objects();
+
 		// draw one batch for each partition
 		auto last = _vertices.begin();
 		for(auto current = _vertices.begin(); current!=_vertices.end(); ++current) {
@@ -221,11 +223,9 @@ namespace renderer {
 
 		auto obj_idx = _free_obj++;
 
-		if(obj_idx>=_objects.size()) {
-			_objects.emplace_back(sprite_layout, create_buffer<Sprite_vertex>(begin, end, true));
-		} else {
-			_objects.at(obj_idx).buffer().set<Sprite_vertex>(begin, end);
-		}
+		INVARIANT(obj_idx<_objects.size(), "Too few objects reserved");
+
+		_objects.at(obj_idx).buffer().set<Sprite_vertex>(begin, end);
 
 		auto cmd = create_command()
 		        .shader(_shader)
@@ -238,6 +238,24 @@ namespace renderer {
 		cmd.uniforms().emplace("model", glm::mat4());
 
 		return cmd;
+	}
+	void Sprite_batch::_reserve_objects() {
+		// reserve required objects
+		auto req_objs = 0u;
+		auto last_mat = static_cast<const Material*>(nullptr);
+		for(auto& v : _vertices) {
+			if(v.material!=last_mat) {
+				last_mat = v.material;
+				req_objs++;
+			}
+		}
+		if(req_objs>_objects.size()) {
+			_objects.reserve(req_objs);
+			req_objs-=_objects.size();
+			for(auto i=0u; i<req_objs; i++) {
+				_objects.emplace_back(sprite_layout, create_dynamic_buffer<Sprite_vertex>(8));
+			}
+		}
 	}
 
 }

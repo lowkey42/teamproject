@@ -33,6 +33,8 @@ namespace graphic {
 			void draw_shadowcaster(renderer::Sprite_batch&, const renderer::Camera& camera)const;
 			void update(Time dt);
 
+			void post_load();
+
 		private:
 			void _on_state_change(const State_change&);
 
@@ -47,6 +49,8 @@ namespace graphic {
 			renderer::Particle_renderer _particle_renderer;
 			mutable renderer::Sprite_batch _sprite_batch;
 			mutable renderer::Sprite_batch _sprite_batch_bg;
+
+			void _update_particles(Time dt);
 	};
 
 }

@@ -3,10 +3,11 @@
 #include "asset/asset_manager.hpp"
 #include "audio/audio_ctx.hpp"
 #include "audio/sound.hpp"
-#include "utils/log.hpp"
-#include "utils/rest.hpp"
+#include "gui/text.hpp"
 #include "input/input_manager.hpp"
 #include "renderer/graphics_ctx.hpp"
+#include "utils/log.hpp"
+#include "utils/rest.hpp"
 
 #include <stdexcept>
 #include <chrono>
@@ -52,6 +53,7 @@ namespace {
 	Engine::Engine(const std::string& title, int argc, char** argv, char** env)
 	  : _screens(*this),
 	    _asset_manager(std::make_unique<asset::Asset_manager>(argc>0 ? argv[0] : "", title)),
+	    _translator(std::make_unique<gui::Translator>(*_asset_manager)),
 	    _sdl(),
 	    _graphics_ctx(std::make_unique<renderer::Graphics_ctx>(title, *_asset_manager)),
 	    _audio_ctx(std::make_unique<audio::Audio_ctx>(*_asset_manager)),

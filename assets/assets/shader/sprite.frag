@@ -190,7 +190,7 @@ void main() {
 	float roughness = 1.0 - smoothness*smoothness;
 	float reflectance = clamp((0.9-roughness)*1.1 + metalness*0.1, 0.0, 1.0);
 
-	vec3 view_dir = normalize(pos_frag-eye);
+	vec3 view_dir = normalize(pos_frag-vec3(eye.xy, eye.z*10.0));
 
 	vec3 ambient = (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
 	vec3 color = vec3(0.0);

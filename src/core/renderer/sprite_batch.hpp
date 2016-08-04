@@ -107,6 +107,7 @@ namespace renderer {
 			void _draw(Command_queue&);
 			auto _draw_part(Vertex_citer begin, Vertex_citer end) -> Command;
 			auto _reserve_space(float z, const renderer::Material* material, std::size_t count) -> Vertex_iter;
+			void _reserve_objects();
 	};
 
 }

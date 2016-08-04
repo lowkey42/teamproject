@@ -189,15 +189,27 @@ namespace util {
 		return {0,static_cast<T>(num)};
 	}
 	template<class Container, typename = std::enable_if_t<!std::is_arithmetic<Container>::value> >
-	iter_range<typename Container::iterator> range(Container& c) {
+	auto range(Container& c) -> iter_range<typename Container::iterator> {
 		using namespace std;
 		return {begin(c),end(c)};
 	}
 	template<class Container, typename = std::enable_if_t<!std::is_arithmetic<Container>::value> >
-	iter_range<typename Container::const_iterator> range(const Container& c) {
+	auto range(const Container& c) -> iter_range<typename Container::const_iterator> {
 		using namespace std;
 		return {begin(c),end(c)};
 	}
+
+	template<class Container, typename = std::enable_if_t<!std::is_arithmetic<Container>::value> >
+	auto range_reverse(Container& c) -> iter_range<typename Container::reverse_iterator> {
+		using namespace std;
+		return {rbegin(c),rend(c)};
+	}
+	template<class Container, typename = std::enable_if_t<!std::is_arithmetic<Container>::value> >
+	auto range_reverse(const Container& c) -> iter_range<typename Container::const_reverse_iterator> {
+		using namespace std;
+		return {rbegin(c),rend(c)};
+	}
+
 
 	template<class Iter, class Type>
 	class cast_iterator {

@@ -404,6 +404,10 @@ namespace renderer {
 		}
 	}
 
+	void Particle_renderer::clear() {
+		_emitters.clear();
+	}
+
 }
 namespace asset {
 	auto Loader<renderer::Particle_type>::load(istream in) -> std::shared_ptr<renderer::Particle_type> {

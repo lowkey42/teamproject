@@ -21,6 +21,7 @@ namespace lux {
 	namespace input {class Input_manager;}
 	namespace renderer {class Graphics_ctx;}
 	namespace audio {class Audio_ctx;}
+	namespace gui {class Translator;}
 
 	extern std::string get_sdl_error();
 
@@ -44,6 +45,7 @@ namespace lux {
 			auto& input()const noexcept {return *_input_manager;}
 			auto& bus()noexcept {return _bus;}
 			auto& screens()noexcept {return _screens;}
+			auto& translator()noexcept {return *_translator;}
 
 		protected:
 			void _poll_events();
@@ -59,6 +61,7 @@ namespace lux {
 			Screen_manager _screens;
 			util::Message_bus _bus;
 			std::unique_ptr<asset::Asset_manager> _asset_manager;
+			std::unique_ptr<gui::Translator> _translator;
 			Sdl_wrapper _sdl;
 			std::unique_ptr<renderer::Graphics_ctx> _graphics_ctx;
 			std::unique_ptr<audio::Audio_ctx> _audio_ctx;

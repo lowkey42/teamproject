@@ -23,7 +23,6 @@
 
 
 namespace lux {
-namespace sys {
 namespace editor {
 
 	class Selection {
@@ -105,6 +104,5 @@ namespace editor {
 			void _update_entity_transform();
 	};
 
-}
 }
 }

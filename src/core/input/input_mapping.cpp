@@ -213,9 +213,14 @@ namespace input {
 	}
 
 	void Input_mapper::on_mouse_button_released(Mouse_button b,
-	                                            uint8_t clicks) {
+	                                            int8_t clicks) {
 		if(b!=1 || !_is_mouse_drag) {
 			find_maybe(_active_context->mouse_buttons, {b,clicks}).process([&](auto& action) {
+				process_release(_bus, action);
+			});
+
+			// -1 = any
+			find_maybe(_active_context->mouse_buttons, {b,-1}).process([&](auto& action) {
 				process_release(_bus, action);
 			});
 		}
@@ -337,7 +342,7 @@ namespace input {
 		_cached_actions[action].sticks.push_back(s);
 	}
 
-	void Input_mapping_updater::add(Action_id action, Mouse_button m, uint8_t clicks) {
+	void Input_mapping_updater::add(Action_id action, Mouse_button m, int8_t clicks) {
 		auto type = reaction_type_for(action);
 
 		auto click = Mouse_click{m,clicks};

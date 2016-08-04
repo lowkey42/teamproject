@@ -264,8 +264,7 @@ namespace renderer {
 				.texture(Texture_unit::color, tex)
 				.object(obj)
 				.order_dependent()
-				.require_not(Gl_option::depth_write)
-				.require_not(Gl_option::depth_test);
+				.require_not(Gl_option::depth_write);
 
 			auto trans = glm::scale(glm::translate(glm::mat4(),
 			                            glm::vec3(center.x-size.x/2*scale,

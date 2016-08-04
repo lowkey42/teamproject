@@ -1,0 +1,29 @@
+{
+    "editor_tooltip": {
+        "back": "Quit",
+        "save": "Save",
+        "load_prev": "Load previous",
+        "load_next": "Load next",
+        "load": "Load",
+
+        "cut": "Cut",
+        "copy": "Copy",
+        "paste": "Paste",
+
+        "flip_h": "Flip horizontally",
+        "flip_v": "Flip vertically",
+
+        "undo": "Undo",
+        "redo": "Redo",
+
+        "zoom_in": "Zoom in",
+        "zoom_out": "Zoom out",
+
+        "light": "Lighting",
+        "toggle_grid": "Magnetic grid",
+
+        "unselect": "Clear selection",
+        "start": "Play level"
+    }
+
+}

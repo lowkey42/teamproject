@@ -10,8 +10,9 @@
 #include "level.hpp"
 #include "meta_system.hpp"
 
-#include "sys/editor/blueprint_bar.hpp"
-#include "sys/editor/selection.hpp"
+#include "editor/blueprint_bar.hpp"
+#include "editor/selection.hpp"
+#include "editor/menu_bar.hpp"
 
 #include <core/renderer/camera.hpp>
 #include <core/renderer/texture.hpp>
@@ -49,7 +50,6 @@ namespace lux {
 
 			Meta_system _systems;
 
-			// TODO: sidebar for blueprints
 			// TODO: top-side buttons
 			// TODO: save-file management
 			// TODO: plot player movement trail
@@ -62,8 +62,10 @@ namespace lux {
 
 			renderer::Command_queue _render_queue;
 
-			sys::editor::Selection _selection;
-			sys::editor::Blueprint_bar _editor_sys;
+			editor::Selection _selection;
+			editor::Blueprint_bar _blueprints;
+			editor::Menu_bar _menu;
+
 			util::maybe<std::string> _clipboard;
 			util::maybe<glm::vec2> _last_pointer_pos;
 			bool _cam_mouse_active = false;
@@ -72,8 +74,9 @@ namespace lux {
 
 			Level_info _level_metadata;
 
-			auto _handle_pointer_menu(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
 			auto _handle_pointer_cam(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
+			void _load_next_level(int dir);
+			bool _load_next_level_allowed();
 	};
 
 }

@@ -28,7 +28,6 @@ namespace lux {
 		class Command_queue;
 	}
 
-namespace sys {
 namespace editor {
 
 	struct Editor_conf;
@@ -74,6 +73,5 @@ namespace editor {
 			void _spawn_new(std::size_t index, glm::vec2 pos);
 	};
 
-}
 }
 }

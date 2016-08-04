@@ -3,14 +3,14 @@
 #include "blueprint_bar.hpp"
 
 #include "selection.hpp"
+#include "editor_cmds.hpp"
 
-#include "../physics/transform_comp.hpp"
+#include "../sys/physics/transform_comp.hpp"
 
 #include <core/input/input_manager.hpp>
 
 
 namespace lux {
-namespace sys {
 namespace editor {
 
 	using namespace renderer;
@@ -20,50 +20,6 @@ namespace editor {
 	namespace {
 		constexpr auto icon_size = 92.f;
 		constexpr auto max_columns = 2;
-
-		struct Create_cmd : util::Command {
-			public:
-				Create_cmd(ecs::Entity_manager& ecs,
-						  sys::editor::Selection& selection, std::string blueprint,
-						   glm::vec3 pos)
-					: _name("Entity created"),
-					  _ecs(ecs), _selection(selection), _blueprint(blueprint), _pos(pos) {}
-
-				void execute()override {
-					if(_entity) {
-						_ecs.restore(_entity, _data);
-					} else {
-						_entity = _ecs.emplace(asset::AID{"blueprint"_strid, _blueprint});
-						auto trans_comp = _entity->get<sys::physics::Transform_comp>();
-						trans_comp.process([&](auto& t){
-							t.position(_pos * 1_m);
-						});
-					}
-
-					_entity_prev_selected = _selection.selection();
-					_selection.select(_entity);
-				}
-				void undo()override {
-					INVARIANT(_entity, "No stored entity in Create_cmd");
-					_data = _ecs.backup(_entity);
-					_ecs.erase(_entity);
-					_selection.select(_entity_prev_selected);
-				}
-				auto name()const -> const std::string& override{
-					return _name;
-				}
-
-			private:
-				const std::string _name;
-
-				ecs::Entity_manager& _ecs;
-				sys::editor::Selection& _selection;
-				ecs::Entity_ptr _entity;
-				ecs::Entity_ptr _entity_prev_selected;
-				std::string _blueprint;
-				std::string _data;
-				glm::vec3 _pos;
-		};
 
 		bool is_inside(glm::vec2 p, glm::vec2 center, glm::vec2 size) {
 			return p.x>=center.x-size.x/2.f && p.x<=center.x+size.x/2.f &&
@@ -92,13 +48,12 @@ namespace editor {
 	sf2_structDef(Editor_conf, blueprint_groups)
 
 }
-}
 
 namespace asset {
 	template<>
-	struct Loader<sys::editor::Editor_conf> {
+	struct Loader<editor::Editor_conf> {
 		static auto load(istream in) {
-			auto r = std::make_shared<sys::editor::Editor_conf>();
+			auto r = std::make_shared<editor::Editor_conf>();
 
 			sf2::deserialize_json(in, [&](auto& msg, uint32_t row, uint32_t column) {
 				ERROR("Error parsing JSON from "<<in.aid().str()<<" at "<<row<<":"<<column<<": "<<msg);
@@ -114,13 +69,12 @@ namespace asset {
 			return r;
 		}
 
-		static void store(ostream, const sys::editor::Editor_conf&) {
+		static void store(ostream, const editor::Editor_conf&) {
 			FAIL("NOT IMPLEMENTED!");
 		}
 	};
 }
 
-namespace sys {
 namespace editor {
 
 	Blueprint_bar::Blueprint_bar(Engine& e, util::Command_manager& commands, Selection& selection,
@@ -303,6 +257,5 @@ namespace editor {
 		return is_inside(p, _offset+glm::vec2{-_background->width()/2.f, _background->height()/2.f-52}, glm::vec2{188,88});
 	}
 
-}
 }
 }

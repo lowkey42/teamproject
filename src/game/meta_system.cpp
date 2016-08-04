@@ -225,6 +225,8 @@ namespace lux {
 
 		_skybox.brightness(level_meta_data.environment_brightness);
 
+		renderer.post_load();
+
 		return level_meta_data;
 	}
 

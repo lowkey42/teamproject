@@ -3,6 +3,7 @@ blueprint: = blueprints/
 blueprint:test = blueprints/test.json
 blueprint:test_bg = blueprints/test_bg.json
 blueprint:test_light = blueprints/test_light.json
+blueprint:terrain_dirt = blueprints/test.json
 
 blueprint:player = blueprints/player_green.json
 blueprint:player_base = blueprints/player_base.json

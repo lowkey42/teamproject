@@ -1,11 +1,14 @@
 cfg:input_mapping = settings/input_mapping.json
 cfg:graphics = graphics-cfg.json
 cfg:sounds = sounds-cfg.json
+cfg:language = language-cfg.json
 cfg:highscore = highscore.json
 cfg:editor = settings/editor.json
+cfg:languages_info = settings/languages.json
 cfg:levels = levels/level_list.json
 cfg:my_levels = my_levels.json
 cfg:savegame = savegame.json
 cfg:remote_highscore = settings/remote_highscore.json
 level: = levels/
 highscore: = highscores/
+loc: = loc/
