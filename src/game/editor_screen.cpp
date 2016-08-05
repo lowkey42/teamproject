@@ -24,6 +24,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <iomanip>
+#include <sstream>
 
 namespace lux {
 	using namespace unit_literals;
@@ -39,7 +41,8 @@ namespace lux {
 	      _camera_menu(engine.graphics_ctx().viewport(),
 	                   calculate_vscreen(engine, 1080)),
 	      _camera_world(engine.graphics_ctx().viewport(), 80_deg, 5_m, 100_m),
-	      _debug_Text(engine.assets().load<Font>("font:menu_font"_aid)),
+	      _cmd_text(engine.assets().load<Font>("font:menu_font"_aid)),
+	      _cmd_background(engine.assets().load<Texture>("tex:editor_cmd_background"_aid)),
 	      _selection(engine, _systems.entity_manager, _camera_world, _commands),
 	      _blueprints(engine, _commands, _selection, _systems.entity_manager, engine.assets(),
 	                  engine.input(), _camera_world, _camera_menu, glm::vec2{_camera_menu.size().x/2.f, 0}),
@@ -53,7 +56,11 @@ namespace lux {
 		};
 
 		_menu.add_action("back"_strid, "tex:editor_icon_exit"_aid, tooltip("back"),
-		                 [&]{_engine.exit();});
+		                 [&]{_engine.exit();/*TODO: warn on unsaved changes*/});
+
+		_menu.add_action("settings"_strid, "tex:editor_icon_settings"_aid, tooltip("settings"),
+		                 [&]{/*TODO: open dialog*/});
+		_menu.disable_action("settings"_strid); // remove after impl
 
 
 		_menu.add_action("save"_strid, "tex:editor_icon_save"_aid, tooltip("save"),
@@ -134,7 +141,7 @@ namespace lux {
 		                 [&](bool s) {_selection.snap_to_grid(s);});
 
 		_menu.add_action("unselect"_strid, "tex:editor_icon_unselect"_aid, tooltip("unselect"),
-		                 [&]{_selection.select({});},
+		                 [&]{_commands.execute<Selection_change_cmd>(_selection, ecs::Entity_ptr{});},
 		                 [&]{return !!_selection.selection();} );
 
 		_menu.add_action("start"_strid, "tex:editor_icon_start"_aid, tooltip("start"), [&] {
@@ -239,15 +246,19 @@ namespace lux {
 
 		_systems.update(dt, Update::animations);
 		_selection.update();
-		_blueprints.update();
+		_blueprints.update(dt);
 		_menu.update(dt);
 
-		if(_selection.selection()) {
-			auto& transform = _selection.selection()->get<sys::physics::Transform_comp>().get_or_throw();
-			auto pos = remove_units(transform.position());
 
-			_debug_Text.set("Position: " + util::to_string(pos.x) + "/" +util::to_string(pos.y) +"/"+util::to_string(pos.z) + "  |  Level: "+_level_metadata.id );
-		}
+		auto pos = _selection.selection() ? remove_units(_selection.selection()->get<sys::physics::Transform_comp>().get_or_throw().position())
+		                                  : glm::vec3(_input_manager.last_pointer_world_position(), 0.0f);
+		std::stringstream s;
+		s << std::setw(15) <<std::left<< _level_metadata.id
+		  << std::fixed << std::setprecision(2) << " "
+		  <<std::setw(7)<<std::right<<pos.x<<" "
+		  <<std::setw(7)<<std::right<<pos.y<<" "
+		  <<std::setw(7)<<std::right<<pos.z;
+		_cmd_text.set(s.str(), true);
 
 		auto mp1 = _input_manager.pointer_screen_position(0);
 		auto mp2 = _input_manager.pointer_screen_position(1);
@@ -256,12 +267,6 @@ namespace lux {
 			_handle_pointer_cam(mp1,mp2);
 		} else if(_selection.active()) {
 			_selection.handle_pointer(mp1,mp2);
-
-			// TODO: refactor. Should be located in selection class
-			if(mp1.is_nothing() && _selection.selection() &&
-			        _blueprints.is_in_delete_zone(_input_manager.last_pointer_screen_position(0))) {
-				_commands.execute<Delete_cmd>(_selection);
-			}
 
 		} else {
 			bool unhandled = !_blueprints.handle_pointer(mp1,mp2) &&
@@ -273,7 +278,26 @@ namespace lux {
 
 		_last_pointer_pos = mp1;
 
-		_camera_world.move(glm::vec3(_cam_speed, 0.f) * dt.value() * 5_m);
+
+		auto curr_cam_speed = _cam_speed;
+
+		if(mp1.is_some() && glm::length2(curr_cam_speed)<0.01f) {
+			auto mps = _camera_menu.screen_to_world(mp1.get_or_throw(), 1.f);
+
+			if(mps.x<=-_camera_menu.size().x*0.49f) {
+				curr_cam_speed.x = -1.f;
+			} else if(mps.x>=_camera_menu.size().x*0.49f) {
+				curr_cam_speed.x = 1.f;
+			}
+
+			if(mps.y<=-_camera_menu.size().y*0.49f) {
+				curr_cam_speed.y = 1.f;
+			} else if(mps.y>=_camera_menu.size().y*0.49f) {
+				curr_cam_speed.y = -1.f;
+			}
+		}
+
+		_camera_world.move(glm::vec3(curr_cam_speed, 0.f) * dt.value() * 5_m);
 	}
 
 
@@ -288,8 +312,12 @@ namespace lux {
 
 		_menu.draw(_render_queue);
 
-		_debug_Text.draw(_render_queue, glm::vec2(-_camera_menu.size().x/2.f+_debug_Text.size().x/2.f*0.4f,
-		                                          _camera_menu.size().y/2.f-_debug_Text.size().y/2.f*0.4f - 1.f), glm::vec4(1,1,1,1), 0.4f);
+		_batch.insert(*_cmd_background, glm::vec2(-_camera_menu.size().x/2.f+_cmd_background->width()/2.f,
+		                                           _camera_menu.size().y/2.f-_cmd_background->height()/2.f));
+		_batch.flush(_render_queue);
+
+		_cmd_text.draw(_render_queue, glm::vec2(-_camera_menu.size().x/2.f+_cmd_text.size().x/2.f*0.25f + 10.f,
+		                                         _camera_menu.size().y/2.f-_cmd_background->height()/1.5f), glm::vec4(1,1,1,1), 0.25f);
 
 		_render_queue.flush();
 	}

@@ -136,7 +136,7 @@ namespace editor {
 		if(_tooltip_text) {
 			auto tt_pos = _tooltip_pos;
 			tt_pos.y = -_camera_ui.size().y/2.f + _bg_center->height() + 20.f;
-			_tooltip_text.draw(queue, tt_pos, glm::vec4{1,1,1,1}, 0.33f);
+			_tooltip_text.draw(queue, tt_pos, glm::vec4{1,1,1,1}, 0.4f);
 		}
 	}
 

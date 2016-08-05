@@ -58,9 +58,11 @@ namespace lux {
 			renderer::Camera_2d _camera_menu;
 			renderer::Camera_sidescroller _camera_world;
 
-			renderer::Text_dynamic _debug_Text;
+			renderer::Text_dynamic _cmd_text;
+			renderer::Texture_ptr  _cmd_background;
 
-			renderer::Command_queue _render_queue;
+			mutable renderer::Texture_batch _batch;
+			renderer::Command_queue         _render_queue;
 
 			editor::Selection _selection;
 			editor::Blueprint_bar _blueprints;

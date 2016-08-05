@@ -30,9 +30,18 @@ namespace renderer {
 		float width = engine.graphics_ctx().viewport().z;
 		float height = engine.graphics_ctx().viewport().w;
 
-		float vwidth  = std::round(width * (static_cast<float>(target_height))/height);
+		if(width/static_cast<float>(height) <= 5/3.f) { // special case for weird resolutions
+			target_height*=1.25f;
+		}
 
-		return {vwidth, target_height};
+		if(width < height) { // special case for portrait-mode
+			float vheight  = std::round(height * (static_cast<float>(target_height))/width);
+			return {target_height, vheight};
+
+		} else {
+			float vwidth  = std::round(width * (static_cast<float>(target_height))/height);
+			return {vwidth, target_height};
+		}
 	}
 
 	namespace {

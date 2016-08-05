@@ -70,13 +70,19 @@ namespace graphic {
 		for(Sprite_comp& sprite : _sprites) {
 			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
 
+			auto decal_offset = glm::vec2{};
+			if(sprite._decals_sticky) {
+				decal_offset.x = sprite._decals_position.x - trans.position().x.value();
+				decal_offset.y = sprite._decals_position.y - trans.position().y.value();
+			}
+
 			auto position = remove_units(trans.position());
 			auto sprite_data = renderer::Sprite{
 			                   position, trans.rotation(),
 			                   sprite._size*trans.scale(),
 			                   flip(glm::vec4{0,0,1,1}, trans.flip_vertical(), trans.flip_horizontal()),
 			                   sprite._shadowcaster ? 1.0f : 1.f-sprite._shadow_receiver,
-			                   sprite._decals_intensity, *sprite._material};
+			                   sprite._decals_intensity, *sprite._material, decal_offset};
 
 			sprite_data.hue_change = {
 			    sprite._hue_change_target / 360_deg,
@@ -93,13 +99,19 @@ namespace graphic {
 		for(Anim_sprite_comp& sprite : _anim_sprites) {
 			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
 
+			auto decal_offset = glm::vec2{};
+			if(sprite._decals_sticky) {
+				decal_offset.x = sprite._decals_position.x - trans.position().x.value();
+				decal_offset.y = sprite._decals_position.y - trans.position().y.value();
+			}
+
 			auto position = remove_units(trans.position());
 			auto sprite_data = renderer::Sprite{
 			                   position, trans.rotation(),
 			                   sprite._size*trans.scale(),
 			                   flip(sprite.state().uv_rect(), trans.flip_vertical(), trans.flip_horizontal()),
 			                   sprite._shadowcaster ? 1.0f : 1.f-sprite._shadow_receiver,
-			                   sprite._decals_intensity, sprite.state().material()};
+			                   sprite._decals_intensity, sprite.state().material(), decal_offset};
 
 			sprite_data.hue_change = {
 			    sprite._hue_change_target / 360_deg,
@@ -170,8 +182,23 @@ namespace graphic {
 	}
 
 	void Graphic_system::update(Time dt) {
+		auto update_decal_pos = [&](auto& sprite) {
+			if(sprite._decals_sticky && !sprite._decals_position_set) {
+				sprite._decals_position_set = true;
+				ecs::Entity& o = sprite.owner();
+				auto pos = remove_units(o.get<physics::Transform_comp>().get_or_throw().position());
+				sprite._decals_position.x = pos.x;
+				sprite._decals_position.y = pos.y;
+			}
+		};
+
 		for(Anim_sprite_comp& sprite : _anim_sprites) {
 			sprite.state().update(dt, _mailbox.bus());
+
+			update_decal_pos(sprite);
+		}
+		for(Sprite_comp& sprite : _sprites) {
+			update_decal_pos(sprite);
 		}
 
 		_update_particles(dt);

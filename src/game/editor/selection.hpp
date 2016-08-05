@@ -93,7 +93,7 @@ namespace editor {
 			void _on_mouse_released(glm::vec2 mp);
 
 			void _change_selection(glm::vec2 point, bool cycle=true);
-			void _move(glm::vec2 offset);
+			void _move(glm::vec2 prev, glm::vec2 curr);
 			void _move_layer(float offset);
 			void _rotate(Angle offset);
 			void _rotate(glm::vec2 pivot, Angle offset);

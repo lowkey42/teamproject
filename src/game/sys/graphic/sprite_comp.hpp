@@ -57,6 +57,9 @@ namespace graphic {
 			bool _shadowcaster = true;
 			float _shadow_receiver = 1.f;
 			float _decals_intensity = 0.f;
+			glm::vec2 _decals_position;
+			bool _decals_position_set = false;
+			bool _decals_sticky = false; //< attach decals to intial position
 			Angle _hue_change_target {0};
 			Angle _hue_change_replacement {0};
 	};
@@ -94,6 +97,9 @@ namespace graphic {
 			bool _shadowcaster = true;
 			float _shadow_receiver = 1.f;
 			float _decals_intensity = 0.f;
+			glm::vec2 _decals_position;
+			bool _decals_position_set = false;
+			bool _decals_sticky = false; //< attach decals to intial position
 			Angle _hue_change_target {0};
 			Angle _hue_change_replacement {0};
 	};

@@ -44,6 +44,7 @@ namespace physics {
 		bool sensor = false;
 		glm::vec2 velocity{};
 		float keep_position_force = 0.f;
+		std::vector<glm::vec2> vertices;
 	};
 
 	class Dynamic_body_comp : public ecs::Component<Dynamic_body_comp> {

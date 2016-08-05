@@ -260,8 +260,7 @@ namespace editor {
 		auto mp1_prev = _last_primary_pointer_pos.get_or_other(mp1_curr);
 		auto mp2_prev = _last_secondary_pointer_pos.get_or_other(mp2_curr);
 
-		auto mp1_delta = mp1_curr - mp1_prev;
-		_move(mp1_delta);
+		_move(mp1_prev, mp1_curr);
 
 
 		auto offset_curr = mp2_curr - mp1_curr;
@@ -345,7 +344,7 @@ namespace editor {
 
 		switch(_current_action) {
 			case Action_type::move:
-				_move(curr - prev);
+				_move(prev, curr);
 				break;
 
 			case Action_type::scale:
@@ -416,8 +415,8 @@ namespace editor {
 		}
 	}
 
-	void Selection::_move(glm::vec2 offset) {
-		if(!_selected_entity || glm::length2(offset)<1.f)
+	void Selection::_move(glm::vec2 prev, glm::vec2 curr) {
+		if(!_selected_entity || glm::length2(prev-curr)<1.f)
 			return;
 
 		if(_curr_copy && !_curr_copy_created) {
@@ -425,8 +424,10 @@ namespace editor {
 			_curr_copy_created = true;
 		}
 
-		auto world_offset = _world_cam.screen_to_world(offset, _curr_entity_position)
-		                    - _world_cam.screen_to_world(vec2{0,0}, _curr_entity_position);
+		auto prev_world = _world_cam.screen_to_world(prev, _curr_entity_position);
+		auto curr_world = _world_cam.screen_to_world(curr, _curr_entity_position);
+
+		auto world_offset = curr_world - prev_world;
 
 		_curr_entity_position += vec3(world_offset.xy(), 0.0f);
 		_update_entity_transform();

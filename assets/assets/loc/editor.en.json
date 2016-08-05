@@ -1,6 +1,7 @@
 {
     "editor_tooltip": {
         "back": "Quit",
+        "settings": "Settings",
         "save": "Save",
         "load_prev": "Load previous",
         "load_next": "Load next",
@@ -23,7 +24,17 @@
         "toggle_grid": "Magnetic grid",
 
         "unselect": "Clear selection",
-        "start": "Play level"
+        "start": "Play level",
+
+        "sidebar_back": "Back to categories",
+        "sidebar_delete": "Delete object",
+
+        "bi_players": "Players",
+        "bi_gameplay": "Gameplay elements",
+        "bi_enemies": "Enemies",
+        "bi_terrain": "Terrain",
+        "bi_lights": "Light sources",
+        "bi_decoration": "Decorations"
     }
 
 }

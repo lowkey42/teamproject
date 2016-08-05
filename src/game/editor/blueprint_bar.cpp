@@ -7,6 +7,7 @@
 
 #include "../sys/physics/transform_comp.hpp"
 
+#include <core/gui/text.hpp>
 #include <core/input/input_manager.hpp>
 
 
@@ -29,11 +30,13 @@ namespace editor {
 
 	struct Blueprint_desc {
 		std::string id;
+		std::string tooltip;
 		std::string icon;
 		renderer::Texture_ptr icon_texture;
 	};
 	struct Blueprint_group {
 		std::string name;
+		std::string tooltip;
 		std::string icon;
 		renderer::Texture_ptr icon_texture;
 		std::vector<Blueprint_desc> blueprints;
@@ -43,8 +46,8 @@ namespace editor {
 		std::vector<Blueprint_group> blueprint_groups;
 	};
 
-	sf2_structDef(Blueprint_desc, id, icon)
-	sf2_structDef(Blueprint_group, name, icon, blueprints)
+	sf2_structDef(Blueprint_desc, id, tooltip, icon)
+	sf2_structDef(Blueprint_group, name, tooltip, icon, blueprints)
 	sf2_structDef(Editor_conf, blueprint_groups)
 
 }
@@ -77,10 +80,13 @@ namespace asset {
 
 namespace editor {
 
+	constexpr int Blueprint_bar::idx_back;
+	constexpr int Blueprint_bar::idx_delete;
+
 	Blueprint_bar::Blueprint_bar(Engine& e, util::Command_manager& commands, Selection& selection,
 	                             ecs::Entity_manager& entity_manager, asset::Asset_manager& assets,
 	                             input::Input_manager& input_manager,
-	                             renderer::Camera& camera_world, renderer::Camera& camera_ui,
+	                             renderer::Camera& camera_world, renderer::Camera_2d& camera_ui,
 				                 glm::vec2 offset)
 	    : _engine(e),
 	      _camera_world(camera_world), _camera_ui(camera_ui), _offset(offset),
@@ -88,7 +94,9 @@ namespace editor {
 	      _entity_manager(entity_manager), _input_manager(input_manager),
 	      _background(e.assets().load<renderer::Texture>("tex:editor_bar_blueprints"_aid)),
 	      _back_button(e.assets().load<renderer::Texture>("tex:editor_bar_blueprints_back"_aid)),
-	      _conf(assets.load<Editor_conf>("cfg:editor"_aid)) {
+	      _delete_button(e.assets().load<renderer::Texture>("tex:editor_bar_blueprints_delete"_aid)),
+	      _conf(assets.load<Editor_conf>("cfg:editor"_aid)),
+	      _tooltip_text(e.assets().load<renderer::Font>("font:menu_font"_aid)) {
 
 		entity_manager.register_component_type<Editor_comp>();
 
@@ -153,14 +161,24 @@ namespace editor {
 		_batch.insert(*_background, offset, size);
 
 		if(_current_category.is_some()) {
-			offset += glm::vec2{0, -_background->height()/2.f + 8 + _back_button->height()/6.f};
-			size = glm::vec2{_back_button->width(), _back_button->height()/3};
+			auto back_offset = offset + glm::vec2{0, -_background->height()/2.f + 8 + _back_button->height()/6.f};
+			auto back_size = glm::vec2{_back_button->width(), _back_button->height()/3};
 			auto button_clip = 0.f;
-			if(is_inside(_last_mouse_pos, offset, size)) {
+			if(is_inside(_last_mouse_pos, back_offset, back_size)) {
 				button_clip = _mouse_pressed ? 2.f/3 : 1.f/3;
 			}
-			_batch.insert(*_back_button, offset, size, 0_deg, {0,button_clip,1,button_clip+1.f/3});
+			_batch.insert(*_back_button, back_offset, back_size, 0_deg, {0,button_clip,1,button_clip+1.f/3});
 		}
+
+		auto delete_offset = offset + glm::vec2{0, _background->height()/2.f - 8 - _delete_button->height()/6.f};
+		auto delete_size = glm::vec2{_delete_button->width(), _delete_button->height()/3};
+		auto delete_button_clip = 0.f;
+		if(is_inside(_last_mouse_pos, delete_offset, delete_size)) {
+			delete_button_clip = _mouse_pressed ? 2.f/3 : 1.f/3;
+		}
+		_batch.insert(*_delete_button, delete_offset, delete_size, 0_deg,
+		              {0,delete_button_clip,1,delete_button_clip+1.f/3});
+
 
 		if(_dragging.is_some() && _current_category.is_some()) {
 			auto index = _dragging.get_or_throw();
@@ -170,6 +188,7 @@ namespace editor {
 				_batch.insert(*blueprints.at(index).icon_texture, _last_mouse_pos, glm::vec2{icon_size,icon_size});
 			}
 		}
+
 
 		auto draw_icons = [&](auto& list) {
 			auto offset = _offset - glm::vec2{_background->width(), _background->height()/2.f}
@@ -195,23 +214,82 @@ namespace editor {
 		}
 
 		_batch.flush(queue);
+
+		// draw tooltip
+		if(_tooltip_text) {
+			constexpr auto tooltip_scale = 0.4f;
+			auto tt_pos = _tooltip_pos+glm::vec2{0,30};
+			auto tooltip_halfsize = _tooltip_text.size()/2.f*tooltip_scale;
+
+			if(tt_pos.x+tooltip_halfsize.x > _camera_ui.size().x/2.f)
+				tt_pos.x = _camera_ui.size().x/2.f - tooltip_halfsize.x;
+
+			if(tt_pos.y+tooltip_halfsize.y > _camera_ui.size().y/2.f)
+				tt_pos.y = _camera_ui.size().y/2.f - tooltip_halfsize.y;
+
+			_tooltip_text.draw(queue, tt_pos, glm::vec4{1,1,1,1}, tooltip_scale);
+		}
 	}
-	void Blueprint_bar::update() {
+	void Blueprint_bar::update(Time dt) {
 		_mailbox.update_subscriptions();
+
+		_tooltip_text.set("");
+
+		if(glm::length2(_tooltip_pos-_last_mouse_pos)<4.f) {
+			if(_tooltip_delay_left>0_s) {
+				_tooltip_delay_left -= dt;
+			} else {
+				auto idx = _get_index(_last_mouse_pos);
+				if(idx.is_some()) {
+					switch(idx.get_or_throw()) {
+						case idx_back:
+							if(_current_category.is_some()) {
+								_tooltip_text.set(_engine.translator().translate("editor_tooltip", "sidebar_back"));
+							}
+							break;
+
+						case idx_delete:
+							_tooltip_text.set(_engine.translator().translate("editor_tooltip", "sidebar_delete"));
+							break;
+
+						default: {
+							auto index = static_cast<std::size_t>(idx.get_or_throw());
+							if(_current_category.is_nothing() && index<_conf->blueprint_groups.size()) {
+								auto tooltip = _conf->blueprint_groups.at(index).tooltip;
+								if(!tooltip.empty()) {
+									_tooltip_text.set(_engine.translator().translate("editor_tooltip", tooltip));
+								}
+
+							} else if(_current_category.is_some() && index<_current_category.get_or_throw().blueprints.size()) {
+								auto tooltip = _current_category.get_or_throw().blueprints.at(index).tooltip;
+								if(!tooltip.empty()) {
+									_tooltip_text.set(_engine.translator().translate("editor_tooltip", tooltip));
+								}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			_tooltip_pos = _last_mouse_pos;
+			_tooltip_delay_left = 0.2_s;
+		}
 	}
 	auto Blueprint_bar::handle_pointer(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2>) -> bool {
-		auto offset = _offset - glm::vec2{_background->width()/2.f, 0.f};
-		auto size = glm::vec2{_background->width(), _background->height()};
-
 		auto mouse_released = _mouse_pressed && !mp1.is_some();
+		auto mouse_first_pressed = !_mouse_pressed && mp1.is_some();
 		_mouse_pressed = mp1.is_some();
 
 		auto mouse_pos = mp1.get_or_other(_input_manager.last_pointer_screen_position());
 		_last_mouse_pos = _camera_ui.screen_to_world(mouse_pos, 1.f).xy();
 
+
+		auto offset = _offset - glm::vec2{_background->width()/2.f, 0.f};
+		auto size = glm::vec2{_background->width(), _background->height()};
+
 		if(_dragging.is_some()) {
 			if(mouse_released) {
-				if(!is_inside(_last_mouse_pos, offset, size) || _current_category.is_nothing()) {
+				if(!is_inside(_last_mouse_pos, offset, size)) {
 					_spawn_new(_dragging.get_or_throw(), _input_manager.last_pointer_world_position());
 				}
 				_dragging = util::nothing();
@@ -220,30 +298,36 @@ namespace editor {
 			return true;
 		}
 
-		if(is_inside(_last_mouse_pos, offset, size)) {
-			offset += glm::vec2{0, -_background->height()/2.f + 8 + _back_button->height()/6.f};
-			size = glm::vec2{_back_button->width(), _back_button->height()/3};
+		auto idx = _get_index(_last_mouse_pos);
+		if(idx.is_some() && is_inside(_last_mouse_pos, offset, size)) {
+			switch(idx.get_or_throw()) {
+				case idx_back:
+					if(mouse_released) {
+						_current_category = util::nothing();
+					}
+					break;
 
-			if(is_inside(_last_mouse_pos, offset, size)) {
-				if(mouse_released)
-					_current_category = util::nothing();
+				case idx_delete:
+					if(mouse_released && _selection.selection()) {
+						_commands.execute<Delete_cmd>(_selection);
+					}
+					break;
 
-			} else if(_mouse_pressed) {
-				auto offset = _offset - glm::vec2{_background->width(), _background->height()/2.f}
-				              + glm::vec2{8.f + icon_size/2.f, 58.f + icon_size/2.f};
-				auto margin = 4.f + icon_size;
+				default: {
+					auto index = static_cast<std::size_t>(idx.get_or_throw());
 
-				auto p = _last_mouse_pos - offset;
-				p /= margin;
+					if(mouse_released && _current_category.is_nothing()) {
+						_spawn_new(index, {});
 
-				auto index = std::round(p.x) + std::round(p.y)*max_columns;
-
-				if(index>=0) {
-					_dragging = index;
+					}else if(mouse_first_pressed && _current_category.is_some()) {
+						_dragging = index;
+					}
 				}
 			}
+
 			return true;
 		}
+
 		return false;
 	}
 
@@ -255,6 +339,39 @@ namespace editor {
 		auto p = _camera_ui.screen_to_world(mouse_pos, 1.f).xy();
 
 		return is_inside(p, _offset+glm::vec2{-_background->width()/2.f, _background->height()/2.f-52}, glm::vec2{188,88});
+	}
+
+	auto Blueprint_bar::_get_index(glm::vec2 mouse_pos)const -> util::maybe<int> {
+		auto offset = _offset - glm::vec2{_background->width()/2.f, 0.f};
+		auto size = glm::vec2{_background->width()-16, _background->height()};
+
+		if(!is_inside(mouse_pos, offset, size)) {
+			return util::nothing();
+		}
+
+		auto back_offset = offset + glm::vec2{0, -_background->height()/2.f + 8 + _back_button->height()/6.f};
+		auto back_size = glm::vec2{_back_button->width(), _back_button->height()/3};
+
+		auto delete_offset = offset + glm::vec2{0, _background->height()/2.f - 8 - _delete_button->height()/6.f};
+		auto delete_size = glm::vec2{_delete_button->width(), _delete_button->height()/3};
+
+		if(is_inside(mouse_pos, back_offset, back_size)) {
+			return idx_back;
+
+		} else if(is_inside(mouse_pos, delete_offset, delete_size)) {
+			return idx_delete;
+
+		} else {
+			auto offset = _offset - glm::vec2{_background->width(), _background->height()/2.f}
+			              + glm::vec2{8.f + icon_size/2.f, 58.f + icon_size/2.f};
+			auto margin = 4.f + icon_size;
+
+			auto p = mouse_pos - offset;
+			p /= margin;
+
+			auto index = std::round(p.x) + std::round(p.y)*max_columns;
+			return index>=0 ? util::justCopy(static_cast<int>(index)) : util::nothing();
+		}
 	}
 
 }

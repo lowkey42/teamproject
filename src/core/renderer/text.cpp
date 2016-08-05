@@ -85,12 +85,15 @@ namespace renderer {
 			auto tw = tex_width;
 			auto th = tex_height;
 
-			int min_advance = 0;
+			auto max_advance = 0.f;
+			auto sum_advance = 0.f;
 			if(monospace) {
 				for(auto& g : glyphs) {
-					min_advance = std::max(g.second.advance, min_advance);
+					max_advance = std::max(static_cast<float>(g.second.advance), max_advance);
+					sum_advance += g.second.advance;
 				}
 			}
+			float fixed_advance = max_advance*0.5f + sum_advance/glyphs.size()*0.5f;
 
 			auto add_glyph = [&](Text_char c) {
 				if(c=='\n') {
@@ -119,7 +122,11 @@ namespace renderer {
 				            tw, th);
 
 
-				offset.x+= std::max(glyph.advance, min_advance);
+				if(fixed_advance>0.f) {
+					offset.x+=fixed_advance;
+				} else {
+					offset.x+= glyph.advance;
+				}
 
 				prev = c;
 			};
