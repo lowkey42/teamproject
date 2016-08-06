@@ -1,4 +1,4 @@
-#include "text.hpp"
+#include "translations.hpp"
 
 #include <sf2/sf2.hpp>
 

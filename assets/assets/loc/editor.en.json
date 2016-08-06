@@ -1,30 +1,30 @@
 {
     "editor_tooltip": {
-        "back": "Quit",
+        "back": "Quit (ESC)",
         "settings": "Settings",
-        "save": "Save",
-        "load_prev": "Load previous",
-        "load_next": "Load next",
-        "load": "Load",
+        "save": "Save (F5)",
+        "load_prev": "Load previous (Page Down)",
+        "load_next": "Load next (Page Up)",
+        "load": "Load (F9)",
 
-        "cut": "Cut",
-        "copy": "Copy",
-        "paste": "Paste",
+        "cut": "Cut (X)",
+        "copy": "Copy (C)",
+        "paste": "Paste (V)",
 
-        "flip_h": "Flip horizontally",
-        "flip_v": "Flip vertically",
+        "flip_h": "Flip horizontally (H)",
+        "flip_v": "Flip vertically (J)",
 
-        "undo": "Undo",
-        "redo": "Redo",
+        "undo": "Undo (Z)",
+        "redo": "Redo (Y)",
 
-        "zoom_in": "Zoom in",
-        "zoom_out": "Zoom out",
+        "zoom_in": "Zoom in (Mouse Wheel Up)",
+        "zoom_out": "Zoom out (Mouse Wheel Down)",
 
-        "light": "Lighting",
-        "toggle_grid": "Magnetic grid",
+        "light": "Lighting (L)",
+        "toggle_grid": "Magnetic grid (G)",
 
         "unselect": "Clear selection",
-        "start": "Play level",
+        "start": "Play level (F6)",
 
         "sidebar_back": "Back to categories",
         "sidebar_delete": "Delete object",

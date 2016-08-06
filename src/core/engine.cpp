@@ -3,7 +3,7 @@
 #include "asset/asset_manager.hpp"
 #include "audio/audio_ctx.hpp"
 #include "audio/sound.hpp"
-#include "gui/text.hpp"
+#include "gui/translations.hpp"
 #include "input/input_manager.hpp"
 #include "renderer/graphics_ctx.hpp"
 #include "utils/log.hpp"

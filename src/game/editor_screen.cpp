@@ -16,7 +16,7 @@
 #include <core/audio/music.hpp>
 #include <core/audio/audio_ctx.hpp>
 
-#include <core/gui/text.hpp>
+#include <core/gui/translations.hpp>
 
 #include <core/input/events.hpp>
 #include <core/input/input_manager.hpp>

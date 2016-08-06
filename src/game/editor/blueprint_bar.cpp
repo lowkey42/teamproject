@@ -7,7 +7,7 @@
 
 #include "../sys/physics/transform_comp.hpp"
 
-#include <core/gui/text.hpp>
+#include <core/gui/translations.hpp>
 #include <core/input/input_manager.hpp>
 
 
