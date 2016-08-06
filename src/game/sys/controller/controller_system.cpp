@@ -268,7 +268,7 @@ namespace controller {
 
 				// normalize dir to N° steps
 				if(glm::length2(dir)>0.1f) {
-					constexpr auto dir_step_size = 45_deg/4.f;
+					const auto dir_step_size = 45_deg / (_mouse_look ? 4.f : 2.f);
 					auto dir_angle = Angle{glm::atan(dir.y, dir.x)};
 					dir_angle = Angle::from_degrees(std::round(dir_angle.in_degrees() / dir_step_size.in_degrees()) * dir_step_size.in_degrees());
 					dir = glm::rotate(glm::vec2{1,0}, dir_angle.value());
