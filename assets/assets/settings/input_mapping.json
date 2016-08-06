@@ -120,7 +120,8 @@
 				"T_9": {"type":"once", "action":"new_i"},
 				
 				"PageUp": {"type":"once", "action":"next"},
-				"PageDown": {"type":"once", "action":"prev"}
+				"PageDown": {"type":"once", "action":"prev"},
+				"Delete": {"type":"once", "action":"delete"}
             },
             "mouse_wheel_up": {"type":"once", "action": "zoom_in"},
             "mouse_wheel_down": {"type":"once", "action": "zoom_out"},

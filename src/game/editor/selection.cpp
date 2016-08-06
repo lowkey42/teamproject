@@ -27,13 +27,14 @@ namespace editor {
 
 	namespace {
 
-		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam, bool forgiving=false) {
+		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam, bool forgiving=false,
+		               bool in_screenspace=false) {
 			bool inside = false;
 
 			auto terrain = e.get<Terrain_comp>();
 			if(terrain.is_some()) {
 				auto e_pos = remove_units(e.get<physics::Transform_comp>().get_or_throw().position());
-				auto world_p = cam.screen_to_world(p, e_pos).xy();
+				auto world_p = in_screenspace ? cam.screen_to_world(p, e_pos).xy() : p;
 
 				auto icon_radius = glm::length(cam.screen_to_world(vec2{16.f, 16.f}, e_pos).xy() - cam.screen_to_world(vec2{0.f, 0.f}, e_pos).xy());
 
@@ -53,7 +54,7 @@ namespace editor {
 				if(forgiving)
 					half_bounds = glm::max(half_bounds, vec2{0.5f,0.5f}) + 0.5f;
 
-				auto world_p = cam.screen_to_world(p, center).xy();
+				auto world_p = in_screenspace ? cam.screen_to_world(p, center).xy() : p;
 				auto obb_p = rotate(world_p - center.xy(), -transform.rotation());
 
 				inside = obb_p.x > -half_bounds.x && obb_p.x < half_bounds.x &&
@@ -175,6 +176,8 @@ namespace editor {
 	}
 
 	void Selection::_on_mouse_pressed(glm::vec2 mp) {
+		_mouse_pressed_pos = mp;
+
 		if(_selected_entity) {
 			_curr_copy = _copy_dragging;
 			_curr_copy_created = false;
@@ -193,7 +196,7 @@ namespace editor {
 	}
 	void Selection::_on_mouse_released(glm::vec2 mp) {
 		if(_selected_entity && _current_action!=Action_type::none && _current_action!=Action_type::inactive) {
-			if(_current_action==Action_type::mod_form) {
+			if(_current_action==Action_type::mod_form && _selected_entity->has<Terrain_comp>()) {
 				if(_snap_to_grid) {
 					_curr_point_position = glm::round(_curr_point_position*2.f) / 2.f;
 				}
@@ -203,7 +206,7 @@ namespace editor {
 				                                   _curr_point_position,
 				                                   _prev_point_position);
 
-			} else {
+			} else if(_selected_entity->has<physics::Transform_comp>()) {
 				auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
 				_commands.execute<Transform_cmd>(*this, _selected_entity,
 				                                 _curr_copy && _curr_copy_created,
@@ -220,23 +223,33 @@ namespace editor {
 
 
 		// if click
-		if(glm::length2(mp-_mouse_pressed_pos)<5.f) {
+		if(glm::length2(mp-_mouse_pressed_pos)<5.0f) {
 			_change_selection(_mouse_pressed_pos);
 		}else {
 			DEBUG("DRAG: "<<glm::length2(mp-_mouse_pressed_pos));
 		}
 	}
 
-	auto Selection::handle_pointer(const util::maybe<glm::vec2> mp1,
-	                               const util::maybe<glm::vec2> mp2) -> bool {
+	auto Selection::handle_pointer(util::maybe<glm::vec2> mp1,
+	                               util::maybe<glm::vec2> mp2) -> bool {
+		auto base_pos = _selected_entity ? remove_units(_selected_entity->get<physics::Transform_comp>().get_or_throw().position())
+		                                 : glm::vec3(_world_cam.eye_position().xy(), 0.f);
+
+		if(mp1.is_some()) {
+			mp1 = _world_cam.screen_to_world(mp1.get_or_throw(), base_pos).xy();
+		}
+		if(mp2.is_some()) {
+			mp2 = _world_cam.screen_to_world(mp2.get_or_throw(), base_pos).xy();
+		}
+
 		ON_EXIT {
 			_last_primary_pointer_pos = mp1;
 			_last_secondary_pointer_pos = mp2;
 		};
 
+
 		if(mp1.is_some() && !_last_primary_pointer_pos.is_some()) {
-			_mouse_pressed_pos = mp1.get_or_throw();
-			_on_mouse_pressed(_mouse_pressed_pos);
+			_on_mouse_pressed(_input_manager.last_pointer_screen_position());
 
 		} else if(!mp1.is_some() && _last_primary_pointer_pos.is_some()) {
 			_on_mouse_released(_input_manager.last_pointer_screen_position());
@@ -260,7 +273,7 @@ namespace editor {
 		auto mp1_prev = _last_primary_pointer_pos.get_or_other(mp1_curr);
 		auto mp2_prev = _last_secondary_pointer_pos.get_or_other(mp2_curr);
 
-		_move(mp1_prev, mp1_curr);
+		_move(mp1_curr-mp1_prev);
 
 
 		auto offset_curr = mp2_curr - mp1_curr;
@@ -286,11 +299,9 @@ namespace editor {
 
 		auto center      = remove_units(transform.position());
 
-		auto world_prev = _world_cam.screen_to_world(prev, center).xy();
-		auto obb_prev = rotate(world_prev - center.xy(), -transform.rotation());
+		auto obb_prev = rotate(prev - center.xy(), -transform.rotation());
 
-		auto world_curr = _world_cam.screen_to_world(curr, center).xy();
-		auto obb_curr = rotate(world_curr - center.xy(), -transform.rotation());
+		auto obb_curr = rotate(curr - center.xy(), -transform.rotation());
 
 		auto icon_radius = glm::length(_world_cam.screen_to_world(vec2{16.f, 16.f}, center).xy() - _world_cam.screen_to_world(vec2{0.f, 0.f}, center).xy());
 		auto icon_size2 = icon_radius*icon_radius;
@@ -309,7 +320,7 @@ namespace editor {
 				auto loc_type = Smart_texture::Point_location::none;
 				auto index = 0;
 				std::tie(loc_type,index) = smart_texture.get_point(center.xy(),
-				                                                   world_prev, icon_radius);
+				                                                   prev, icon_radius);
 
 				if(loc_type==Smart_texture::Point_location::on) {
 					_current_action = Action_type::mod_form;
@@ -320,10 +331,10 @@ namespace editor {
 				} else if(loc_type==Smart_texture::Point_location::between) {
 					_current_action = Action_type::mod_form;
 					_point_created = true;
-					_current_shape_index = _insert_point(index, world_curr);
+					_current_shape_index = _insert_point(index, curr);
 					_prev_point_position = _curr_point_position = smart_texture.points()[_current_shape_index];
 
-				} else if(glm::length2(world_prev-center.xy())<icon_size2) {
+				} else if(glm::length2(prev-center.xy())<icon_size2) {
 					_current_action = Action_type::layer;
 				} else {
 					_current_action = Action_type::move;
@@ -344,7 +355,7 @@ namespace editor {
 
 		switch(_current_action) {
 			case Action_type::move:
-				_move(prev, curr);
+				_move(curr - prev);
 				break;
 
 			case Action_type::scale:
@@ -359,11 +370,11 @@ namespace editor {
 			}
 
 			case Action_type::layer:
-				_move_layer((curr.y - prev.y) * 0.01);
+				_move_layer((curr.y - prev.y) * 1.f);
 				break;
 
 			case Action_type::mod_form:
-				_move_point(world_curr - world_prev);
+				_move_point(curr - prev);
 				break;
 
 			case Action_type::inactive:
@@ -387,14 +398,14 @@ namespace editor {
 		ecs::Entity_ptr entity;
 		auto max_compv = std::make_pair(-1000.f, (void*) nullptr);
 		auto limit_compv = std::make_pair(1000.f, (void*) nullptr);
-		cycle = cycle && _selected_entity && is_inside(*_selected_entity, point, _world_cam);
+		cycle = cycle && _selected_entity && is_inside(*_selected_entity, point, _world_cam, false, true);
 		if(cycle) {
 			auto z = _selected_entity->get<physics::Transform_comp>().get_or_throw().position().z.value();
 			limit_compv = std::make_pair(z, static_cast<void*>(_selected_entity.get()));
 		}
 
 		for(auto& comp : _editor_comps) {
-			if(is_inside(comp.owner(), point, _world_cam)) {
+			if(is_inside(comp.owner(), point, _world_cam, false, true)) {
 				auto z = comp.owner().get<physics::Transform_comp>().get_or_throw().position().z.value();
 				auto compv = std::make_pair(z, static_cast<void*>(&comp.owner()));
 
@@ -415,8 +426,8 @@ namespace editor {
 		}
 	}
 
-	void Selection::_move(glm::vec2 prev, glm::vec2 curr) {
-		if(!_selected_entity || glm::length2(prev-curr)<1.f)
+	void Selection::_move(glm::vec2 offset) {
+		if(!_selected_entity || glm::length2(offset)<=0.00001f)
 			return;
 
 		if(_curr_copy && !_curr_copy_created) {
@@ -424,12 +435,7 @@ namespace editor {
 			_curr_copy_created = true;
 		}
 
-		auto prev_world = _world_cam.screen_to_world(prev, _curr_entity_position);
-		auto curr_world = _world_cam.screen_to_world(curr, _curr_entity_position);
-
-		auto world_offset = curr_world - prev_world;
-
-		_curr_entity_position += vec3(world_offset.xy(), 0.0f);
+		_curr_entity_position += vec3(offset, 0.0f);
 		_update_entity_transform();
 	}
 	void Selection::_move_layer(float offset) {
@@ -442,7 +448,7 @@ namespace editor {
 	}
 	void Selection::_rotate(glm::vec2 pivot, Angle offset) {
 		auto pos = _curr_entity_position;
-		auto obj_pivot = pos.xy() - _world_cam.screen_to_world(pivot, pos).xy();
+		auto obj_pivot = pos.xy() - pivot;
 
 		_curr_entity_position += vec3(rotate(obj_pivot, offset)-obj_pivot, 0.f);
 		_curr_entity_rotation += offset;
@@ -454,7 +460,7 @@ namespace editor {
 	}
 	void Selection::_scale(glm::vec2 pivot, float factor) {
 		auto pos = _curr_entity_position;
-		auto obj_pivot = pos.xy() - _world_cam.screen_to_world(pivot, pos).xy();
+		auto obj_pivot = pos.xy() - pivot;
 		_curr_entity_position += vec3((obj_pivot*factor)-obj_pivot, 0.f);
 
 		_curr_entity_scale *= factor;

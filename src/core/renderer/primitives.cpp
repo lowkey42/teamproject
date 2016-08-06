@@ -44,8 +44,8 @@ namespace renderer {
 	void draw_dashed_line(renderer::Command_queue& queue,
 	                      glm::vec2 p1, glm::vec2 p2, float dash_len, Rgba color) {
 		auto cmd = create_command()
-		           .require_not(Gl_option::depth_test)
 		           .require_not(Gl_option::depth_write)
+		           .order_dependent()
 		           .object(*unit_line)
 		           .shader(*dashed_line_shader);
 

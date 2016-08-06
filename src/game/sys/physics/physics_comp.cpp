@@ -222,7 +222,7 @@ namespace physics {
 		}
 		state.write(_def);
 	}
-	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*b){}) {
+	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*){}) {
 	}
 	void Dynamic_body_comp::_update_body(b2World& world) {
 		auto org_aabb = _body ? util::just(calc_aabb()) : util::nothing();
@@ -243,7 +243,7 @@ namespace physics {
 			auto new_aabb = this->calc_aabb();
 			if(new_aabb.w>aabb.w) {
 				auto pos = _body->GetPosition();
-				_body->SetTransform({pos.x, pos.y - (new_aabb.w-aabb.w)}, _body->GetAngle());
+				_body->SetTransform({pos.x, pos.y + (new_aabb.w-aabb.w)}, _body->GetAngle());
 			}
 		});
 	}

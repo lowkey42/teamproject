@@ -268,6 +268,11 @@ namespace lux {
 		} else if(_selection.active()) {
 			_selection.handle_pointer(mp1,mp2);
 
+			if(_blueprints.is_in_delete_zone(_input_manager.last_pointer_screen_position()) && !_selection.active()) {
+				_commands.undo();
+			}
+			_blueprints.handle_pointer(mp1,mp2);
+
 		} else {
 			bool unhandled = !_blueprints.handle_pointer(mp1,mp2) &&
 			                 !_menu.handle_pointer(mp1,mp2) &&

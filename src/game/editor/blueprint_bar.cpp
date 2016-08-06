@@ -129,6 +129,11 @@ namespace editor {
 				case "new_i"_strid:
 					_spawn_new(8, _engine.input().last_pointer_world_position());
 					break;
+				case "delete"_strid:
+					if(_selection.selection()) {
+						_commands.execute<Delete_cmd>(_selection);
+					}
+					break;
 			}
 		});
 
@@ -170,23 +175,15 @@ namespace editor {
 			_batch.insert(*_back_button, back_offset, back_size, 0_deg, {0,button_clip,1,button_clip+1.f/3});
 		}
 
-		auto delete_offset = offset + glm::vec2{0, _background->height()/2.f - 8 - _delete_button->height()/6.f};
-		auto delete_size = glm::vec2{_delete_button->width(), _delete_button->height()/3};
-		auto delete_button_clip = 0.f;
-		if(is_inside(_last_mouse_pos, delete_offset, delete_size)) {
-			delete_button_clip = _mouse_pressed ? 2.f/3 : 1.f/3;
-		}
-		_batch.insert(*_delete_button, delete_offset, delete_size, 0_deg,
-		              {0,delete_button_clip,1,delete_button_clip+1.f/3});
-
-
-		if(_dragging.is_some() && _current_category.is_some()) {
-			auto index = _dragging.get_or_throw();
-
-			auto& blueprints = _current_category.get_or_throw().blueprints;
-			if(index < blueprints.size()) {
-				_batch.insert(*blueprints.at(index).icon_texture, _last_mouse_pos, glm::vec2{icon_size,icon_size});
+		if(_selection.selection()) {
+			auto delete_offset = offset + glm::vec2{0, _background->height()/2.f - 8 - _delete_button->height()/6.f};
+			auto delete_size = glm::vec2{_delete_button->width(), _delete_button->height()/3};
+			auto delete_button_clip = 0.f;
+			if(is_inside(_last_mouse_pos, delete_offset, delete_size)) {
+				delete_button_clip = _mouse_pressed ? 2.f/3 : 1.f/3;
 			}
+			_batch.insert(*_delete_button, delete_offset, delete_size, 0_deg,
+			              {0,delete_button_clip,1,delete_button_clip+1.f/3});
 		}
 
 
@@ -211,6 +208,15 @@ namespace editor {
 			draw_icons(_current_category.get_or_throw().blueprints);
 		} else {
 			draw_icons(_conf->blueprint_groups);
+		}
+
+		if(_dragging.is_some() && _current_category.is_some()) {
+			auto index = _dragging.get_or_throw();
+
+			auto& blueprints = _current_category.get_or_throw().blueprints;
+			if(index < blueprints.size()) {
+				_batch.insert(*blueprints.at(index).icon_texture, _last_mouse_pos, glm::vec2{icon_size,icon_size});
+			}
 		}
 
 		_batch.flush(queue);
@@ -287,10 +293,14 @@ namespace editor {
 		auto offset = _offset - glm::vec2{_background->width()/2.f, 0.f};
 		auto size = glm::vec2{_background->width(), _background->height()};
 
+		auto idx = _get_index(_last_mouse_pos);
+
 		if(_dragging.is_some()) {
 			if(mouse_released) {
 				if(!is_inside(_last_mouse_pos, offset, size)) {
 					_spawn_new(_dragging.get_or_throw(), _input_manager.last_pointer_world_position());
+				} else if(idx==_dragging.get_or_throw()) {
+					_spawn_new(_dragging.get_or_throw(), glm::vec2(_camera_world.eye_position()));
 				}
 				_dragging = util::nothing();
 			}
@@ -298,7 +308,6 @@ namespace editor {
 			return true;
 		}
 
-		auto idx = _get_index(_last_mouse_pos);
 		if(idx.is_some() && is_inside(_last_mouse_pos, offset, size)) {
 			switch(idx.get_or_throw()) {
 				case idx_back:
