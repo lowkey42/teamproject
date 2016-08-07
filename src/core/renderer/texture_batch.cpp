@@ -141,7 +141,7 @@ namespace renderer {
 
 		INVARIANT(obj_idx<_objects.size(), "Too few objects reserved");
 
-		_objects.at(obj_idx).buffer().set<Texture_Vertex>(begin, end);
+		_objects.at(obj_idx).buffer().set(begin, end);
 
 		auto cmd = create_command()
 		        .shader(*tex_shader)

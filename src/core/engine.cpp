@@ -4,6 +4,7 @@
 #include "audio/audio_ctx.hpp"
 #include "audio/sound.hpp"
 #include "gui/translations.hpp"
+#include "gui/gui.hpp"
 #include "input/input_manager.hpp"
 #include "renderer/graphics_ctx.hpp"
 #include "utils/log.hpp"
@@ -28,6 +29,14 @@ namespace {
 }
 
 	using namespace unit_literals;
+
+	Sdl_event_filter::Sdl_event_filter(Engine& e) :_engine(e) {
+		_engine.add_event_filter(*this);
+	}
+
+	Sdl_event_filter::~Sdl_event_filter() {
+		_engine.remove_event_filter(*this);
+	}
 
 	auto get_sdl_error() -> std::string {
 		std::string sdl_error(SDL_GetError());
@@ -58,6 +67,7 @@ namespace {
 	    _graphics_ctx(std::make_unique<renderer::Graphics_ctx>(title, *_asset_manager)),
 	    _audio_ctx(std::make_unique<audio::Audio_ctx>(*_asset_manager)),
 	    _input_manager(std::make_unique<input::Input_manager>(_bus, *_asset_manager)),
+	    _gui(std::make_unique<gui::Gui>(*this)),
 	    _current_time(SDL_GetTicks() / 1000.0f) {
 
 		_input_manager->viewport(_graphics_ctx->viewport());
@@ -146,10 +156,16 @@ namespace {
 
 		_screens.on_frame(delta_time_smoothed * second);
 
+		_gui->draw();
+
 		_graphics_ctx->end_frame(delta_time * second);
 	}
 
 	void Engine::_poll_events() {
+		for(auto& f : _event_filter) {
+			f->pre_input_events();
+		}
+
 		SDL_Event event;
 
 		while (SDL_PollEvent(&event)) {
@@ -172,6 +188,10 @@ namespace {
 				if(event.key.keysym.sym==SDLK_F12)
 					assets().reload();
 			}
+		}
+
+		for(auto& f : _event_filter) {
+			f->post_input_events();
 		}
 	}
 

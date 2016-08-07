@@ -94,6 +94,20 @@ namespace renderer {
 	      _height(base._height * (clip.w-clip.y)),
 	      _clip(clip) {
 	}
+	Texture::Texture(int width, int height, const uint8_t* data,
+	                 Texture_format format)
+	    : _width(width), _height(height) {
+
+		auto gl_format = format==Texture_format::RGB ? GL_RGB : GL_RGBA;
+
+		glGenTextures(1, &_handle);
+		glBindTexture(GL_TEXTURE_2D, _handle);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, gl_format, width, height, 0,
+		             GLenum(gl_format), GL_UNSIGNED_BYTE, data);
+	}
+
 	void Texture::_update(const Texture& base, glm::vec4 clip) {
 		INVARIANT(!_owner, "_update is only supported for non-owning textures!");
 
@@ -131,15 +145,10 @@ namespace renderer {
 	}
 
 	void Texture::bind(int index)const {
-		static int current_texture_unit = -1;
-
 		auto tex = GL_TEXTURE0+index;
 		INVARIANT(tex<GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, "to many textures");
 
-		if(current_texture_unit!=index) {
-			glActiveTexture(GL_TEXTURE0 + index);
-			current_texture_unit = index;
-		}
+		glActiveTexture(GL_TEXTURE0 + index);
 		glBindTexture(_cubemap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, _handle);
 	}
 

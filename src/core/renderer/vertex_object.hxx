@@ -11,27 +11,30 @@ namespace renderer {
 	void Buffer::set(const std::vector<T>& container) {
 		_set_raw(sizeof(T), container.size(), &container[0]);
 	}
-	template<class T>
-	void Buffer::set(typename std::vector<T>::const_iterator begin,
-	                 typename std::vector<T>::const_iterator end) {
-		_set_raw(sizeof(T), static_cast<std::size_t>(std::distance(begin, end)), &*begin);
+	template<class Iter>
+	void Buffer::set(Iter begin,
+	                 Iter end) {
+		_set_raw(sizeof(decltype(*begin)),
+		         static_cast<std::size_t>(std::distance(begin, end)),
+		         &*begin);
 	}
 
 	template<class T>
-	Buffer create_dynamic_buffer(std::size_t elements) {
-		return Buffer{sizeof(T), elements, true};
+	Buffer create_dynamic_buffer(std::size_t elements, bool index_buffer) {
+		return Buffer{sizeof(T), elements, true, nullptr, index_buffer};
 	}
 
 	template<class T>
-	Buffer create_buffer(const std::vector<T>& container, bool dynamic) {
-		return Buffer{sizeof(T), container.size(), dynamic, &container[0]};
+	Buffer create_buffer(const std::vector<T>& container, bool dynamic, bool index_buffer) {
+		return Buffer{sizeof(T), container.size(), dynamic, &container[0], index_buffer};
 	}
 
 	template<class T>
 	Buffer create_buffer(typename std::vector<T>::const_iterator begin,
 	                     typename std::vector<T>::const_iterator end,
-	                     bool dynamic) {
-		return Buffer{sizeof(T), static_cast<std::size_t>(std::distance(begin, end)), dynamic, &*begin};
+	                     bool dynamic, bool index_buffer) {
+		return Buffer{sizeof(T), static_cast<std::size_t>(std::distance(begin, end)), dynamic,
+		              &*begin, index_buffer};
 	}
 
 	namespace details {
@@ -67,6 +70,17 @@ namespace renderer {
 		_data.reserve(sizeof...(d));
 		auto ignored = {(_data.emplace_back(std::forward<B>(d)), 0)...};
 		(void)ignored;
+
+		auto ibo = std::find_if(_data.begin(), _data.end(), [](auto& b) {return b.index_buffer();});
+		if(ibo!=_data.end()) {
+			_index_buffer = std::move(*ibo);
+			if(&*ibo!=&_data.back())
+				*ibo = std::move(_data.back());
+
+			_data.pop_back();
+		}
+
+		INVARIANT(!_data.empty(), "A vertex object must have at least one attached buffer.");
 
 		_init(layout);
 	}

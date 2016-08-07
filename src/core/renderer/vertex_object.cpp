@@ -41,25 +41,53 @@ namespace renderer {
 				return 0;
 			}
 		}
+		GLenum to_gl(Index_type t) {
+			switch(t) {
+				case Index_type::unsigned_byte: return GL_UNSIGNED_BYTE;
+				case Index_type::unsigned_short: return GL_UNSIGNED_SHORT;
+				case Index_type::unsigned_int: return GL_UNSIGNED_INT;
+				default: FAIL("Unsupported Index_type");
+				return 0;
+			}
+		}
 	}
 
 	Buffer::Buffer(std::size_t element_size, std::size_t elements, bool dynamic,
-	               const void* data)
+	               const void* data, bool index_buffer)
 	    : _id(0),
 	      _element_size(element_size),
 	      _elements(elements),
 	      _max_elements(elements),
-	      _dynamic(dynamic) {
+	      _dynamic(dynamic),
+	      _index_buffer(index_buffer) {
+		const GLenum type = !_index_buffer ? GL_ARRAY_BUFFER : GL_ELEMENT_ARRAY_BUFFER;
+
 		glGenBuffers(1, &_id);
-		glBindBuffer(GL_ARRAY_BUFFER, _id);
-		glBufferData(GL_ARRAY_BUFFER, _elements*_element_size, data,
+		glBindBuffer(type, _id);
+		glBufferData(type, _elements*_element_size, data,
 		             _dynamic ? GL_STREAM_DRAW : GL_STATIC_DRAW);
+
+		if(_index_buffer) {
+			if(element_size == sizeof(GLubyte)) {
+				_index_buffer_type = Index_type::unsigned_byte;
+
+			} else if(element_size == sizeof(GLushort)) {
+				_index_buffer_type = Index_type::unsigned_short;
+
+			} else if(element_size == sizeof(GLuint)) {
+				_index_buffer_type = Index_type::unsigned_int;
+			} else {
+				FAIL("Unsupported index size of "<<element_size<<" expected one of "
+					 <<sizeof(GLubyte)<<", "<<sizeof(GLushort)<<", "<<sizeof(GLuint));
+			}
+		}
 
 		INFO("Created new VBO for "<<elements<<" Elements");
 	}
 	Buffer::Buffer(Buffer&& b)noexcept
 	    : _id(b._id), _element_size(b._element_size),
-	      _elements(b._elements), _max_elements(b._elements), _dynamic(b._dynamic) {
+	      _elements(b._elements), _max_elements(b._elements), _dynamic(b._dynamic),
+	      _index_buffer(b._index_buffer), _index_buffer_type(b._index_buffer_type) {
 		b._id = 0;
 	}
 
@@ -88,26 +116,29 @@ namespace renderer {
 		INVARIANT(_dynamic, "set(...) is only allowed for dynamic buffers!");
 		INVARIANT(_id!=0, "Can't access invalid buffer!");
 
+		const GLenum type = !_index_buffer ? GL_ARRAY_BUFFER : GL_ELEMENT_ARRAY_BUFFER;
+
 		_elements = elements;
 
 		glBindBuffer(GL_ARRAY_BUFFER, _id);
 
 		if(_max_elements>=elements) {
-			glBufferData(GL_ARRAY_BUFFER, _max_elements*_element_size, nullptr,
+			glBufferData(type, _max_elements*_element_size, nullptr,
 						 GL_STREAM_DRAW);
 
-			glBufferSubData(GL_ARRAY_BUFFER, 0,
+			glBufferSubData(type, 0,
 							elements*_element_size,
 							data);
 		} else {
 			_max_elements = elements;
-			glBufferData(GL_ARRAY_BUFFER, elements*_element_size, data,
+			glBufferData(type, elements*_element_size, data,
 			             GL_STREAM_DRAW);
 		}
 	}
 
 	void Buffer::_bind()const {
-		glBindBuffer(GL_ARRAY_BUFFER, _id);
+		const GLenum type = !_index_buffer ? GL_ARRAY_BUFFER : GL_ELEMENT_ARRAY_BUFFER;
+		glBindBuffer(type, _id);
 	}
 
 
@@ -160,13 +191,22 @@ namespace renderer {
 	Object::~Object()noexcept {
 	}
 
-	void Object::draw()const {
+	void Object::draw(int offset, int count)const {
 		if(_data.at(0).size()==0) {
 			return;
 		}
 
+		_index_buffer.process([](auto& b){b._bind();});
 		_layout->_build(_data);
-		glDrawArrays(to_gl(_mode), 0, _data.at(0).size());
+
+		if(_index_buffer.is_some()) {
+			if(count<=0) count = static_cast<int>(ibo.size());
+			glDrawElements(to_gl(_mode), count, to_gl(ibo.index_buffer_type()),
+			               reinterpret_cast<const void*>(static_cast<uintptr_t>(offset)));
+		} else {
+			if(count<=0) count = static_cast<int>(_data.at(0).size());
+			glDrawArrays(to_gl(_mode), offset, count);
+		}
 	}
 
 	Object& Object::operator=(Object&& o)noexcept {
@@ -190,6 +230,7 @@ namespace renderer {
 		glGenVertexArrays(1, &_vao_id);
 
 		glBindVertexArray(_vao_id);
+		_index_buffer.process([](auto& b){b._bind();});
 		_instanced = layout._build(_data);
 		glBindVertexArray(0);
 	}
@@ -198,16 +239,31 @@ namespace renderer {
 			glDeleteVertexArrays(1, &_vao_id);
 	}
 
-	void Object::draw()const {
+	void Object::draw(int offset, int count)const {
 		if(_data.at(0).size()==0 || _data.back().size()==0) {
 			return;
 		}
 
 		glBindVertexArray(_vao_id);
-		if(!_instanced)
-			glDrawArrays(to_gl(_mode), 0, _data.at(0).size());
-		else
-			glDrawArraysInstanced(to_gl(_mode), 0, _data.at(0).size(), _data.at(1).size());
+
+		if(_index_buffer.is_some()) {
+			auto& ibo = _index_buffer.get_or_throw();
+			if(!_instanced) {
+				if(count<=0) count = static_cast<int>(ibo.size());
+				glDrawElements(to_gl(_mode), count, to_gl(ibo.index_buffer_type()),
+				               reinterpret_cast<const void*>(static_cast<uintptr_t>(offset)));
+			} else
+				FAIL("glDrawElementsInstanced is not supported");
+
+		} else {
+			if(count<=0) count = static_cast<int>(_data.at(0).size());
+
+			if(!_instanced) {
+				glDrawArrays(to_gl(_mode), offset, count);
+			} else {
+				glDrawArraysInstanced(to_gl(_mode), offset, count, _data.at(1).size());
+			}
+		}
 
 		glBindVertexArray(0);
 	}

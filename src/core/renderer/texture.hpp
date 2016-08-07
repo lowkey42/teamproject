@@ -23,9 +23,14 @@ namespace renderer {
 		explicit Texture_loading_failed(const std::string& msg)noexcept : Loading_failed(msg){}
 	};
 
+	enum Texture_format {
+		RGB, RGBA
+	};
+
 	class Texture {
 		public:
 			explicit Texture(std::vector<uint8_t> buffer, bool cubemap) throw(Texture_loading_failed);
+			Texture(int width, int height, const uint8_t* data, Texture_format format);
 			virtual ~Texture()noexcept;
 
 			Texture& operator=(Texture&&)noexcept;
@@ -37,6 +42,10 @@ namespace renderer {
 
 			auto width()const noexcept {return _width;}
 			auto height()const noexcept {return _height;}
+
+			auto unsafe_low_level_handle()const {
+				return _handle;
+			}
 
 			Texture(const Texture&) = delete;
 			Texture& operator=(const Texture&) = delete;

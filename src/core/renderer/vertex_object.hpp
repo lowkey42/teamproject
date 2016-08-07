@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 
 #include "../utils/template_utils.hpp"
+#include "../utils/maybe.hpp"
 
 /*
  * Examples:
@@ -25,8 +26,8 @@
 	std::vector<FancyData> data;
 
 	auto buffer = createBuffer(data, true);
-	VertexLayout layout{
-		VertexLayout::Mode::Point,
+	Vertex_layout layout{
+		Vertex_layout::Mode::triangles,
 		vertex("position",  &FancyData::pos),
 		vertex("magic",     &FancyData::isMagic)
 	};
@@ -54,25 +55,33 @@ namespace renderer {
 	class Object;
 	class Shader_program;
 
+	enum class Index_type {
+		unsigned_byte,
+		unsigned_short,
+		unsigned_int
+	};
 
 	class Buffer : util::no_copy {
 		friend class Object;
 		friend class Vertex_layout;
 		public:
 			Buffer(std::size_t element_size, std::size_t elements,
-			       bool dynamic, const void* data=nullptr);
+			       bool dynamic, const void* data=nullptr, bool index_buffer=false);
 			Buffer(Buffer&& b)noexcept;
 			~Buffer()noexcept;
 
 			template<class T>
 			void set(const std::vector<T>& container);
 
-			template<class T>
-			void set(typename std::vector<T>::const_iterator begin, typename std::vector<T>::const_iterator end);
+			template<class Iter>
+			void set(Iter begin, Iter end);
 
 			Buffer& operator=(Buffer&& b)noexcept;
 
 			std::size_t size()const noexcept{return _elements;}
+
+			auto index_buffer()const noexcept {return _index_buffer;}
+			auto index_buffer_type()const noexcept {return _index_buffer_type;}
 
 		private:
 			unsigned int _id;
@@ -80,20 +89,22 @@ namespace renderer {
 			std::size_t _elements;
 			std::size_t _max_elements;
 			bool _dynamic;
+			bool _index_buffer; //< GL_ELEMENT_ARRAY_BUFFER
+			Index_type _index_buffer_type = Index_type::unsigned_byte;
 
 			void _set_raw(std::size_t element_size, std::size_t size, const void* data);
 			void _bind()const;
 	};
 	template<class T>
-	Buffer create_dynamic_buffer(std::size_t elements);
+	Buffer create_dynamic_buffer(std::size_t elements, bool index_buffer=false);
 
 	template<class T>
-	Buffer create_buffer(const std::vector<T>& container, bool dynamic=false);
+	Buffer create_buffer(const std::vector<T>& container, bool dynamic=false, bool index_buffer=false);
 
 	template<class T>
 	Buffer create_buffer(typename std::vector<T>::const_iterator begin,
 	                     typename std::vector<T>::const_iterator end,
-	                     bool dynamic=false);
+	                     bool dynamic=false, bool index_buffer=false);
 
 
 	class Vertex_layout {
@@ -158,9 +169,10 @@ namespace renderer {
 			Object(Object&&)noexcept;
 			~Object()noexcept;
 
-			void draw()const;
+			void draw(int offset=0, int count=-1)const;
 
-			Buffer& buffer(std::size_t i=0){return _data.at(i);}
+			auto& buffer(std::size_t i=0){return _data.at(i);}
+			auto& index_buffer() {return _index_buffer;}
 
 			Object& operator=(Object&&)noexcept;
 
@@ -170,6 +182,7 @@ namespace renderer {
 			const Vertex_layout* _layout;
 			Vertex_layout::Mode _mode;
 			std::vector<Buffer> _data;
+			util::maybe<Buffer> _index_buffer = util::nothing();
 			unsigned int _vao_id;
 			bool _instanced;
 	};

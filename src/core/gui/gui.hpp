@@ -21,8 +21,10 @@ namespace gui {
 	class Gui {
 		public:
 			Gui(Engine& engine);
+			~Gui();
 
-			void draw(renderer::Command_queue&);
+			// ignores the Command_queue and depth-buffer
+			void draw();
 
 			auto ctx() -> nk_context*;
 
