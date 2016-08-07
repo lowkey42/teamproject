@@ -162,7 +162,13 @@ namespace rest {
 						on_complete,
 						req.get() );
 
-				req->connection.request(method, path, nullptr,
+				const char* headers[3] {nullptr};
+				if(!post.empty()) {
+					headers[0] = "Content-Type";
+					headers[1] = "application/x-www-form-urlencoded";
+				}
+
+				req->connection.request(method, path, headers,
 				                        reinterpret_cast<const unsigned char*>(post.data()), post.size());
 
 				auto response = req->promise.get_future();
@@ -211,7 +217,7 @@ namespace rest {
 #endif
 
 
-	auto get_body(Http_body& f) -> maybe<std::string> {
+	auto get_content(Http_body& f) -> maybe<std::string> {
 		if(f.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
 			return just(f.get());
 		} else {

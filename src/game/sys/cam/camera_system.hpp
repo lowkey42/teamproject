@@ -38,13 +38,22 @@ namespace cam {
 			void update(Time);
 
 			void active_only(ecs::Entity& e);
+			void screen_shake(Time t, float force) {
+				_screen_shake_time_left = t;
+				_screen_shake_force = force;
+			}
+			void motion_blur(float intensity) {
+				_motion_blur = intensity;
+			}
+			auto motion_blur_dir()const {return _motion_blur_dir;}
+			auto motion_blur()const {return _motion_blur;}
 
 		private:
 			Camera_target_comp::Pool& _targets;
 			renderer::Camera_sidescroller _camera;
 			bool _first_target = true;
 			Position _last_target;
-			std::array<Position, 4> _target_history;
+			std::array<Position, 8> _target_history;
 			int _target_history_curr = 0;
 			bool _moving = false;
 
@@ -56,6 +65,12 @@ namespace cam {
 			Position _slow_lerp_target {};
 			Time _slow_lerp_remainder {};
 			bool _slow_lerp_started = false;
+
+			Time _screen_shake_time_left {};
+			float _screen_shake_force = 0.f;
+
+			glm::vec2 _motion_blur_dir;
+			float _motion_blur = 0.f;
 
 			auto _calc_target() -> Position;
 			auto _smooth_target(Position p, Time dt) -> Position;

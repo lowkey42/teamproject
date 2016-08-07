@@ -82,6 +82,7 @@ namespace gameplay {
 			util::random_generator _rng;
 
 			Time _light_timer{0};
+			Time _light_effects_timer{0};
 
 			Time _game_timer{0};
 

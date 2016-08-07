@@ -48,9 +48,13 @@ namespace gameplay {
 			auto enabled()const noexcept {return _state==State::enabled;}
 			bool was_light()const noexcept {return _was_light;}
 
+			void late_untransform() {
+				_forced_smash = _last_impact.value()<=_latency_compensation;
+			}
+
 			bool smash() {
 				if(!_smashed){
-					_smashed = true;
+					_smash = true;
 					return true;
 				} else {
 					return false;
@@ -64,17 +68,26 @@ namespace gameplay {
 			int _air_transformations = 0;
 			float _radius = 1.f;
 			float _final_booster_time = 0.f;
+			float _latency_compensation = 0.f;
 			float _max_air_time = -1.f;
 			Light_color _color;
 			float _smash_force = 40.f;
+			float _initial_booster_time = 0.f;
+			float _initial_booster_factor = 1.f;
+			float _initial_acceleration_time = 0.f;
 
 			bool _was_light = false; //< state after the last update
 			Enlightened_State _state = Enlightened_State::disabled; //< state change request
-			glm::vec2 _direction {0,-1};
+			glm::vec2 _direction {0,1};
 			int _air_transforms_left=0;
 			Time _air_time{};
 			Time _final_booster_left{};
+			Time _last_impact{999.f};
+			Position _last_impact_point;
 			bool _smashed = false;
+			bool _smash = false;
+			bool _forced_smash = false;
+			Time _initial_timer {};
 	};
 
 }

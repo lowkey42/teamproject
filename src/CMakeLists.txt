@@ -7,14 +7,14 @@ project(into_the_light)
 
 set(VERSION_NAME "0.2")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024 -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
 
 include_directories(${ROOT_DIR}/src)
 
 
 if(EMSCRIPTEN)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_SDL=2 -s TOTAL_MEMORY=150000000 -Oz -s DEMANGLE_SUPPORT=1")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s USE_SDL=2 -s TOTAL_MEMORY=150000000 -s DEMANGLE_SUPPORT=1")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s USE_SDL=2 -s TOTAL_MEMORY=256000000 -s DEMANGLE_SUPPORT=1")
 	set(ZLIB_LIBRARY "")
 	set(GLEW_LIBRARIES "")
 	set(OPENGL_LIBRARIES "")

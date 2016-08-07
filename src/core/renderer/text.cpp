@@ -85,12 +85,15 @@ namespace renderer {
 			auto tw = tex_width;
 			auto th = tex_height;
 
-			int min_advance = 0;
+			auto max_advance = 0.f;
+			auto sum_advance = 0.f;
 			if(monospace) {
 				for(auto& g : glyphs) {
-					min_advance = std::max(g.second.advance, min_advance);
+					max_advance = std::max(static_cast<float>(g.second.advance), max_advance);
+					sum_advance += g.second.advance;
 				}
 			}
+			float fixed_advance = max_advance*0.5f + sum_advance/glyphs.size()*0.5f;
 
 			auto add_glyph = [&](Text_char c) {
 				if(c=='\n') {
@@ -119,7 +122,11 @@ namespace renderer {
 				            tw, th);
 
 
-				offset.x+= std::max(glyph.advance, min_advance);
+				if(fixed_advance>0.f) {
+					offset.x+=fixed_advance;
+				} else {
+					offset.x+= glyph.advance;
+				}
 
 				prev = c;
 			};
@@ -264,8 +271,7 @@ namespace renderer {
 				.texture(Texture_unit::color, tex)
 				.object(obj)
 				.order_dependent()
-				.require_not(Gl_option::depth_write)
-				.require_not(Gl_option::depth_test);
+				.require_not(Gl_option::depth_write);
 
 			auto trans = glm::scale(glm::translate(glm::mat4(),
 			                            glm::vec3(center.x-size.x/2*scale,

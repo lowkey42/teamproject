@@ -17,7 +17,7 @@
 #include <core/renderer/graphics_ctx.hpp>
 
 
-#define NUM_LIGHTS_MACRO 6
+#define NUM_LIGHTS_MACRO 8
 
 namespace lux {
 namespace sys {
@@ -101,6 +101,7 @@ namespace light {
 		const Light_comp* light = nullptr;
 		float score = 0.f;
 		glm::vec2 flat_pos;
+		bool shadowcaster = true;
 
 		bool operator<(const Light_info& rhs)const noexcept {
 			return score>rhs.score;
@@ -112,20 +113,29 @@ namespace light {
 		                               Light_comp::Pool& lights,
 		                               std::array<Light_info, max_lights>& out) {
 			auto eye_pos = camera.eye_position();
+
+			static glm::vec3 last_ep;
+			if(glm::length2(eye_pos-last_ep)>2.f) {
+				last_ep=eye_pos;
+			}
+
 			auto index = 0;
 
 			for(Light_comp& light : lights) {
 				auto& trans = light.owner().get<physics::Transform_comp>().get_or_throw();
 
 				auto r = light.radius().value();
-				auto dist = glm::distance2(remove_units(trans.position()), eye_pos);
+				auto dist = glm::distance2(remove_units(trans.position()).xy(), eye_pos.xy());
 
-				auto score = 1.f/dist + glm::clamp(r/2.f + glm::length2(light.color())/4.f, -0.001f, 0.001f) + (light.shadowcaster() ? 1.f : 0.f);
+				auto score = 1.f/dist;
+				if(dist<10.f)
+					score += glm::clamp(r/2.f + glm::length2(light.color())/4.f, -0.001f, 0.001f) + (light.shadowcaster() ? 0.1f : 0.f);
 
 				if(index<max_lights) {
 					out[index].transform = &trans;
 					out[index].light = &light;
 					out[index].score = score;
+					out[index].shadowcaster = light.shadowcaster();
 					index++;
 
 				} else { // too many lights => select brightest/closest
@@ -136,6 +146,7 @@ namespace light {
 						min->transform = &trans;
 						min->light = &light;
 						min->score = score;
+						min->shadowcaster = light.shadowcaster();
 					}
 				}
 			}
@@ -144,7 +155,8 @@ namespace light {
 		}
 
 		void bind_light_positions(renderer::Shader_program& prog, gsl::span<Light_info> lights) {
-#define SET_LIGHT_UNIFORM(I) prog.set_uniform("light_positions["#I"]", lights[I].flat_pos);
+#define SET_LIGHT_UNIFORM(I) prog.set_uniform("light_positions["#I"]", lights[I].flat_pos);\
+			                 prog.set_uniform("light_shadow["#I"]", lights[I].shadowcaster ? 1.f : 0.f);
 			M_REPEAT(NUM_LIGHTS_MACRO, SET_LIGHT_UNIFORM);
 #undef SET_LIGHT_UNIFORM
 		}
@@ -256,9 +268,9 @@ namespace light {
 		// TODO: fade out light color, when they left the screen
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
-			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].light->offset());\
+			uniforms.emplace("light["#N"].pos", remove_units(lights[N].transform->position())+lights[N].transform->resolve_relative(lights[N].light->offset()));\
 \
-			uniforms.emplace("light["#N"].dir", lights[N].transform->rotation().value()\
+			uniforms.emplace("light["#N"].dir", -lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\
 \
 			uniforms.emplace("light["#N"].angle", lights[N].light->_angle.value());\

@@ -27,6 +27,9 @@ frag_shader:shadow_blur = shader/shadow_blur.frag
 vert_shader:blur = shader/blur.vert
 frag_shader:blur = shader/blur.frag
 
+vert_shader:motion_blur = shader/motion_blur.vert
+frag_shader:motion_blur = shader/motion_blur.frag
+
 vert_shader:glow_filter = shader/post.vert
 frag_shader:glow_filter = shader/glow_filter.frag
 

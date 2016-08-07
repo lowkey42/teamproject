@@ -250,10 +250,17 @@ namespace asset {
 	std::vector<AID> Asset_manager::list(Asset_type type) {
 		std::vector<AID> res;
 
+		for(auto& d :_dispatcher) {
+			if(d.first.type()==type)
+				res.emplace_back(d.first);
+		}
+
 		_base_dir(type).process([&](const std::string& dir){
 			for(auto&& f : list_files(dir, "", ""))
 				res.emplace_back(type, f);
 		});
+
+		res.erase(std::unique(res.begin(), res.end()), res.end());
 
 		return res;
 	}
@@ -365,6 +372,10 @@ namespace asset {
 				}
 			}
 		}
+
+		for(auto& w : _watchlist) {
+			_check_watch_entry(w);
+		}
 	}
 	void Asset_manager::_force_reload(const AID& aid) {
 		auto iter = _assets.find(aid);
@@ -379,6 +390,12 @@ namespace asset {
 			_open(location, aid).process([&](istream& in){
 				try {
 					iter->second.reloader(iter->second.data.get(), std::move(in));
+					for(auto& w : _watchlist) {
+						if(w.aid==aid) {
+							w.on_mod(aid);
+							w.last_modified = PHYSFS_getLastModTime(location.c_str());
+						}
+					}
 
 				} catch(Loading_failed& e) {}
 			});
@@ -405,7 +422,7 @@ namespace asset {
 				return true;
 		}
 
-		FAIL("Unexpected Location_type: "<<(int)type);
+		FAIL("Unexpected Location_type: "<<static_cast<int>(type));
 	}
 
 	auto Asset_manager::load_raw(const AID& id) -> util::maybe<istream> {
@@ -439,6 +456,39 @@ namespace asset {
 		DEBUG("Couldn't finde asset for '"<<path_cleared<<"'");
 
 		return util::nothing();
+	}
+
+	auto Asset_manager::watch(AID aid, std::function<void(const AID&)> on_mod) -> uint32_t {
+		auto id = _next_watch_id++;
+		_watchlist.emplace_back(id, aid, std::move(on_mod));
+		return id;
+	}
+
+	void Asset_manager::unwatch(uint32_t id) {
+		auto iter = std::find_if(_watchlist.begin(), _watchlist.end(),
+		                         [id](auto& w){return w.id==id;});
+
+		if(iter!=_watchlist.end()) {
+			if(&_watchlist.back() != &*iter) {
+				_watchlist.back() = std::move(*iter);
+			}
+
+			_watchlist.pop_back();
+		}
+	}
+
+	void Asset_manager::_check_watch_entry(Watch_entry& w) {
+		Location_type type;
+		std::string location;
+		std::tie(type, location) = _locate(w.aid);
+
+		if(type==Location_type::file) {
+			auto last_mod = PHYSFS_getLastModTime(location.c_str());
+			if(last_mod!=-1 && last_mod>w.last_modified) {
+				w.last_modified = last_mod;
+				w.on_mod(w.aid);
+			}
+		}
 	}
 
 } /* namespace asset */

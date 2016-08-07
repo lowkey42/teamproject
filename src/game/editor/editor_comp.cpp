@@ -3,7 +3,6 @@
 #include <core/utils/sf2_glm.hpp>
 
 namespace lux {
-namespace sys {
 namespace editor {
 
 	using namespace unit_literals;
@@ -25,6 +24,5 @@ namespace editor {
 		);
 	}
 
-}
 }
 }

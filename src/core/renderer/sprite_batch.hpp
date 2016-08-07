@@ -27,6 +27,7 @@ namespace renderer {
 
 	struct Sprite {
 		glm::vec3 position;
+		glm::vec2 decals_offset;
 		Angle rotation;
 		glm::vec2 size;
 		glm::vec4 uv;
@@ -38,11 +39,12 @@ namespace renderer {
 		Sprite() = default;
 		Sprite(glm::vec3 position, Angle rotation, glm::vec2 size,
 		       glm::vec4 uv, float shadow_resistence, float decals_intensity,
-		       const renderer::Material& material)noexcept;
+		       const renderer::Material& material, glm::vec2 decals_offset={})noexcept;
 	};
 
 	struct Sprite_vertex {
 		glm::vec3 position;
+		glm::vec2 decals_offset;
 		glm::vec2 uv;
 		glm::vec4 uv_clip;
 		glm::vec2 tangent;
@@ -52,7 +54,7 @@ namespace renderer {
 		const renderer::Material* material;
 
 		Sprite_vertex() : shadow_resistence(false), material(nullptr) {}
-		Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
+		Sprite_vertex(glm::vec3 pos, glm::vec2 decals_offset, glm::vec2 uv_coords, glm::vec4 uv_clip,
 		              glm::vec2 tangent, glm::vec2 hue_change,
 		              float shadow_resistence, float decals_intensity,
 		              const renderer::Material*);
@@ -107,6 +109,7 @@ namespace renderer {
 			void _draw(Command_queue&);
 			auto _draw_part(Vertex_citer begin, Vertex_citer end) -> Command;
 			auto _reserve_space(float z, const renderer::Material* material, std::size_t count) -> Vertex_iter;
+			void _reserve_objects();
 	};
 
 }

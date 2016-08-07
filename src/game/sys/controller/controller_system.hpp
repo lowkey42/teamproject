@@ -45,6 +45,7 @@ namespace controller {
 
 		private:
 			util::Mailbox_collection _mailbox;
+			input::Input_manager& _input_manager;
 			Input_controller_comp::Pool& _input_controllers;
 			Ai_patrolling_comp::Pool& _ai_controllers;
 			physics::Physics_system& _physics_world;
@@ -57,7 +58,6 @@ namespace controller {
 			glm::vec2 _target_dir;
 			bool _transform_pending = false;
 			bool _transform = false;
-			bool _transform_canceled = false;
 
 			ecs::Entity_ptr _active_controlled_entity;
 			int _active_controlled_idx = 0;
@@ -66,7 +66,7 @@ namespace controller {
 
 			void _switch_controller(bool next);
 
-			static void _move(Input_controller_comp& c, physics::Dynamic_body_comp& body, float dir, Time dt);
+			static void _move(Input_controller_comp& c, physics::Dynamic_body_comp& body, float dir, bool grounded, Time dt);
 			static void _start_jump(Input_controller_comp& c, physics::Dynamic_body_comp& body, Time dt);
 			static void _stop_jump(Input_controller_comp& c, physics::Dynamic_body_comp& body, Time dt);
 	};

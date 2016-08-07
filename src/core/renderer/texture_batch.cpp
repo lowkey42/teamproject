@@ -67,7 +67,12 @@ namespace renderer {
 		_objects.reserve(expected_size*0.25f);
 	}
 
-	void Texture_batch::insert(const Texture& texture, glm::vec2 pos, glm::vec2 size, Angle rotation) {
+	void Texture_batch::insert(const Texture& texture, glm::vec2 pos, glm::vec2 size,
+	                           Angle rotation, glm::vec4 clip_rect) {
+
+		if(size.x<0.0f) size.x = texture.width() * (clip_rect.z-clip_rect.x);
+		if(size.y<0.0f) size.y = texture.height() * (clip_rect.w-clip_rect.y);
+
 		auto scale = vec2 {
 			size.x,
 			size.y
@@ -78,7 +83,7 @@ namespace renderer {
 		};
 
 		auto tex_clip = texture.clip_rect();
-		auto sprite_clip = glm::vec4{0,0,1,1};
+		auto sprite_clip = clip_rect;
 
 		// rescale uv to texture clip_rect
 		sprite_clip.x *= (tex_clip.z - tex_clip.x);
@@ -112,7 +117,9 @@ namespace renderer {
 
 	void Texture_batch::_draw(Command_queue& queue) {
 		// partition _vertices by texture
-		std::stable_sort(_vertices.begin(), _vertices.end());
+		//std::stable_sort(_vertices.begin(), _vertices.end());
+
+		_reserve_objects();
 
 		// draw one batch for each partition
 		auto last = _vertices.begin();
@@ -132,11 +139,9 @@ namespace renderer {
 
 		auto obj_idx = _free_obj++;
 
-		if(obj_idx>=_objects.size()) {
-			_objects.emplace_back(tex_layout, create_buffer<Texture_Vertex>(begin, end, true));
-		} else {
-			_objects.at(obj_idx).buffer().set<Texture_Vertex>(begin, end);
-		}
+		INVARIANT(obj_idx<_objects.size(), "Too few objects reserved");
+
+		_objects.at(obj_idx).buffer().set<Texture_Vertex>(begin, end);
 
 		auto cmd = create_command()
 		        .shader(*tex_shader)
@@ -151,6 +156,25 @@ namespace renderer {
 		cmd.uniforms().emplace("layer", _layer);
 
 		return cmd;
+	}
+
+	void Texture_batch::_reserve_objects() {
+		// reserve required objects
+		auto req_objs = 0u;
+		auto last_tex = static_cast<const Texture*>(nullptr);
+		for(auto& v : _vertices) {
+			if(v.tex!=last_tex) {
+				last_tex = v.tex;
+				req_objs++;
+			}
+		}
+		if(req_objs>_objects.size()) {
+			_objects.reserve(req_objs);
+			req_objs-=_objects.size();
+			for(auto i=0u; i<req_objs; i++) {
+				_objects.emplace_back(tex_layout, create_dynamic_buffer<Texture_Vertex>(8));
+			}
+		}
 	}
 
 }

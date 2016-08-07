@@ -7,6 +7,9 @@
 
 #include <core/renderer/graphics_ctx.hpp>
 
+#include <glm/gtx/random.hpp>
+
+
 namespace lux {
 namespace sys {
 namespace cam {
@@ -14,7 +17,7 @@ namespace cam {
 	using namespace unit_literals;
 
 	namespace {
-		constexpr auto cam_distance = 5_m;
+		constexpr auto cam_distance = 2_m;
 
 		template<class T>
 		T save_mix(const T& x, const T& y, float a) {
@@ -54,14 +57,16 @@ namespace cam {
 			auto y = transform.position().y;
 
 			if(_type == Camera_move_type::lazy) {
-				if(!grounded && glm::abs(remove_unit(_last_target.y-y))<6.f) {
+				auto dist_y = glm::abs(remove_unit(_last_target.y-y));
+				auto move_y = (grounded && dist_y>0.1f) || dist_y>6.f;
+				if(!move_y) {
 					y = _last_target.y;
 				}
 
-				if(glm::abs(remove_unit(_last_target.x-x))<8.f && !_moving)
+				if(glm::abs(remove_unit(_last_target.x-x))<4.f && !_moving)
 					x = _last_target.x;
 
-				_moving = glm::abs(remove_unit(_last_target.x-x))>0.05f;
+				_moving = glm::abs(remove_unit(_last_target.x-x))>0.01f;
 			}
 
 			return Position{x, y, cam_distance};
@@ -103,11 +108,10 @@ namespace cam {
 			if(_targets.size()>0) {
 				_slow_lerp_remainder-=dt;
 
-				_slow_lerp_started |= _slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001;
+				_slow_lerp_started |= _slow_lerp_remainder<_slow_lerp_time*0.9f && glm::distance2(remove_units(_slow_lerp_target), remove_units(target))<0.001f;
 
 				if(_slow_lerp_started) {
 					auto alpha = 1.f - glm::clamp(_slow_lerp_remainder/_slow_lerp_time, 0.f, 1.f);
-					//alpha = glm::sin(alpha*glm::pi<float>()/2.f);
 					alpha = glm::smoothstep(0.f, 1.f, alpha);
 					target = save_mix(remove_units(_slow_lerp_start), remove_units(_slow_lerp_target), alpha) * 1_m;
 				} else {
@@ -120,7 +124,6 @@ namespace cam {
 			auto org_target = target;
 			target.x = save_mix(_last_target.x.value(), target.x.value(), std::min(dt.value()*5.f,1.f))*1_m;
 			target.y = save_mix(_last_target.y.value(), target.y.value(), std::min(dt.value()*10.f,1.f))*1_m;
-			target = _smooth_target(target, dt);
 			if(glm::length2(remove_units(target-org_target))<0.005f)
 				target = org_target;
 
@@ -128,9 +131,22 @@ namespace cam {
 			target = save_mix(remove_units(_last_target), remove_units(target), std::min(dt.value()*30.f,1.f)) * 1_m;
 		}
 
-		_camera.position(target);
+		auto diff = remove_units(target - _last_target).xy();
+		if(glm::length2(diff)>0.01f) {
+			_motion_blur_dir = glm::normalize(diff);
+		}
 
 		_last_target = target;
+		if(_type == Camera_move_type::lazy) {
+			target = _smooth_target(target, dt);
+		}
+
+		if(_screen_shake_time_left>0_s) {
+			_screen_shake_time_left -= dt;
+			target += glm::sphericalRand(0.1f*_screen_shake_force) * 1_m;
+		}
+
+		_camera.position(target);
 	}
 	auto Camera_system::screen_to_world(glm::vec2 screen_pos) const noexcept -> glm::vec3 {
 		auto exp_p = remove_units(_last_target);

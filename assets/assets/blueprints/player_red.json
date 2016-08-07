@@ -7,13 +7,16 @@
 		"hue_change_replacement": 0
 	},
 	"Light": {
-		"color": {"r":3.0, "g":1.0, "b":1.0},
-		"radius": 6,
+		"color": {"r":5.0, "g":0.25, "b":1.0},
+		"radius": 7,
 		"offset": {"y":0.25, "z": 1.0},
 		"shadowcaster": false
 	},
 	"Enlightened": {
 		"color": "red",
-		"smash_force": 20
+		"smash_force": 25
+	},
+	"Particle": {
+		"hue_change": 0
 	}
 }

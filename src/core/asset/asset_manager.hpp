@@ -76,7 +76,7 @@ namespace asset {
 			auto load(const AID& id, bool cache=true) throw(Loading_failed) -> Ptr<T>;
 
 			template<typename T>
-			auto load_maybe(const AID& id, bool cache=true) throw(Loading_failed) -> util::maybe<Ptr<T>>;
+			auto load_maybe(const AID& id, bool cache=true, bool warn=true) throw(Loading_failed) -> util::maybe<Ptr<T>>;
 
 			auto load_raw(const AID& id) -> util::maybe<istream>;
 
@@ -94,6 +94,10 @@ namespace asset {
 			auto physical_location(const AID& id, bool warn=true)const noexcept -> util::maybe<std::string>;
 
 			void reload();
+
+			auto watch(AID aid, std::function<void(const AID&)> on_mod) -> uint32_t;
+			void unwatch(uint32_t id);
+
 
 		private:
 			friend class ostream;
@@ -113,9 +117,20 @@ namespace asset {
 			enum class Location_type {
 				none, file, indirection
 			};
+			struct Watch_entry {
+				uint32_t id;
+				AID aid;
+				std::function<void(const AID&)> on_mod;
+				int64_t last_modified;
+
+				Watch_entry(uint32_t id, AID aid, std::function<void(const AID&)> l)
+				    : id(id), aid(aid), on_mod(l) {}
+			};
 
 			std::unordered_map<AID, Asset> _assets;
 			std::unordered_map<AID, std::string> _dispatcher;
+			std::vector<Watch_entry> _watchlist;
+			uint32_t _next_watch_id = 0;
 
 			void _add_asset(const AID& id, const std::string& path, Reloader reloader, std::shared_ptr<void> asset);
 
@@ -128,6 +143,7 @@ namespace asset {
 			void _post_write();
 			void _reload_dispatchers();
 			void _force_reload(const AID& aid);
+			void _check_watch_entry(Watch_entry&);
 	};
 
 	template<class T>

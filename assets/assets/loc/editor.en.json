@@ -1,0 +1,40 @@
+{
+    "editor_tooltip": {
+        "back": "Quit (ESC)",
+        "settings": "Settings",
+        "save": "Save (F5)",
+        "load_prev": "Load previous (Page Down)",
+        "load_next": "Load next (Page Up)",
+        "load": "Load (F9)",
+
+        "cut": "Cut (X)",
+        "copy": "Copy (C)",
+        "paste": "Paste (V)",
+
+        "flip_h": "Flip horizontally (H)",
+        "flip_v": "Flip vertically (J)",
+
+        "undo": "Undo (Z)",
+        "redo": "Redo (Y)",
+
+        "zoom_in": "Zoom in (Mouse Wheel Up)",
+        "zoom_out": "Zoom out (Mouse Wheel Down)",
+
+        "light": "Lighting (L)",
+        "toggle_grid": "Magnetic grid (G)",
+
+        "unselect": "Clear selection",
+        "start": "Play level (F6)",
+
+        "sidebar_back": "Back to categories",
+        "sidebar_delete": "Delete object",
+
+        "bi_players": "Players",
+        "bi_gameplay": "Gameplay elements",
+        "bi_enemies": "Enemies",
+        "bi_terrain": "Terrain",
+        "bi_lights": "Light sources",
+        "bi_decoration": "Decorations"
+    }
+
+}

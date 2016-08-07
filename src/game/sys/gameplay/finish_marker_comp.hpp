@@ -32,6 +32,7 @@ namespace gameplay {
 			}
 			void add_color(Light_color c)noexcept {
 				_contained_colors = _contained_colors | c;
+				_activated = true;
 			}
 
 		private:
@@ -39,6 +40,7 @@ namespace gameplay {
 
 			Light_color _required_color = Light_color::black;
 			Light_color _contained_colors = Light_color::black;
+			bool _activated = false;
 	};
 
 }

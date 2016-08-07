@@ -2,6 +2,7 @@
 precision mediump float;
 
 attribute vec3 position;
+attribute vec2 decals_offset;
 attribute vec2 uv;
 attribute vec4 uv_clip;
 attribute vec2 tangent;
@@ -28,7 +29,7 @@ void main() {
 	vec4 pos_lvp = vp_light * vec4(position, 1);
 	gl_Position = pos_vp;
 
-	vec4 pos_vp0 = vp_light * vec4(position.xy, position.z/4.0, 1);
+	vec4 pos_vp0 = vp_light * vec4(position.xy + decals_offset.xy, position.z/4.0, 1);
 	decals_uv_frag = pos_vp0.xy/pos_vp0.w/2.0+0.5;
 
 	shadowmap_uv_frag = pos_lvp.xy/pos_lvp.w/2.0+0.5;

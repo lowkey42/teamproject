@@ -95,6 +95,7 @@
 				"C": {"type":"once", "action":"copy"},
 				"X": {"type":"once", "action":"cut"},
 				"V": {"type":"once", "action":"paste"},
+				"L": {"type":"once", "action":"light"},
 				"LControl": {"type":"continuous", "action":"copy_drag"},
                 "Delete": {"type":"once", "action":"delete"},
                 "Left": {"type":"continuous", "action":"scroll_l"},
@@ -126,7 +127,7 @@
 
             "mouse_buttons": {
                 {"button":1, "clicks":0}: {"type":"continuous", "action":"mouse_down"},
-                {"button":1, "clicks":1}: {"type":"once", "action":"mouse_click"}
+                {"button":1, "clicks":-1}: {"type":"once", "action":"mouse_click"}
             }
 		}
 	}

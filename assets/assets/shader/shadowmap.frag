@@ -5,6 +5,7 @@ varying float theta;
 uniform sampler2D occlusions;
 
 uniform vec2 light_positions[8];
+uniform float light_shadow[8];
 
 
 vec2 ndc2uv(vec2 p) {
@@ -29,6 +30,9 @@ void main() {
 			distance.y = min(distance.y, r);
 		}
 	}
+
+	distance.x += 10.0*(1.0-light_shadow[0]);
+	distance.y += 10.0*(1.0-light_shadow[1]);
 
 	distance = clamp(distance/vec2(4.0), vec2(0.0), vec2(1.0));
 

@@ -36,7 +36,7 @@ uniform sampler2D last_frame_tex;
 
 uniform float light_ambient;
 uniform Dir_light light_sun;
-uniform Point_light light[6];
+uniform Point_light light[8];
 
 uniform vec3 eye;
 uniform float alpha_cutoff;
@@ -68,6 +68,10 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 	float denom = dotNH * dotNH *(alphaSqr - 1.0) + 1.0;
 	D = alphaSqr / (pi * denom * denom);
 
+	float spec_mod_factor = 2.0 + metalness*40.0; //< not physicaly accurate, but makes metals more shiny
+	D*=mix(spec_mod_factor, 0.0, roughness); // TODO(this is a workaround): specular is to powerfull for realy rough surfaces
+	D = clamp(D, 0.0, 1000.0);
+
 	// Fresnel (Schlick)
 	vec3 F0 = mix(vec3(0.16*reflectance*reflectance), albedo.rgb, 0.0);
 	float dotLH5 = pow (1.0 - dotLH, 5.0);
@@ -85,9 +89,6 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 	diffuse*=(1.0 - metalness);
 
 	light_color = mix(light_color, light_color*albedo, metalness);
-
-	specular*=(1.0 + metalness*20.0); //< not physicaly accurate, but makes metals more shiny
-	specular*=(1.0-roughness); // TODO(this is a workaround): specular is to powerfull for realy rough surfaces
 
 	return (diffuse + specular) * light_color * dotNL;
 }
@@ -117,8 +118,8 @@ vec3 calc_point_light(Point_light light, vec3 normal, vec3 albedo, vec3 view_dir
 	float theta = atan(light_dir.y, -light_dir.x)-light.dir;
 	theta = ((theta/(2.0*PI)) - floor(theta/(2.0*PI))) * 2.0*PI - PI;
 
-	float max_angle = (light.angle + my_smoothstep(1.8*PI, 2.0*PI, light.angle)*0.2) / 2.0;
-	attenuation *= my_smoothstep(0.0, 0.1, clamp(max_angle-abs(theta), -1.0, 1.0));
+	float max_angle = (light.angle + my_smoothstep(1.8*PI, 2.0*PI, light.angle)*1.0) / 2.0;
+	attenuation *= my_smoothstep(-0.2, 0.6, clamp(max_angle-abs(theta), -1.0, 1.0));
 
 	return calc_light(light_dir, light.color, normal, albedo, view_dir, roughness, metalness, reflectance) * attenuation;
 }
@@ -141,6 +142,11 @@ vec3 hsv2rgb(vec3 c) {
 	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
+float luminance(vec3 c) {
+	vec3 f = vec3(0.299,0.587,0.114);
+	return sqrt(c.r*c.r*f.r + c.g*c.g*f.g + c.b*c.b*f.b);
+}
+
 vec3 hue_shift(vec3 in_color) {
 	vec3 hsv = rgb2hsv(in_color);
 	hsv.x = abs(hsv.x-hue_change_frag.x)<0.01 ? hue_change_frag.y : hsv.x;
@@ -148,7 +154,7 @@ vec3 hue_shift(vec3 in_color) {
 }
 vec4 read_albedo(vec2 uv) {
 	vec4 c = texture2D(albedo_tex, uv);
-	c.rgb = hue_shift(pow(c.rgb, vec3(2.2)));
+	c.rgb = hue_shift(pow(c.rgb, vec3(2.2))) * c.a;
 	return c;
 }
 
@@ -184,26 +190,29 @@ void main() {
 	float roughness = 1.0 - smoothness*smoothness;
 	float reflectance = clamp((0.9-roughness)*1.1 + metalness*0.1, 0.0, 1.0);
 
-	vec3 view_dir = normalize(pos_frag-eye);
+	vec3 view_dir = normalize(pos_frag-vec3(eye.xy, eye.z*10.0));
 
 	vec3 ambient = (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
-	vec3 color = albedo.rgb * ambient;
-
-	color += calc_dir_light(light_sun, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
-
+	vec3 color = vec3(0.0);
 
 	for(int i=0; i<2; i++) {
 		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance) * calc_shadow(i);
 	}
-	for(int i=2; i<6; i++) {
+	for(int i=2; i<8; i++) {
 		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 	}
+
+	// in low-light scene, discard colors but keep down-scaled luminance
+	color = mix(color, vec3(my_smoothstep(0.1, 0.2, pow(luminance(albedo.rgb), 3.3)*6000.0))*0.007, my_smoothstep(0.015, 0.005, length(color)));
+
+	color += albedo.rgb * ambient;
+	color += calc_dir_light(light_sun, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 
 	vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,normal), 10.0*roughness).rgb, vec3(2.2));
 	refl *= mix(vec3(1,1,1), albedo.rgb, metalness);
 	color += refl*reflectance*0.2;
 
-	color += albedo.rgb*3.0*emmision;
+	color = mix(color, albedo.rgb*3.0, emmision);
 
 	gl_FragColor = vec4(color, albedo.a);
 }

@@ -37,7 +37,8 @@ namespace physics {
 	              size,
 	              sensor,
 	              velocity,
-	              keep_position_force)
+	              keep_position_force,
+	              vertices)
 
 	sf2_enumDef(Body_shape, polygon, humanoid, circle)
 
@@ -69,6 +70,7 @@ namespace physics {
 				body->SetBullet(def.bullet);
 				body->SetLinearDamping(def.linear_damping);
 				body->SetAngularDamping(def.angular_damping);
+				body->SetType(btype);
 
 			} else {
 				b2BodyDef bd;
@@ -88,6 +90,9 @@ namespace physics {
 			main_fixture.density = def.density;
 			main_fixture.friction = def.friction;
 			main_fixture.restitution = def.resitution;
+			if(def.sensor) {
+				main_fixture.isSensor = true;
+			}
 
 			auto size = def.size * transform_comp.scale();
 			if(glm::length2(size)<0.01f) {
@@ -101,18 +106,52 @@ namespace physics {
 				});
 			}
 
+			auto shapes_from_vertices = [&](auto&& vertices, glm::vec2 size) {
+				auto vert_at = [&](auto i) {
+					return vertices.at((i) % vertices.size());
+				};
+
+				for(auto i=0u; i<vertices.size(); i+=3) {
+					b2PolygonShape shape;
+					b2Vec2 body_shape[] {
+						{vert_at(i+0).x*size.x, vert_at(i+0).y*size.y},
+						{vert_at(i+1).x*size.x, vert_at(i+1).y*size.y},
+						{vert_at(i+2).x*size.x, vert_at(i+2).y*size.y}
+					};
+					shape.Set(body_shape, 3);
+					main_fixture.shape = &shape;
+					body->CreateFixture(&main_fixture);
+				}
+			};
+
 			if(glm::length2(size)>0.01f) {
 				auto half_size = size / 2.f;
 
 				switch(def.shape){
 					case Body_shape::polygon: {
-						b2PolygonShape shape;
-						shape.SetAsBox(half_size.x, half_size.y);
-						main_fixture.shape = &shape;
-						if(def.sensor) {
-							main_fixture.isSensor = true;
+						if(!def.vertices.empty()) {
+							if(def.vertices.size()<=b2_maxPolygonVertices) {
+								std::vector<b2Vec2> data;
+								data.reserve(def.vertices.size());
+								for(auto& v : def.vertices) {
+									data.emplace_back(v.x*size.x, -v.y*size.y);
+								}
+								b2PolygonShape shape;
+								shape.Set(data.data(), static_cast<int32_t>(data.size()));
+								main_fixture.shape = &shape;
+								body->CreateFixture(&main_fixture);
+							} else {
+								DEBUG("Entity with more than "<<b2_maxPolygonVertices<<" vertices, using fallback.");
+								shapes_from_vertices(def.vertices, glm::vec2{size.x, -size.y});
+							}
+
+						} else {
+							b2PolygonShape shape;
+							shape.SetAsBox(half_size.x, half_size.y);
+							main_fixture.shape = &shape;
+							body->CreateFixture(&main_fixture);
 						}
-						body->CreateFixture(&main_fixture);
+
 						break;
 					}
 
@@ -120,9 +159,6 @@ namespace physics {
 						b2CircleShape shape;
 						shape.m_radius = std::min(half_size.x, half_size.y);
 						main_fixture.shape = &shape;
-						if(def.sensor) {
-							main_fixture.isSensor = true;
-						}
 						body->CreateFixture(&main_fixture);
 						break;
 					}
@@ -138,9 +174,6 @@ namespace physics {
 						};
 						shape.Set(body_shape, 4);
 						main_fixture.shape = &shape;
-						if(def.sensor) {
-							main_fixture.isSensor = true;
-						}
 						body->CreateFixture(&main_fixture);
 
 						b2Vec2 foot_shape[] {
@@ -153,9 +186,6 @@ namespace physics {
 						main_fixture.shape = &shape;
 						main_fixture.friction = def_foot_friction;
 						main_fixture.restitution = 0.01f;
-						if(def.sensor) {
-							main_fixture.isSensor = true;
-						}
 						fixture_foot = body->CreateFixture(&main_fixture);
 						break;
 				}
@@ -169,18 +199,7 @@ namespace physics {
 
 				INVARIANT(def.shape==Body_shape::polygon, "A terrain can only be of polygonal shape!");
 
-				auto vertices = terrain_comp.smart_texture().vertices();
-				for(auto i=0u; i<vertices.size(); i+=3) {
-					b2PolygonShape shape;
-					b2Vec2 body_shape[] {
-						{vertices[i+0].x, vertices[i+0].y},
-						{vertices[i+1].x, vertices[i+1].y},
-						{vertices[i+2].x, vertices[i+2].y}
-					};
-					shape.Set(body_shape, 3);
-					main_fixture.shape = &shape;
-					body->CreateFixture(&main_fixture);
-				}
+				shapes_from_vertices(terrain_comp.smart_texture().vertices(), {1.f,1.f});
 
 				//create_polygons(terrain_comp.smart_texture().points(), *body, main_fixture);
 				return std::make_tuple(nullptr, glm::vec2{1,1});
@@ -203,14 +222,17 @@ namespace physics {
 		}
 		state.write(_def);
 	}
-	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*b){}) {
+	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*){}) {
 	}
 	void Dynamic_body_comp::_update_body(b2World& world) {
 		auto org_aabb = _body ? util::just(calc_aabb()) : util::nothing();
 
+		_def.velocity = velocity();
+
 		std::tie(_fixture_foot, _size) =
 		        update_body(world, _body, _def, owner(), _def.kinematic ? b2_kinematicBody : b2_dynamicBody);
-		_body->SetLinearVelocity({_def.velocity.x,_def.velocity.y});
+
+		velocity(_def.velocity);
 
 		_last_body_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};
 		_initial_position = glm::vec2{_body->GetPosition().x, _body->GetPosition().y};
@@ -221,7 +243,7 @@ namespace physics {
 			auto new_aabb = this->calc_aabb();
 			if(new_aabb.w>aabb.w) {
 				auto pos = _body->GetPosition();
-				_body->SetTransform({pos.x, pos.y - (new_aabb.w-aabb.w)}, _body->GetAngle());
+				_body->SetTransform({pos.x, pos.y + (new_aabb.w-aabb.w)}, _body->GetAngle());
 			}
 		});
 	}

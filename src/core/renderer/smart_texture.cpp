@@ -180,7 +180,7 @@ namespace renderer {
 
 		void triangulate_background(const std::vector<glm::vec2>& points,
 		                            std::vector<Sprite_vertex>& vertices,
-		                            bool shadowcaster, bool decals_intensity,
+		                            bool shadowcaster, float decals_intensity,
 		                            const renderer::Material& mat) {
 
 			const auto pc = 2.0f / mat.albedo().width();
@@ -190,7 +190,7 @@ namespace renderer {
 				auto uv = vec2{v.x,-v.y}*0.5f;
 				auto hc = glm::vec2{0,0}; // hue_change. currently unused by smart_textures
 
-				vertices.emplace_back(vec3(v,-0.04f), uv, uv_clip, vec2{1.f,0.f}, hc,
+				vertices.emplace_back(vec3(v,-0.04f), vec2{}, uv, uv_clip, vec2{1.f,0.f}, hc,
 				                      shadowcaster ? 1.f : 0.f, decals_intensity, &mat);
 			};
 			auto error = [&](auto left) {
@@ -202,7 +202,7 @@ namespace renderer {
 		}
 		void triangulate_border(const std::vector<glm::vec2>& points,
 		                        std::vector<Sprite_vertex>& vertices,
-		                        bool shadowcaster, bool decals_intensity,
+		                        bool shadowcaster, float decals_intensity,
 		                        const renderer::Material& mat) {
 
 			constexpr auto scale = 1.f;
@@ -263,13 +263,13 @@ namespace renderer {
 
 				auto& v = later ? vertex_tmp_buffer : vertices;
 
-				v.emplace_back(vec3(bl, d), uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-				v.emplace_back(vec3(tl, d), uv_tl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-				v.emplace_back(vec3(tr, d), uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(bl, d), vec2{}, uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(tl, d), vec2{}, uv_tl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(tr, d), vec2{}, uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
 
-				v.emplace_back(vec3(tr, d), uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-				v.emplace_back(vec3(bl, d), uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
-				v.emplace_back(vec3(br, d), uv_br, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(tr, d), vec2{}, uv_tr, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(bl, d), vec2{}, uv_bl, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
+				v.emplace_back(vec3(br, d), vec2{}, uv_br, uv_clip, tangent, hc, shadow_res, decals_intensity, &mat);
 			};
 
 			auto add_sprite = [&](float d, vec2 left, vec2 right,

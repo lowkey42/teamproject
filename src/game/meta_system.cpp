@@ -15,8 +15,8 @@ namespace lux {
 
 	namespace {
 
-		constexpr auto global_uniforms = 4+sys::light::light_uniforms;
-		constexpr auto global_uniforms_size = 4*(4*4)+sys::light::light_uniforms_size;
+		constexpr auto global_uniforms = 6+sys::light::light_uniforms;
+		constexpr auto global_uniforms_size = 6*(4*4)+sys::light::light_uniforms_size;
 		constexpr auto global_uniforms_avg_size = (int)(global_uniforms_size/global_uniforms + 0.5f);
 
 		using Global_uniform_map = renderer::Uniform_map<global_uniforms,
@@ -57,6 +57,7 @@ namespace lux {
 			    graphics_ctx(engine.graphics_ctx()),
 			    canvas{create_framebuffer(engine), create_framebuffer(engine)},
 			    blur_canvas{create_blur_framebuffer(engine), create_blur_framebuffer(engine)},
+			    motion_blur_canvas(create_framebuffer(engine)),
 			    decals_canvas(create_decals_framebuffer(engine))
 			{
 				render_queue.shared_uniforms(std::make_unique<Global_uniform_map>());
@@ -70,7 +71,7 @@ namespace lux {
 				            .uniforms(make_uniform_map(
 				                "texture", int(Texture_unit::last_frame),
 				                "texture_glow", int(Texture_unit::temporary),
-				                "gamma", 2.2f,
+				                "gamma", graphics_ctx.settings().gamma,
 				                "texture_size", shadowbuffer_size(engine),
 				                "exposure", 1.0f,
 				                "bloom", (graphics_ctx.settings().bloom ? 1.f : 0.f)
@@ -82,6 +83,16 @@ namespace lux {
 				           .build()
 				           .uniforms(make_uniform_map(
 				                "texture", int(Texture_unit::temporary),
+				                "texture_size", blur_size
+				            ));
+
+				motion_blur_shader
+				           .attach_shader(engine.assets().load<Shader>("vert_shader:motion_blur"_aid))
+				           .attach_shader(engine.assets().load<Shader>("frag_shader:motion_blur"_aid))
+				           .bind_all_attribute_locations(simple_vertex_layout)
+				           .build()
+				           .uniforms(make_uniform_map(
+				                "texture", int(Texture_unit::last_frame),
 				                "texture_size", blur_size
 				            ));
 
@@ -98,13 +109,18 @@ namespace lux {
 			mutable renderer::Command_queue render_queue;
 			renderer::Shader_program post_shader;
 			renderer::Shader_program blur_shader;
+			renderer::Shader_program motion_blur_shader;
 			renderer::Shader_program glow_shader;
 
 			renderer::Framebuffer canvas[2];
 			renderer::Framebuffer blur_canvas[2];
+			renderer::Framebuffer motion_blur_canvas;
 			bool                  canvas_first_active = true;
 
 			renderer::Framebuffer decals_canvas;
+
+			glm::vec2 motion_blur_dir;
+			float motion_blur_intensity = 0.f;
 
 			auto& active_canvas() {
 				return canvas[canvas_first_active ? 0: 1];
@@ -139,10 +155,26 @@ namespace lux {
 					}
 
 					blur_canvas[0].bind(int(Texture_unit::temporary));
+
+					if(motion_blur_intensity>0.f) {
+						motion_blur_shader.bind();
+						motion_blur_shader.set_uniform("dir", motion_blur_dir*motion_blur_intensity);
+
+						constexpr auto steps = 1;
+						for(auto i : util::range(steps*2)) {
+							auto src = i%2;
+							auto dest = src>0?0:1;
+
+							auto fbo_cleanup = Framebuffer_binder{dest==0 ? active_canvas() : motion_blur_canvas};
+
+							renderer::draw_fullscreen_quad(src==0 ? active_canvas() : motion_blur_canvas, Texture_unit::last_frame);
+						}
+					}
 				}
 
 				graphics_ctx.reset_viewport();
 				post_shader.bind().set_uniform("exposure", 1.0f);
+				post_shader.bind().set_uniform("contrast_boost", motion_blur_intensity);
 				renderer::draw_fullscreen_quad(active_canvas(), Texture_unit::last_frame);
 
 				canvas_first_active = !canvas_first_active;
@@ -192,6 +224,8 @@ namespace lux {
 	                 level_meta_data.background_tint);
 
 		_skybox.brightness(level_meta_data.environment_brightness);
+
+		renderer.post_load();
 
 		return level_meta_data;
 	}
@@ -244,6 +278,8 @@ namespace lux {
 			queue.flush();
 		}
 
+		uniforms->emplace("view", cam.view());
+		uniforms->emplace("proj", cam.proj());
 		uniforms->emplace("vp", cam.vp());
 		uniforms->emplace("vp_inv", glm::inverse(cam.vp()));
 		uniforms->emplace("eye", cam.eye_position());
@@ -252,6 +288,8 @@ namespace lux {
 
 		_skybox.draw(queue);
 
+		_post_renderer->motion_blur_dir = camera.motion_blur_dir();
+		_post_renderer->motion_blur_intensity = camera.motion_blur();
 		_post_renderer->flush();
 	}
 

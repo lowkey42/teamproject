@@ -8,6 +8,7 @@
 #include "../cam/camera_system.hpp"
 #include "../controller/controller_system.hpp"
 #include "../graphic/sprite_comp.hpp"
+#include "../graphic/particle_comp.hpp"
 #include "../physics/transform_comp.hpp"
 #include "../physics/physics_system.hpp"
 #include "../light/light_comp.hpp"
@@ -30,6 +31,7 @@ namespace gameplay {
 
 	namespace {
 		constexpr auto blood_stain_radius = 2.0f;
+		constexpr auto blood_collision_scale = 0.75f;
 
 		float dot(vec2 a, vec2 b) {
 			return a.x*b.x + a.y*b.y;
@@ -108,7 +110,7 @@ namespace gameplay {
 					player_color = e._color;
 				});
 
-				auto marker_color = marker._required_color!=Light_color::black ? marker.colors_left() :	Light_color::white;
+				auto marker_color = marker._required_color!=Light_color::black || marker._activated ? marker.colors_left() :	Light_color::white;
 				auto interactive_part = interactive_color(marker_color, player_color);
 				if(interactive_part!=Light_color::black) {
 					auto non_interactive_part = not_interactive_color(marker_color, player_color);
@@ -181,7 +183,7 @@ namespace gameplay {
 			// set camera to slowly lerp back to player and block input
 			// TODO: maybe make the lerp time dependent on the distance to the start position
 			_camera_sys.start_slow_lerp(1.0_s);
-			_controller_sys.block_input(0.8_s);
+			_controller_sys.block_input(0.5_s);
 
 			_mailbox.disable();
 			_reload();
@@ -216,7 +218,7 @@ namespace gameplay {
 			auto reflected = Light_color::black;
 
 			for(auto& bs : _blood_stains) {
-				if(glm::length2(bs.position-pos)<blood_stain_radius*blood_stain_radius) {
+				if(glm::length2(bs.position-pos)<blood_stain_radius*blood_stain_radius*bs.scale*blood_collision_scale) {
 					reflected = reflected | interactive_color(bs.color, light._color);
 				}
 			}
@@ -239,16 +241,25 @@ namespace gameplay {
 	}
 
 	void Gameplay_system::_update_light(Time dt) {
-		bool any_one_lighted = false;
-		bool any_one_not_grounded = false;
 
 		for(Enlightened_comp& c : _enlightened) {
 			auto body_mb = c.owner().get<physics::Dynamic_body_comp>();
-			if(body_mb.is_nothing())
+			if(body_mb.is_nothing() || c._smashed)
 				continue;
 
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 			auto& body = body_mb.get_or_throw();
+
+			if(c._smash || c._forced_smash) {
+				if(c._forced_smash) {
+					transform.position(c._last_impact_point);
+				}
+
+				_on_smashed(c.owner());
+				continue;
+			}
+			c._forced_smash = false;
+			c._last_impact += dt;
 
 			c._direction = glm::normalize(c._direction);
 
@@ -305,19 +316,28 @@ namespace gameplay {
 			if(res_color!=c._color) {
 				_color_player(c, res_color);
 			}
-
-			any_one_lighted |= c.enabled();
-			any_one_not_grounded |= !body.grounded();
 		}
 
-		if(any_one_lighted) {
-			_light_timer = 1_s;
+
+		static constexpr auto cam_effect_fade_time = 0.5_s;
+		if(_controller_sys.get_controlled()) {
+			process(_controller_sys.get_controlled()->get<Enlightened_comp>(),
+			        _controller_sys.get_controlled()->get<physics::Dynamic_body_comp>())
+			        >> [&](auto& light, auto& body) {
+				if(light.enabled()) {
+					static constexpr auto cam_fade_time = 1_s;
+					_light_timer = cam_fade_time;
+					_light_effects_timer = cam_effect_fade_time;
+				} else if(_light_effects_timer>0_s) {
+					_light_effects_timer -= dt;
+				}
+				if(_light_timer>0_s && body.grounded()) {
+					_light_timer -= dt;
+				}
+			};
 		}
 
-		if(_light_timer>0_s && !any_one_not_grounded) {
-			_light_timer -= dt;
-		}
-
+		_camera_sys.motion_blur(_light_effects_timer/cam_effect_fade_time);
 		_camera_sys.type(_light_timer>0_s ? cam::Camera_move_type::centered
 		                                  : cam::Camera_move_type::lazy);
 
@@ -338,7 +358,7 @@ namespace gameplay {
 		if(c.a && c.b) {
 			process(c.a->get<Enlightened_comp>(), c.b->get<Enlightened_comp>())
 			        >> [&](Enlightened_comp& ae, Enlightened_comp& be) {
-				if(!ae._smashed && !be._smashed && !ae.enabled() && !be.enabled()) {
+				if(!ae._smashed && !be._smashed && !ae._smash && !be._smash && !ae.enabled() && !be.enabled()) {
 					_color_player(ae, ae._color|be._color);
 					c.b->manager().erase(c.b->shared_from_this());
 					be._smashed = true;
@@ -348,22 +368,29 @@ namespace gameplay {
 			};
 		}
 
-		auto smashable = [&](ecs::Entity* e) {
+		auto try_smash = [&](ecs::Entity* e) {
 			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
 				ecs::Entity* other = (c.a==&elc.owner()) ? c.b : c.a;
 				auto deadly = other && other->has<Deadly_comp>();
-				return (elc._final_booster_left>0_s || c.impact>=elc._smash_force || deadly) && elc.smash();
+				if((elc._final_booster_left>0_s && c.impact>=elc._smash_force*0.1f) || c.impact>=elc._smash_force || deadly) {
+					return elc.smash();
+				} else {
+					auto fp = c.impact/elc._smash_force;
+					if(fp>=0.75f)
+						_camera_sys.screen_shake(0.2_s, 0.5f*fp);
+					return false;
+				}
 			});
 		};
 
-		if(smashable(c.a)) {
-			_on_smashed(*c.a);
-		}
-		if(smashable(c.b)) {
-			_on_smashed(*c.b);
-		}
+		try_smash(c.a);
+		try_smash(c.b);
 	}
 	void Gameplay_system::_on_smashed(ecs::Entity& e) {
+		e.get<Enlightened_comp>().process([&](auto& e) {
+			e._smashed = true;
+		});
+
 		e.get<graphic::Anim_sprite_comp>().process([&](auto& s) {
 			s.play("die"_strid);
 			e.erase_other<physics::Transform_comp, Enlightened_comp, graphic::Anim_sprite_comp, Player_tag_comp>();
@@ -372,6 +399,8 @@ namespace gameplay {
 			WARN("smashed a not animated entity");
 			e.manager().erase(e.shared_from_this());
 		});
+
+		_camera_sys.screen_shake(0.2_s, 0.5f);
 	}
 	void Gameplay_system::_on_animation_event(const Animation_event& event) {
 		if(!event.owner)
@@ -404,22 +433,29 @@ namespace gameplay {
 		}
 	}
 
-	void Gameplay_system::_handle_light_pending(Time dt, Enlightened_comp& c) {
+	void Gameplay_system::_handle_light_pending(Time, Enlightened_comp& c) {
 		if(!c._was_light) {
+			c._initial_timer = 0_s;
+
 			auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
+			body.velocity({0,0});
 			body.active(true);
 			body.kinematic(true);
 			auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 
 			auto angle = Angle{glm::atan(-c._direction.x, c._direction.y)};
 			transform.rotation(angle);
-			round_player_pos(transform, std::min(dt/0.1_s, 1.f));
 
 			c.owner().get<light::Light_comp>().process([&](auto& l){
 				l.brightness_factor(2.f);
 			});
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				if( c._color==Light_color::white)
+					particle.add("wlight_effect"_strid);
+				else
+					particle.add("light_effect"_strid);
+			});
 		}
-		// TODO: set animation, start effects, ...
 	}
 	void Gameplay_system::_handle_light_disabled(Time dt, Enlightened_comp& c) {
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
@@ -433,9 +469,18 @@ namespace gameplay {
 		if(c._final_booster_left>0_s) {
 			body.velocity(c._direction * c._velocity);
 			c._final_booster_left -= dt;
+		} else {
+			c._direction = {0,1};
+			// TODO: shouldn't be necessary
+			c.owner().get<graphic::Particle_comp>().process([&](auto &particle) {
+				particle.remove("light_effect"_strid);
+				particle.remove("wlight_effect"_strid);
+			});
 		}
 	}
 	void Gameplay_system::_handle_light_enabled(Time dt, Enlightened_comp& c) {
+		c._final_booster_left = 0_s;
+
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
@@ -447,11 +492,26 @@ namespace gameplay {
 		auto move_distance = std::abs(c._velocity * dt.value());
 		auto direction = c._direction;
 
+
+		c._initial_timer += dt;
+		if(c._initial_timer.value()<=c._initial_booster_time+c._initial_acceleration_time) {
+			auto t = c._initial_timer.value();
+
+			auto a_accel = glm::clamp(t/c._initial_acceleration_time, 0.f, 1.f);
+			t-=c._initial_acceleration_time;
+			move_distance *= a_accel;
+
+
+			auto a_booster = glm::clamp(t/c._initial_booster_time, 0.f, 1.f);
+			move_distance *= 1.0f + (1.f-a_booster)*c._initial_booster_factor;
+		}
+
+
 		float max_ray_dist = c._radius*2.f+move_distance;
 		if(max_ray_dist>0.01f) {
 			auto ray = _physics_world.raycast(pos.xy(), direction, max_ray_dist, c.owner());
 
-			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius*1.5f) {
+			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius) {
 				if(auto prism = ray.get_or_throw().entity->get<Prism_comp>()) {
 					auto prism_pos = ray.get_or_throw().entity->get<physics::Transform_comp>().get_or_throw().position();
 					prism_pos.z = pos.z*1_m;
@@ -507,7 +567,7 @@ namespace gameplay {
 							transform.move(offset);
 						}
 
-						move_distance = ray.get_or_throw().distance - interactive->_radius*2.0f;
+						move_distance = ray.get_or_throw().distance - interactive->_radius*2.f;
 
 						auto collision_point = pos.xy()+direction*move_distance;
 						auto reflective = _is_reflective(collision_point, *interactive, ray.get_or_throw().entity);
@@ -524,10 +584,18 @@ namespace gameplay {
 							auto normal = ray.get_or_throw().normal;
 							interactive->_direction = interactive->_direction - 2.f*normal*dot(normal, interactive->_direction);
 							interactive->_air_time = 0_s;
+							c._initial_timer = 0_s;
 
 						} else {
 							_disable_light(*interactive, true, false);
 						}
+
+						c._last_impact = 0_s;
+						c._last_impact_point = glm::vec3{
+							pos.x+direction.x * move_distance,
+							pos.y+direction.y * move_distance,
+							pos.z
+						} * 1_m;
 					}
 				}
 			}
@@ -574,7 +642,6 @@ namespace gameplay {
 
 		auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 
-		// TODO: change animation/effect
 		c._state = Enlightened_State::disabled;
 		c._was_light = false;
 
@@ -585,8 +652,14 @@ namespace gameplay {
 			}
 		}
 
+		if(c._final_booster_left <= 0_s) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto &particle) {
+				particle.remove("light_effect"_strid);
+				particle.remove("wlight_effect"_strid);
+			});
+		}
+
 		auto& transform = c.owner().get<physics::Transform_comp>().get_or_throw();
-		transform.scale(c.disabled() ? 1.f : 0.5f); // TODO: debug only => delete
 		transform.rotation(0_deg);
 
 		c.owner().get<light::Light_comp>().process([&](auto& l){
@@ -598,6 +671,18 @@ namespace gameplay {
 	void Gameplay_system::_color_player(Enlightened_comp& c, Light_color new_color) {
 		constexpr auto ns = "blueprint"_strid;
 		asset::AID blueprint;
+
+		if(c._color==Light_color::white && new_color!=Light_color::white) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				particle.remove("wlight_effect"_strid);
+				particle.add("light_effect"_strid);
+			});
+		} else if(c._color!=Light_color::white && new_color==Light_color::white) {
+			c.owner().get<graphic::Particle_comp>().process([&](auto& particle) {
+				particle.add("wlight_effect"_strid);
+				particle.remove("light_effect"_strid);
+			});
+		}
 
 		switch(new_color) {
 			case Light_color::black:

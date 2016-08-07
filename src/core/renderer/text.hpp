@@ -96,6 +96,7 @@ namespace renderer {
 			void set(const std::string& str, bool monospace=false);
 
 			auto size()const noexcept {return _size;}
+			operator bool()const {return !_data.empty();}
 
 		protected:
 			Font_sptr _font;

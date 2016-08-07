@@ -172,7 +172,7 @@ namespace input {
 
 	struct Mouse_click {
 		Mouse_button button;
-		uint8_t clicks;
+		int8_t clicks = -1;
 
 		bool operator<(Mouse_click rhs)const noexcept {
 			return std::tie(button,clicks) < std::tie(rhs.button,rhs.clicks);
@@ -211,7 +211,7 @@ namespace std {
 	};
 	template <> struct hash<lux::input::Mouse_click> {
 		size_t operator()(lux::input::Mouse_click b)const noexcept {
-			return static_cast<size_t>(b.button) + 101 * b.clicks;
+			return static_cast<size_t>(b.button) + 101 * static_cast<std::size_t>(b.clicks+128);
 		}
 	};
 }

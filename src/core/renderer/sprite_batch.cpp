@@ -13,39 +13,41 @@ namespace renderer {
 		std::unique_ptr<Shader_program> sprite_shader;
 		const auto def_uv_clip = glm::vec4{0,0,1,1};
 		const std::vector<Sprite_vertex> single_sprite_vert {
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
-			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {0,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{-0.5f,+0.5f, 0.f}, {}, {0,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
 
-			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
-			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
-			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {1,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr}
+			Sprite_vertex{{+0.5f,+0.5f, 0.f}, {}, {1,0}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{-0.5f,-0.5f, 0.f}, {}, {0,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr},
+			Sprite_vertex{{+0.5f,-0.5f, 0.f}, {}, {1,1}, def_uv_clip, {1,0}, {0,0}, 0, 0.f, nullptr}
 		};
 	}
 
 	Vertex_layout sprite_layout {
 		Vertex_layout::Mode::triangles,
-		vertex("position",  &Sprite_vertex::position),
-		vertex("uv",        &Sprite_vertex::uv),
-		vertex("uv_clip",   &Sprite_vertex::uv_clip),
-		vertex("hue_change",&Sprite_vertex::hue_change),
-		vertex("tangent",   &Sprite_vertex::tangent),
+		vertex("position",          &Sprite_vertex::position),
+		vertex("decals_offset",     &Sprite_vertex::decals_offset),
+		vertex("uv",                &Sprite_vertex::uv),
+		vertex("uv_clip",           &Sprite_vertex::uv_clip),
+		vertex("hue_change",        &Sprite_vertex::hue_change),
+		vertex("tangent",           &Sprite_vertex::tangent),
 		vertex("shadow_resistence", &Sprite_vertex::shadow_resistence),
-		vertex("decals_intensity", &Sprite_vertex::decals_intensity)
+		vertex("decals_intensity",  &Sprite_vertex::decals_intensity)
 	};
 
 	Sprite::Sprite(glm::vec3 position, Angle rotation, glm::vec2 size,
 	               glm::vec4 uv, float shadow_resistence, float decals_intensity,
-	               const renderer::Material& material)noexcept
-	    : position(position), rotation(rotation), size(size),
+	               const renderer::Material& material, glm::vec2 decals_offset)noexcept
+	    : position(position), decals_offset(decals_offset), rotation(rotation), size(size),
 	      uv(uv), shadow_resistence(shadow_resistence), decals_intensity(decals_intensity),
 	      material(&material) {
 	}
 
-	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 uv_coords, glm::vec4 uv_clip,
+	Sprite_vertex::Sprite_vertex(glm::vec3 pos, glm::vec2 decals_offset, glm::vec2 uv_coords, glm::vec4 uv_clip,
 	                             glm::vec2 tangent, glm::vec2 hue_change, float shadow_resistence,
 	                             float decals_intensity, const renderer::Material* material)
-	    : position(pos), uv(uv_coords), uv_clip(uv_clip), tangent(tangent), hue_change(hue_change),
+	    : position(pos), decals_offset(decals_offset), uv(uv_coords), uv_clip(uv_clip),
+	      tangent(tangent), hue_change(hue_change),
 	      shadow_resistence(shadow_resistence), decals_intensity(decals_intensity), material(material) {
 	}
 
@@ -147,7 +149,7 @@ namespace renderer {
 		auto iter = _reserve_space(sprite.position.z, sprite.material, single_sprite_vert.size());
 
 		for(auto& vert : single_sprite_vert) {
-			*iter = Sprite_vertex{transform(vert.position), vert.uv, sprite_clip,
+			*iter = Sprite_vertex{transform(vert.position), sprite.decals_offset, vert.uv, sprite_clip,
 			                      tangent, sprite.hue_change, sprite.shadow_resistence,
 			                      sprite.decals_intensity, sprite.material};
 			iter++;
@@ -162,7 +164,7 @@ namespace renderer {
 		auto iter = begin;
 
 		for(auto& v : vertices) {
-			*iter = Sprite_vertex{v.position + position,
+			*iter = Sprite_vertex{v.position + position,  v.decals_offset,
 			                      v.uv, v.uv_clip, v.tangent, v.hue_change,
 			                      v.shadow_resistence, v.decals_intensity, v.material};
 			iter++;
@@ -180,6 +182,8 @@ namespace renderer {
 	}
 
 	void Sprite_batch::_draw(Command_queue& queue) {
+		_reserve_objects();
+
 		// draw one batch for each partition
 		auto last = _vertices.begin();
 		for(auto current = _vertices.begin(); current!=_vertices.end(); ++current) {
@@ -221,11 +225,9 @@ namespace renderer {
 
 		auto obj_idx = _free_obj++;
 
-		if(obj_idx>=_objects.size()) {
-			_objects.emplace_back(sprite_layout, create_buffer<Sprite_vertex>(begin, end, true));
-		} else {
-			_objects.at(obj_idx).buffer().set<Sprite_vertex>(begin, end);
-		}
+		INVARIANT(obj_idx<_objects.size(), "Too few objects reserved");
+
+		_objects.at(obj_idx).buffer().set<Sprite_vertex>(begin, end);
 
 		auto cmd = create_command()
 		        .shader(_shader)
@@ -238,6 +240,24 @@ namespace renderer {
 		cmd.uniforms().emplace("model", glm::mat4());
 
 		return cmd;
+	}
+	void Sprite_batch::_reserve_objects() {
+		// reserve required objects
+		auto req_objs = 0u;
+		auto last_mat = static_cast<const Material*>(nullptr);
+		for(auto& v : _vertices) {
+			if(v.material!=last_mat) {
+				last_mat = v.material;
+				req_objs++;
+			}
+		}
+		if(req_objs>_objects.size()) {
+			_objects.reserve(req_objs);
+			req_objs-=_objects.size();
+			for(auto i=0u; i<req_objs; i++) {
+				_objects.emplace_back(sprite_layout, create_dynamic_buffer<Sprite_vertex>(8));
+			}
+		}
 	}
 
 }

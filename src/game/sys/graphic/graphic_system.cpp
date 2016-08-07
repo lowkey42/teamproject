@@ -51,6 +51,8 @@ namespace graphic {
 	      _sprites(entity_manager.list<Sprite_comp>()),
 	      _anim_sprites(entity_manager.list<Anim_sprite_comp>()),
 	      _terrains(entity_manager.list<Terrain_comp>()),
+		  _particles(entity_manager.list<Particle_comp>()),
+		  _particle_renderer(asset_manager),
 	      _sprite_batch(512),
 	      _sprite_batch_bg(_background_shader, 256)
 	{
@@ -68,13 +70,19 @@ namespace graphic {
 		for(Sprite_comp& sprite : _sprites) {
 			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
 
+			auto decal_offset = glm::vec2{};
+			if(sprite._decals_sticky) {
+				decal_offset.x = sprite._decals_position.x - trans.position().x.value();
+				decal_offset.y = sprite._decals_position.y - trans.position().y.value();
+			}
+
 			auto position = remove_units(trans.position());
 			auto sprite_data = renderer::Sprite{
 			                   position, trans.rotation(),
 			                   sprite._size*trans.scale(),
 			                   flip(glm::vec4{0,0,1,1}, trans.flip_vertical(), trans.flip_horizontal()),
-			                   sprite._shadowcaster ? 1.0f : 0.0f,
-			                   sprite._decals_intensity, *sprite._material};
+			                   sprite._shadowcaster ? 1.0f : 1.f-sprite._shadow_receiver,
+			                   sprite._decals_intensity, *sprite._material, decal_offset};
 
 			sprite_data.hue_change = {
 			    sprite._hue_change_target / 360_deg,
@@ -91,13 +99,19 @@ namespace graphic {
 		for(Anim_sprite_comp& sprite : _anim_sprites) {
 			auto& trans = sprite.owner().get<physics::Transform_comp>().get_or_throw();
 
+			auto decal_offset = glm::vec2{};
+			if(sprite._decals_sticky) {
+				decal_offset.x = sprite._decals_position.x - trans.position().x.value();
+				decal_offset.y = sprite._decals_position.y - trans.position().y.value();
+			}
+
 			auto position = remove_units(trans.position());
 			auto sprite_data = renderer::Sprite{
 			                   position, trans.rotation(),
 			                   sprite._size*trans.scale(),
 			                   flip(sprite.state().uv_rect(), trans.flip_vertical(), trans.flip_horizontal()),
-			                   sprite._shadowcaster ? 1.0f : 0.0f,
-			                   sprite._decals_intensity, sprite.state().material()};
+			                   sprite._shadowcaster ? 1.0f : 1.f-sprite._shadow_receiver,
+			                   sprite._decals_intensity, sprite.state().material(), decal_offset};
 
 			sprite_data.hue_change = {
 			    sprite._hue_change_target / 360_deg,
@@ -124,6 +138,8 @@ namespace graphic {
 
 		_sprite_batch.flush(queue);
 		_sprite_batch_bg.flush(queue);
+
+		_particle_renderer.draw(queue);
 	}
 	void Graphic_system::draw_shadowcaster(renderer::Sprite_batch& batch,
 	                                       const renderer::Camera&)const {
@@ -166,8 +182,72 @@ namespace graphic {
 	}
 
 	void Graphic_system::update(Time dt) {
+		auto update_decal_pos = [&](auto& sprite) {
+			if(sprite._decals_sticky && !sprite._decals_position_set) {
+				sprite._decals_position_set = true;
+				ecs::Entity& o = sprite.owner();
+				auto pos = remove_units(o.get<physics::Transform_comp>().get_or_throw().position());
+				sprite._decals_position.x = pos.x;
+				sprite._decals_position.y = pos.y;
+			}
+		};
+
 		for(Anim_sprite_comp& sprite : _anim_sprites) {
 			sprite.state().update(dt, _mailbox.bus());
+
+			update_decal_pos(sprite);
+		}
+		for(Sprite_comp& sprite : _sprites) {
+			update_decal_pos(sprite);
+		}
+
+		_update_particles(dt);
+	}
+	void Graphic_system::_update_particles(Time dt) {
+		for(Particle_comp& particle : _particles) {
+			for(auto& id : particle._add_queue) {
+				if(id!=""_strid) {
+					auto existing = std::find_if(particle._emitters.begin(), particle._emitters.end(),
+					                            [&](auto& e){return e && e->type()==id;});
+
+					if(existing==particle._emitters.end()) {
+						auto empty = std::find(particle._emitters.begin(), particle._emitters.end(),
+						                       renderer::Particle_emitter_ptr{});
+						if (empty == particle._emitters.end())
+							empty = particle._emitters.begin();
+
+						*empty = _particle_renderer.create_emiter(id);
+					}
+					id = ""_strid;
+				}
+			}
+
+			auto& transform = particle.owner().get<physics::Transform_comp>().get_or_throw();
+			auto position = remove_units(transform.position()) + particle._offset;
+			for(auto& e : particle._emitters) {
+				if(e) {
+					e->hue_change_out(particle._hue_change);
+					e->position(position);
+					e->direction(glm::vec3(0,0,transform.rotation().value()));
+					e->scale(transform.scale());
+				}
+			}
+		}
+
+		_particle_renderer.update(dt);
+	}
+
+	void Graphic_system::post_load() {
+		_particle_renderer.clear();
+
+		// create initial emiters
+		_update_particles(0_s);
+
+		// warmup emiters
+		for(auto i : util::range(4*30.f)) {
+			(void)i;
+
+			_particle_renderer.update(1_s/30.f);
 		}
 	}
 
