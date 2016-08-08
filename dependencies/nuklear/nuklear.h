@@ -6571,9 +6571,9 @@ nk_draw_list_add_text(struct nk_draw_list *list, const struct nk_user_font *font
             g.uv[0], g.uv[1], fg);
 
         /* offset next glyph */
+		glyph_len = next_glyph_len;
         text_len += glyph_len;
         x += char_width;
-        glyph_len = next_glyph_len;
         unicode = next;
     }
 }
@@ -9249,7 +9249,9 @@ nk_font_text_width(nk_handle handle, float height, const char *text, int len)
     if (!glyph_len) return 0;
     while (text_len <= (int)len && glyph_len) {
         const struct nk_font_glyph *g;
-        if (unicode == NK_UTF_INVALID) break;
+		if (unicode == NK_UTF_INVALID) {
+			break;
+		}
 
         /* query currently drawn glyph information */
         g = nk_font_find_glyph(font, unicode);

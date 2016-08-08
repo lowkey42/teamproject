@@ -14,7 +14,7 @@ namespace editor {
 
 		struct nk_panel layout;
 		auto ctx = gui.ctx();
-		if (nk_begin(ctx, &layout, "Settings", nk_rect(0, 0, 210, 250),
+		if (nk_begin(ctx, &layout, "Settings Ä b", nk_rect(0, 0, 210, 250),
 		             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|
 		             NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE)) {
 
