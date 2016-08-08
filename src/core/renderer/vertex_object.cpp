@@ -251,7 +251,7 @@ namespace renderer {
 			if(!_instanced) {
 				if(count<=0) count = static_cast<int>(ibo.size());
 				glDrawElements(to_gl(_mode), count, to_gl(ibo.index_buffer_type()),
-				               reinterpret_cast<const void*>(static_cast<uintptr_t>(offset)));
+				               reinterpret_cast<const void*>(static_cast<uintptr_t>(offset*ibo._element_size)));
 			} else
 				FAIL("glDrawElementsInstanced is not supported");
 

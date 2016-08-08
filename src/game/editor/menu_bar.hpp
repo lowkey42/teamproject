@@ -31,6 +31,7 @@ namespace editor {
 
 			void disable_action(util::Str_id name);
 			void enable_action(util::Str_id name);
+			void force_toggle_state(util::Str_id name, bool state);
 
 			void draw(renderer::Command_queue& queue);
 			void update(Time dt);

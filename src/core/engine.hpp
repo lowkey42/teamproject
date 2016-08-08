@@ -62,6 +62,7 @@ namespace lux {
 			auto& bus()noexcept {return _bus;}
 			auto& screens()noexcept {return _screens;}
 			auto& translator()noexcept {return *_translator;}
+			auto& gui()noexcept {return *_gui;}
 
 		protected:
 			void _poll_events();

@@ -67,6 +67,7 @@ namespace lux {
 			editor::Selection _selection;
 			editor::Blueprint_bar _blueprints;
 			editor::Menu_bar _menu;
+			bool _show_settings = false;
 
 			util::maybe<std::string> _clipboard;
 			util::maybe<glm::vec2> _last_pointer_pos;

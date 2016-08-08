@@ -5,6 +5,7 @@
 #include "game_screen.hpp"
 
 #include "editor/editor_cmds.hpp"
+#include "editor/level_settings.hpp"
 
 #include "sys/physics/transform_comp.hpp"
 
@@ -17,6 +18,7 @@
 #include <core/audio/audio_ctx.hpp>
 
 #include <core/gui/translations.hpp>
+#include <core/gui/gui.hpp>
 
 #include <core/input/events.hpp>
 #include <core/input/input_manager.hpp>
@@ -58,9 +60,8 @@ namespace lux {
 		_menu.add_action("back"_strid, "tex:editor_icon_exit"_aid, tooltip("back"),
 		                 [&]{_engine.exit();/*TODO: warn on unsaved changes*/});
 
-		_menu.add_action("settings"_strid, "tex:editor_icon_settings"_aid, tooltip("settings"),
-		                 [&]{/*TODO: open dialog*/});
-		_menu.disable_action("settings"_strid); // remove after impl
+		_menu.add_action("settings"_strid, "tex:editor_icon_settings"_aid, false, tooltip("settings"),
+		                 [&](bool s){_show_settings = s;});
 
 
 		_menu.add_action("save"_strid, "tex:editor_icon_save"_aid, tooltip("save"),
@@ -303,6 +304,12 @@ namespace lux {
 		}
 
 		_camera_world.move(glm::vec3(curr_cam_speed, 0.f) * dt.value() * 5_m);
+
+		if(!editor::draw_settings(_engine.translator(), _engine.gui(), _show_settings,
+		                  _level_metadata, _systems)) {
+			_show_settings = false;
+			_menu.force_toggle_state("settings"_strid, false);
+		}
 	}
 
 

@@ -93,6 +93,11 @@ namespace editor {
 			a.enabled_override = true;
 		});
 	}
+	void Menu_bar::force_toggle_state(util::Str_id name, bool state) {
+		_find_by_name(name).process([&](auto& a) {
+			a.toggle_state = state;
+		});
+	}
 
 	void Menu_bar::draw(renderer::Command_queue& queue) {
 		auto y_offset    = _calc_y_offset();
