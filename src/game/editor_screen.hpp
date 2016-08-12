@@ -12,6 +12,7 @@
 
 #include "editor/blueprint_bar.hpp"
 #include "editor/selection.hpp"
+#include "editor/level_settings.hpp"
 #include "editor/menu_bar.hpp"
 
 #include <core/renderer/camera.hpp>
@@ -50,10 +51,8 @@ namespace lux {
 
 			Meta_system _systems;
 
-			// TODO: top-side buttons
 			// TODO: save-file management
 			// TODO: plot player movement trail
-			// TODO: level settings
 
 			renderer::Camera_2d _camera_menu;
 			renderer::Camera_sidescroller _camera_world;
@@ -67,7 +66,7 @@ namespace lux {
 			editor::Selection _selection;
 			editor::Blueprint_bar _blueprints;
 			editor::Menu_bar _menu;
-			bool _show_settings = false;
+			editor::Level_settings _settings;
 
 			util::maybe<std::string> _clipboard;
 			util::maybe<glm::vec2> _last_pointer_pos;

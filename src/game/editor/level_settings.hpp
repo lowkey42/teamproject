@@ -16,9 +16,25 @@ namespace lux {
 namespace gui {class Translator; class Gui;}
 namespace editor {
 
-	// returns new visible state
-	extern bool draw_settings(const gui::Translator&, gui::Gui&, bool visible,
-	                          Level_info&, Meta_system&);
+	class Level_settings {
+		public:
+			Level_settings(gui::Gui&, const gui::Translator&, Meta_system&);
+			~Level_settings();
+
+			void update_and_draw(Level_info&);
+
+			void visible(bool v) {_visible = v;}
+			auto visible()const {return _visible;}
+
+		private:
+			struct PImpl;
+			std::unique_ptr<PImpl> _impl;
+
+			gui::Gui& _gui;
+			const gui::Translator& _translator;
+			Meta_system& _systems;
+			bool _visible = false;
+	};
 
 }
 }

@@ -26,6 +26,11 @@ namespace lux {
 
 namespace gui {
 
+	// TODO: gamepad input: https://gist.github.com/vurtun/519801825b4ccfad6767
+	// TODO: theme support: https://github.com/vurtun/nuklear/blob/master/demo/style.c
+	//                      https://github.com/vurtun/nuklear/blob/master/example/skinning.c
+	// TODO[bug]: input fields don't handle mutlibyte characters correctly
+	// TODO: merge fixes in nuklear.h back into upstream
 	class Gui {
 		public:
 			Gui(Engine& engine);
@@ -43,6 +48,29 @@ namespace gui {
 	};
 
 
+	// widgets
+	extern bool color_picker(nk_context*, Rgb&  color, int width, float factor=1.f);
+	extern bool color_picker(nk_context*, Rgba& color, int width, float factor=1.f);
+
+	class Text_edit {
+		public:
+			Text_edit();
+			Text_edit(Text_edit&&)=default;
+			Text_edit& operator=(Text_edit&&)=default;
+			~Text_edit();
+
+			void reset(const std::string&);
+			void get(std::string&)const;
+
+			auto active()const noexcept {return _active;}
+
+			void update_and_draw(nk_context*, nk_flags type);
+			void update_and_draw(nk_context*, nk_flags type, std::string&);
+
+		private:
+			util::maybe<nk_text_edit> _data;
+			bool _active=false;
+	};
 
 }
 }

@@ -49,6 +49,7 @@ namespace lux {
 	      _blueprints(engine, _commands, _selection, _systems.entity_manager, engine.assets(),
 	                  engine.input(), _camera_world, _camera_menu, glm::vec2{_camera_menu.size().x/2.f, 0}),
 	      _menu(engine, engine.assets(), _camera_menu),
+	      _settings(engine.gui(), engine.translator(), _systems),
 	      _clipboard(util::nothing()),
 	      _last_pointer_pos(util::nothing())
 	{
@@ -61,7 +62,7 @@ namespace lux {
 		                 [&]{_engine.exit();/*TODO: warn on unsaved changes*/});
 
 		_menu.add_action("settings"_strid, "tex:editor_icon_settings"_aid, false, tooltip("settings"),
-		                 [&](bool s){_show_settings = s;});
+		                 [&](bool s){_settings.visible(s);});
 
 
 		_menu.add_action("save"_strid, "tex:editor_icon_save"_aid, tooltip("save"),
@@ -305,9 +306,8 @@ namespace lux {
 
 		_camera_world.move(glm::vec3(curr_cam_speed, 0.f) * dt.value() * 5_m);
 
-		if(!editor::draw_settings(_engine.translator(), _engine.gui(), _show_settings,
-		                  _level_metadata, _systems)) {
-			_show_settings = false;
+		_settings.update_and_draw(_level_metadata);
+		if(!_settings.visible()) {
 			_menu.force_toggle_state("settings"_strid, false);
 		}
 	}

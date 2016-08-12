@@ -92,7 +92,7 @@ namespace lux {
 			_systems.light_config(glm::mix(_systems.lights.sun_light(), fadeout_sun, _fadeout_fadetimer/fadeout_delay),
 			                      _systems.lights.sun_dir(),
 			                      _systems.lights.ambient_brightness(),
-			                      _systems.lights.background_tint() );
+			                      _systems.lights.background_tint());
 
 			if(_fadeout_fadetimer>=fadeout_delay) {
 				unlock_next_levels(_engine, _current_level);

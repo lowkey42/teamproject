@@ -63,6 +63,8 @@ namespace lux {
 			void draw(util::maybe<const renderer::Camera&> cam = util::nothing());
 
 			void light_config(Rgb sun_light, glm::vec3 sun_dir, float ambient_brightness,
+			                  Rgba background_tint, float environment_brightness);
+			void light_config(Rgb sun_light, glm::vec3 sun_dir, float ambient_brightness,
 			                  Rgba background_tint);
 
 			ecs::Entity_manager entity_manager;
