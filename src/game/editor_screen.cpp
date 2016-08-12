@@ -49,9 +49,10 @@ namespace lux {
 	      _blueprints(engine, _commands, _selection, _systems.entity_manager, engine.assets(),
 	                  engine.input(), _camera_world, _camera_menu, glm::vec2{_camera_menu.size().x/2.f, 0}),
 	      _menu(engine, engine.assets(), _camera_menu),
-	      _settings(engine.gui(), engine.translator(), _systems),
+	      _settings(engine.gui(), engine.translator(), _systems, _commands, _level_metadata),
 	      _clipboard(util::nothing()),
-	      _last_pointer_pos(util::nothing())
+	      _last_pointer_pos(util::nothing()),
+	      _last_saved(_commands.get_last())
 	{
 
 		auto tooltip = [&](auto& key) {
@@ -66,8 +67,10 @@ namespace lux {
 
 
 		_menu.add_action("save"_strid, "tex:editor_icon_save"_aid, tooltip("save"),
-		                 [&]{save_level(_engine, _systems.entity_manager, _level_metadata);},
-		                 [&]{return _commands.undo_available();});
+		                 [&]{
+			save_level(_engine, _systems.entity_manager, _level_metadata);
+			_last_saved = _commands.get_last();
+		}, [&]{return _last_saved!=_commands.get_last();} );
 
 		_menu.add_action("load_prev"_strid, "tex:editor_icon_load_prev"_aid, tooltip("load_prev"),
 		                 [&]{_load_next_level(-1);},
@@ -128,15 +131,12 @@ namespace lux {
 
 
 		_menu.add_action("light"_strid, "tex:editor_icon_toggle_light"_aid, true, tooltip("light"),
-		                 [&, last_ambient=1.f](bool s)mutable {
-			auto ambient = s ? last_ambient : 10.f;
-			 if(!s) {
-				last_ambient = _level_metadata.ambient_brightness;
+		                 [&](bool s) {
+			if(s) {
+				 _ambient_light_override = util::nothing();
+			} else {
+				 _ambient_light_override = 10.f;
 			}
-
-			_systems.light_config(_level_metadata.environment_light_color,
-			                      _level_metadata.environment_light_direction,
-			                      ambient, _level_metadata.background_tint);
 		});
 
 		_menu.add_action("toggle_grid"_strid, "tex:editor_icon_snap_to_grid"_aid, true, tooltip("toggle_grid"),
@@ -147,7 +147,7 @@ namespace lux {
 		                 [&]{return !!_selection.selection();} );
 
 		_menu.add_action("start"_strid, "tex:editor_icon_start"_aid, tooltip("start"), [&] {
-			if(_commands.undo_available()) {
+			if(_last_saved!=_commands.get_last()) {
 				save_level(_engine, _systems.entity_manager, _level_metadata);
 			}
 			_engine.screens().enter<Game_screen>(_level_metadata.id);
@@ -306,10 +306,22 @@ namespace lux {
 
 		_camera_world.move(glm::vec3(curr_cam_speed, 0.f) * dt.value() * 5_m);
 
-		_settings.update_and_draw(_level_metadata);
+		_settings.update_and_draw();
 		if(!_settings.visible()) {
 			_menu.force_toggle_state("settings"_strid, false);
 		}
+
+		if(_ambient_light_override.is_some()) {
+		    _systems.light_config(_level_metadata.environment_light_color,
+		                          _level_metadata.environment_light_direction,
+		                          _ambient_light_override.get_or_throw(),
+		                          _level_metadata.background_tint);
+	    } else if(!_settings.visible()) {
+		    _systems.light_config(_level_metadata.environment_light_color,
+		                          _level_metadata.environment_light_direction,
+		                          _level_metadata.ambient_brightness,
+		                          _level_metadata.background_tint);
+	    }
 	}
 
 

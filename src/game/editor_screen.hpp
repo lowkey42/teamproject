@@ -72,8 +72,9 @@ namespace lux {
 			util::maybe<glm::vec2> _last_pointer_pos;
 			bool _cam_mouse_active = false;
 			glm::vec2 _cam_speed;
-			util::maybe<float> _real_ambient_light = util::nothing();
+			util::maybe<float> _ambient_light_override = util::nothing();
 
+			util::Command_marker _last_saved;
 			Level_info _level_metadata;
 
 			auto _handle_pointer_cam(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;

@@ -26,13 +26,19 @@ namespace util {
 		virtual auto name()const -> const std::string& = 0;
 	};
 
+	using Command_marker = const void*;
+
 	class Command_manager {
 		public:
 			void execute(std::unique_ptr<Command> cmd);
 
 			template<class T, class... Args>
-			void execute(Args&&... args) {
-				execute(std::make_unique<T>(std::forward<Args>(args)...));
+			T& execute(Args&&... args) {
+				auto ptr = std::make_unique<T>(std::forward<Args>(args)...);
+				auto& ref = *ptr;
+				execute(std::move(ptr));
+
+				return ref;
 			}
 
 			void clear() {_commands.clear(); _history_size=0;}
@@ -45,6 +51,9 @@ namespace util {
 
 			auto undo_available()const -> bool {return _history_size>0;}
 			auto redo_available()const -> bool {return _history_size<_commands.size();}
+
+			bool is_last(Command_marker marker)const;
+			auto get_last()const -> Command_marker;
 
 		private:
 			std::vector<std::unique_ptr<Command>> _commands;

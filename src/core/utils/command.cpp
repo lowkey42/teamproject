@@ -1,5 +1,7 @@
 #include "command.hpp"
 
+#include "log.hpp"
+
 
 namespace lux {
 namespace util {
@@ -46,6 +48,16 @@ namespace util {
 		}
 
 		return names;
+	}
+
+	bool Command_manager::is_last(Command_marker marker)const {
+		return !_commands.empty() && !redo_available() && _commands.back().get()==marker;
+	}
+	auto Command_manager::get_last()const -> Command_marker {
+		if(_commands.empty() || _history_size<=0)
+			return nullptr;
+		else
+			return _commands.at(_history_size-1).get();
 	}
 
 }

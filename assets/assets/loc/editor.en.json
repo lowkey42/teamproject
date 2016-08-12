@@ -35,6 +35,19 @@
         "bi_terrain": "Terrain",
         "bi_lights": "Light sources",
         "bi_decoration": "Decorations"
+    },
+
+    "editor": {
+        "settings": "Settings",
+        "name": "Name:",
+        "author": "Author:",
+        "description": "Description:",
+        "ambient light": "Ambient light:",
+        "intensity": "Intensity:",
+        "sun": "Sun:",
+        "background": "Background:",
+        "brightness": "Brightness:",
+        "music": "Music:"
     }
 
 }

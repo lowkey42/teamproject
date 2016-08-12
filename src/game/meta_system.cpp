@@ -203,6 +203,13 @@ namespace lux {
 
 	void Meta_system::light_config(Rgb sun_light, glm::vec3 sun_dir, float ambient_brightness,
 	                               Rgba background_tint, float environment_brightness) {
+		auto sun_dir_len = glm::length(sun_dir);
+		if(sun_dir_len<0.0001f) {
+			sun_dir = glm::normalize(glm::vec3{0.1f, -0.5f, 0.5f});
+		} else {
+			sun_dir = sun_dir / sun_dir_len;
+		}
+
 		lights.config(sun_light,
 		              sun_dir,
 		              ambient_brightness,

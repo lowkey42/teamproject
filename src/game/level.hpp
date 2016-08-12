@@ -26,10 +26,13 @@ namespace lux {
 		std::string environment_id;
 		float environment_brightness = 1.f;
 		Rgb environment_light_color;
-		glm::vec3 environment_light_direction;
+		glm::vec3 environment_light_direction = {0.1f, -0.5f, 0.5f};
 		float ambient_brightness;
 		Rgba background_tint {1,1,1,0};
 		std::string music_id;
+
+		bool operator==(const Level_info& rhs)const noexcept;
+		bool operator!=(const Level_info& rhs)const noexcept {return !(*this==rhs);}
 	};
 	using Level_info_ptr = std::shared_ptr<const Level_info>;
 

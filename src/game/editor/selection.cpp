@@ -195,11 +195,14 @@ namespace editor {
 		}
 	}
 	void Selection::_on_mouse_released(glm::vec2 mp) {
+		auto done_something = false;
+
 		if(_selected_entity && _current_action!=Action_type::none && _current_action!=Action_type::inactive) {
 			if(_current_action==Action_type::mod_form && _selected_entity->has<Terrain_comp>()) {
 				if(_snap_to_grid) {
 					_curr_point_position = glm::round(_curr_point_position*2.f) / 2.f;
 				}
+				done_something = true;
 				_commands.execute<Point_moved_cmd>(_selected_entity,
 				                                   _current_shape_index,
 				                                   _point_created,
@@ -208,6 +211,7 @@ namespace editor {
 
 			} else if(_selected_entity->has<physics::Transform_comp>()) {
 				auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+				done_something = true;
 				_commands.execute<Transform_cmd>(*this, _selected_entity,
 				                                 _curr_copy && _curr_copy_created,
 				                                 transform.position(),
@@ -223,10 +227,8 @@ namespace editor {
 
 
 		// if click
-		if(glm::length2(mp-_mouse_pressed_pos)<5.0f) {
+		if(glm::length2(mp-_mouse_pressed_pos)<5.0f && !done_something) {
 			_change_selection(_mouse_pressed_pos);
-		}else {
-			DEBUG("DRAG: "<<glm::length2(mp-_mouse_pressed_pos));
 		}
 	}
 

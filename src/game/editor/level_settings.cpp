@@ -2,119 +2,161 @@
 
 #include <core/gui/gui.hpp>
 #include <core/gui/translations.hpp>
+#include <core/utils/command.hpp>
 
 
 namespace lux {
 namespace editor {
+
+	namespace {
+		void apply_metadata(Meta_system& systems, const Level_info& data) {
+			systems.light_config(data.environment_light_color,
+			                     data.environment_light_direction,
+			                     data.ambient_brightness,
+			                     data.background_tint,
+			                     data.environment_brightness );
+		}
+
+		class Metadata_update_cmd : public util::Command {
+			public:
+				Metadata_update_cmd(Meta_system& systems, Level_info& live, Level_info next)
+				    : _systems(systems),
+				      _prev_metadata(next),
+				      _live_metadata(live) {
+				}
+
+				void execute() override {
+					std::swap(_prev_metadata, _live_metadata);
+					apply_metadata(_systems, _live_metadata);
+				}
+				void undo() override {
+					std::swap(_prev_metadata, _live_metadata);
+					apply_metadata(_systems, _live_metadata);
+				}
+				auto name()const -> const std::string& {
+					return _name;
+				}
+
+			private:
+				static const std::string _name;
+
+				Meta_system& _systems;
+				Level_info _prev_metadata;
+				Level_info& _live_metadata;
+		};
+		const std::string Metadata_update_cmd::_name = "Metadata changed";
+	}
 
 	struct Level_settings::PImpl {
 		std::string last_level_id;
 		gui::Text_edit input_name;
 		gui::Text_edit input_desc;
 		gui::Text_edit input_author;
+		const util::Command* last_update_cmd = nullptr;
 	};
 
 	Level_settings::Level_settings(gui::Gui& gui, const gui::Translator& translator,
-	                               Meta_system& systems)
+	                               Meta_system& systems, util::Command_manager& commands,
+	                               Level_info& metadata)
 	    : _impl(std::make_unique<PImpl>()),
 	      _gui(gui),
 	      _translator(translator),
-	      _systems(systems) {
+	      _systems(systems),
+	      _commands(commands),
+	      _metadata(metadata) {
 	}
 	Level_settings::~Level_settings() = default;
 
-	void Level_settings::update_and_draw(Level_info& metadata) {
+	void Level_settings::update_and_draw() {
 
-		if(_impl->last_level_id!=metadata.id) {
-			_impl->last_level_id = metadata.id;
-			_impl->input_name.reset(metadata.name);
-			_impl->input_desc.reset(metadata.description);
-			_impl->input_author.reset(metadata.author);
+		if(_impl->last_level_id!=_metadata.id) {
+			_impl->last_level_id = _metadata.id;
+			_impl->input_name.reset(_metadata.name);
+			_impl->input_desc.reset(_metadata.description);
+			_impl->input_author.reset(_metadata.author);
 		}
 
-		// TODO: use translator
-		// TODO: allow for undo/redo
+		auto text = [&](auto& key) {
+			return _translator.translate("editor", key).c_str();
+		};
+
 
 		struct nk_panel layout;
 		auto ctx = _gui.ctx();
-		if (nk_begin(ctx, &layout, "Settings", nk_rect(0, 0, 400, 800),
+		if (nk_begin_titled(ctx, &layout, "settings", text("settings"), nk_rect(0, 0, 400, 800),
 		             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|
 		             NK_WINDOW_TITLE|NK_WINDOW_SCROLL_AUTO_HIDE)) {
+
+			auto data = _metadata; // temporary copy
 
 			constexpr auto row_h = 25;
 
 			nk_layout_row_dynamic(ctx, row_h, 1);
 
-			nk_label(ctx, "Name:", NK_TEXT_LEFT);
-			_impl->input_name.update_and_draw(ctx, NK_EDIT_FIELD, metadata.name);
+			nk_label(ctx, text("name"), NK_TEXT_LEFT);
+			_impl->input_name.update_and_draw(ctx, NK_EDIT_FIELD, data.name);
 
-			nk_label(ctx, "Author:", NK_TEXT_LEFT);
-			_impl->input_author.update_and_draw(ctx, NK_EDIT_FIELD, metadata.author);
+			nk_label(ctx, text("author"), NK_TEXT_LEFT);
+			_impl->input_author.update_and_draw(ctx, NK_EDIT_FIELD, data.author);
 
-			nk_label(ctx, "Description:", NK_TEXT_LEFT);
-			nk_layout_row_dynamic(ctx, _impl->input_desc.active() ? 120 : 50, 1);
-			_impl->input_desc.update_and_draw(ctx, NK_EDIT_BOX, metadata.description);
+			nk_label(ctx, text("description"), NK_TEXT_LEFT);
+			nk_layout_row_dynamic(ctx, 100, 1);
+			_impl->input_desc.update_and_draw(ctx, NK_EDIT_BOX, data.description);
 			nk_layout_row_dynamic(ctx, row_h, 1);
 
 			nk_layout_row_dynamic(ctx, row_h*2, 1);
-			nk_label(ctx, "Ambient light:", NK_TEXT_LEFT);
+			nk_label(ctx, text("ambient light"), NK_TEXT_LEFT);
 			nk_layout_row_dynamic(ctx, row_h, 1);
 
-			metadata.ambient_brightness = nk_propertyf(ctx, "Intensity:", 0,
-			                                           metadata.ambient_brightness,
-			                                           2.0, 0.04f,0.01f);
+			data.ambient_brightness = nk_propertyf(ctx, text("intensity"), 0,
+			                                       data.ambient_brightness,
+			                                       2.0, 0.01f,0.01f);
 
 			nk_layout_row_dynamic(ctx, row_h*2, 1);
-			nk_label(ctx, "Sun:", NK_TEXT_LEFT);
+			nk_label(ctx, text("sun"), NK_TEXT_LEFT);
 			nk_layout_row_dynamic(ctx, row_h, 1);
 
-			gui::color_picker(ctx, metadata.environment_light_color, 400, 10.f);
+			gui::color_picker(ctx, data.environment_light_color, 400, 10.f);
 			nk_layout_row_dynamic(ctx, row_h, 1);
 
-			auto& dir = metadata.environment_light_direction;
-			auto nx = nk_propertyf(ctx, "X:", -1.0, dir.x, 1.0, 0.04f,0.01f);
-			auto ny = nk_propertyf(ctx, "Y:", -1.0, dir.y, 1.0, 0.04f,0.01f);
-			auto nz = nk_propertyf(ctx, "Z:", -1.0, dir.z, 1.0, 0.04f,0.01f);
-			bool mod_x = std::abs(nx-dir.x)>0.0001f; dir.x = nx;
-			bool mod_y = std::abs(ny-dir.y)>0.0001f; dir.y = ny;
-			bool mod_z = std::abs(nz-dir.z)>0.0001f; dir.z = nz;
-			auto dir_len = glm::length(dir);
-			dir = dir_len>0.0001f ? dir/dir_len : glm::vec3(0,-0.9f,-0.43f);
-			if(mod_x) {
-				dir.x = nx;
-			} else if(mod_y) {
-				dir.y = ny;
-			} else if(mod_z) {
-				dir.z = nz;
+			auto& dir = data.environment_light_direction;
+			dir.x = nk_propertyf(ctx, "X:", -1.0, dir.x, 1.0, 0.01f,0.01f);
+			dir.y = nk_propertyf(ctx, "Y:", -1.0, dir.y, 1.0, 0.01f,0.01f);
+			dir.z = nk_propertyf(ctx, "Z:", -1.0, dir.z, 1.0, 0.01f,0.01f);
+
+			nk_layout_row_dynamic(ctx, row_h*2, 1);
+
+			nk_label(ctx, text("background"), NK_TEXT_LEFT);
+			nk_layout_row_dynamic(ctx, row_h, 1);
+			// TODO[low]: selection of image
+			data.environment_brightness = nk_propertyf(ctx, text("brightness"), 0,
+			                                           data.environment_brightness,
+			                                           1.0, 0.02f,0.005f);
+			gui::color_picker(ctx, data.background_tint, 400);
+			nk_layout_row_dynamic(ctx, row_h, 1);
+
+			nk_layout_row_dynamic(ctx, row_h*2, 1);
+
+			// TODO[low]: selection of music
+			nk_layout_row_dynamic(ctx, row_h, 1);
+
+			if(data!=_metadata) {
+				// reuse last command if nothing else has happend (avoids >9000 commands for gradual modifications)
+				if(_commands.is_last(_impl->last_update_cmd)) {
+					_metadata = std::move(data);
+					apply_metadata(_systems, _metadata);
+
+				} else {
+					_impl->last_update_cmd = &_commands.execute<Metadata_update_cmd>(_systems,
+					                                                                 _metadata,
+					                                                                 std::move(data) );
+				}
 			}
-
-			nk_layout_row_dynamic(ctx, row_h*2, 1);
-
-			nk_label(ctx, "Background:", NK_TEXT_LEFT);
-			nk_layout_row_dynamic(ctx, row_h, 1);
-			// TODO: selection of image
-			metadata.environment_brightness = nk_propertyf(ctx, "Brightness:", 0,
-			                                               metadata.environment_brightness,
-			                                               1.0, 0.02f,0.005f);
-			gui::color_picker(ctx, metadata.background_tint, 400);
-			nk_layout_row_dynamic(ctx, row_h, 1);
-
-			nk_layout_row_dynamic(ctx, row_h*2, 1);
-
-			// TODO: selection of music
-			nk_layout_row_dynamic(ctx, row_h, 1);
-
-
-			_systems.light_config(metadata.environment_light_color,
-			                      metadata.environment_light_direction,
-			                      metadata.ambient_brightness,
-			                      metadata.background_tint,
-			                      metadata.environment_brightness);
 
 		} else {
 			_visible = false;
 		}
-		nk_window_show(ctx, "Settings", _visible ? NK_SHOWN : NK_HIDDEN);
+		nk_window_show(ctx, "settings", _visible ? NK_SHOWN : NK_HIDDEN);
 		nk_end(ctx);
 	}
 

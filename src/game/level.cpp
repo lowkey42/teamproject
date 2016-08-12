@@ -67,6 +67,29 @@ namespace lux {
 				engine.assets().save<Level_list>("cfg:my_levels"_aid, level_list);
 			}
 		}
+
+		constexpr auto epsilon = 0.00001f;
+
+		template<class T>
+		bool is_vec_same(const T& lhs, const T& rhs) {
+			return glm::all(glm::lessThan(glm::abs(lhs-rhs), T(epsilon)));
+		}
+	}
+
+
+	bool Level_info::operator==(const Level_info& rhs)const noexcept {
+		return id==rhs.id
+		        && name==rhs.name
+		        && author==rhs.author
+		        && description==rhs.description
+		        && pack==rhs.pack
+		        && environment_id==rhs.environment_id
+		        && std::abs(environment_brightness-rhs.environment_brightness)<epsilon
+		        && is_vec_same(environment_light_color, rhs.environment_light_color)
+		        && is_vec_same(environment_light_direction, rhs.environment_light_direction)
+		        && std::abs(ambient_brightness-rhs.ambient_brightness)<epsilon
+		        && is_vec_same(background_tint, rhs.background_tint)
+		        && music_id==rhs.music_id;
 	}
 
 	auto list_local_levels(Engine& engine) -> std::vector<Level_info_ptr> {

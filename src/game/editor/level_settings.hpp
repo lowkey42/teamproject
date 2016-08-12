@@ -14,14 +14,16 @@
 
 namespace lux {
 namespace gui {class Translator; class Gui;}
+namespace util {class Command_manager;}
 namespace editor {
 
 	class Level_settings {
 		public:
-			Level_settings(gui::Gui&, const gui::Translator&, Meta_system&);
+			Level_settings(gui::Gui&, const gui::Translator&, Meta_system&,
+			               util::Command_manager& commands, Level_info& metadata);
 			~Level_settings();
 
-			void update_and_draw(Level_info&);
+			void update_and_draw();
 
 			void visible(bool v) {_visible = v;}
 			auto visible()const {return _visible;}
@@ -33,6 +35,8 @@ namespace editor {
 			gui::Gui& _gui;
 			const gui::Translator& _translator;
 			Meta_system& _systems;
+			util::Command_manager& _commands;
+			Level_info& _metadata;
 			bool _visible = false;
 	};
 

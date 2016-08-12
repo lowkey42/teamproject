@@ -70,7 +70,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 
 	float spec_mod_factor = 2.0 + metalness*40.0; //< not physicaly accurate, but makes metals more shiny
 	D*=mix(spec_mod_factor, 0.0, roughness); // TODO(this is a workaround): specular is to powerfull for realy rough surfaces
-	D = clamp(D, 0.0, 1000.0);
+	D = clamp(D, 0.0, 50.0);
 
 	// Fresnel (Schlick)
 	vec3 F0 = mix(vec3(0.16*reflectance*reflectance), albedo.rgb, 0.0);
