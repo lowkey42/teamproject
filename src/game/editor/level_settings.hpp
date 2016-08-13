@@ -25,6 +25,8 @@ namespace editor {
 
 			void update_and_draw();
 
+			void metadata_modified();
+
 			void visible(bool v) {_visible = v;}
 			auto visible()const {return _visible;}
 

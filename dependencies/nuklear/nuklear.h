@@ -4793,6 +4793,9 @@ nk_str_insert_at_rune(struct nk_str *str, int pos, const char *cstr, int len)
     NK_ASSERT(cstr);
     NK_ASSERT(len);
     if (!str || !cstr || !len) return 0;
+    if (pos==0)
+        return nk_str_insert_text_char(str, 0, cstr, len);
+
     begin = nk_str_at_rune(str, pos, &unicode, &glyph_len);
     buffer = nk_str_get_const(str);
     if (!begin) return 0;
@@ -4987,7 +4990,7 @@ nk_str_at_rune(struct nk_str *str, int pos, nk_rune *unicode, int *len)
             break;
         }
 
-        i+= glyph_len;
+        i++;
         src_len = src_len + glyph_len;
         glyph_len = nk_utf_decode(text + src_len, unicode, text_len - src_len);
     }
@@ -9249,9 +9252,7 @@ nk_font_text_width(nk_handle handle, float height, const char *text, int len)
     if (!glyph_len) return 0;
     while (text_len <= (int)len && glyph_len) {
         const struct nk_font_glyph *g;
-		if (unicode == NK_UTF_INVALID) {
-			break;
-		}
+        if (unicode == NK_UTF_INVALID) break;
 
         /* query currently drawn glyph information */
         g = nk_font_find_glyph(font, unicode);
@@ -10802,7 +10803,7 @@ nk_textedit_text(struct nk_text_edit *state, const char *text, int total_len)
                 nk_textedit_makeundo_replace(state, state->cursor, 1, 1);
                 nk_str_delete_runes(&state->string, state->cursor, 1);
             }
-            if (nk_str_insert_text_char(&state->string, state->cursor,
+            if (nk_str_insert_at_rune(&state->string, state->cursor,
                                         text+text_len, glyph_len))
             {
                 ++state->cursor;
@@ -10810,7 +10811,7 @@ nk_textedit_text(struct nk_text_edit *state, const char *text, int total_len)
             }
         } else {
             nk_textedit_delete_selection(state); /* implicitly clamps */
-            if (nk_str_insert_text_char(&state->string, state->cursor,
+            if (nk_str_insert_at_rune(&state->string, state->cursor,
                                         text+text_len, glyph_len))
             {
                 nk_textedit_makeundo_insert(state, state->cursor, 1);
@@ -13246,10 +13247,7 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
 
                     /* calculate 2d position */
                     cursor_pos.y = (float)(total_lines-1) * row_height;
-                    row_size = nk_text_calculate_text_bounds(font, text+row_begin,
-                                text_len-row_begin, row_height, &remaining,
-                                &out_offset, &glyph_offset, NK_STOP_ON_NEW_LINE);
-                    cursor_pos.x = row_size.x;
+                    cursor_pos.x = line_width;
                     cursor_ptr = text + text_len;
                 }
 
@@ -13264,10 +13262,7 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
 
                     /* calculate 2d position */
                     selection_offset_start.y = (float)(total_lines-1) * row_height;
-                    row_size = nk_text_calculate_text_bounds(font, text+row_begin,
-                                text_len-row_begin, row_height, &remaining,
-                                &out_offset, &glyph_offset, NK_STOP_ON_NEW_LINE);
-                    selection_offset_start.x = row_size.x;
+                    selection_offset_start.x = line_width;
                     select_begin_ptr = text + text_len;
                 }
 
@@ -13282,10 +13277,7 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
 
                     /* calculate 2d position */
                     selection_offset_end.y = (float)(total_lines-1) * row_height;
-                    row_size = nk_text_calculate_text_bounds(font, text+row_begin,
-                                text_len-row_begin, row_height, &remaining,
-                                &out_offset, &glyph_offset, NK_STOP_ON_NEW_LINE);
-                    selection_offset_end.x = row_size.x;
+                    selection_offset_end.x = line_width;
                     select_end_ptr = text + text_len;
                 }
                 if (unicode == '\n') {
@@ -13296,6 +13288,8 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
                     glyphs++;
                     row_begin = text_len;
                     glyph_len = nk_utf_decode(text + text_len, &unicode, len-text_len);
+                    glyph_width = font->width(font->userdata, font->height,
+                        text+text_len, glyph_len);
                     continue;
                 }
 
@@ -13303,15 +13297,15 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
                 text_len += glyph_len;
                 line_width += (float)glyph_width;
 
+                glyph_len = nk_utf_decode(text + text_len, &unicode, len-text_len);
                 glyph_width = font->width(font->userdata, font->height,
                     text+text_len, glyph_len);
-                glyph_len = nk_utf_decode(text + text_len, &unicode, len-text_len);
                 continue;
             }
             text_size.y = (float)total_lines * row_height;
 
             /* handle case if cursor is at end of text buffer */
-            if (!cursor_ptr && edit->cursor == edit->string.len) {
+            if (!cursor_ptr && edit->cursor >= glyphs) {
                 cursor_pos.x = line_width;
                 cursor_pos.y = text_size.y - row_height;
             }
@@ -13485,6 +13479,7 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
             }
         }}
     } else {
+        nk_push_scissor(out, clip);
         /* not active so just draw text */
         int l = nk_str_len(&edit->string);
         const char *begin = nk_str_get_const(&edit->string);

@@ -19,8 +19,10 @@ namespace editor {
 
 		class Metadata_update_cmd : public util::Command {
 			public:
-				Metadata_update_cmd(Meta_system& systems, Level_info& live, Level_info next)
-				    : _systems(systems),
+				Metadata_update_cmd(Level_settings& settings,
+				                    Meta_system& systems, Level_info& live, Level_info next)
+				    : _settings(settings),
+				      _systems(systems),
 				      _prev_metadata(next),
 				      _live_metadata(live) {
 				}
@@ -28,9 +30,14 @@ namespace editor {
 				void execute() override {
 					std::swap(_prev_metadata, _live_metadata);
 					apply_metadata(_systems, _live_metadata);
+					if(!_first_exec) {
+						_settings.metadata_modified();
+					}
+					_first_exec = false;
 				}
 				void undo() override {
 					std::swap(_prev_metadata, _live_metadata);
+					_settings.metadata_modified();
 					apply_metadata(_systems, _live_metadata);
 				}
 				auto name()const -> const std::string& {
@@ -40,6 +47,8 @@ namespace editor {
 			private:
 				static const std::string _name;
 
+				Level_settings& _settings;
+				bool _first_exec = true;
 				Meta_system& _systems;
 				Level_info _prev_metadata;
 				Level_info& _live_metadata;
@@ -67,8 +76,11 @@ namespace editor {
 	}
 	Level_settings::~Level_settings() = default;
 
-	void Level_settings::update_and_draw() {
+	void Level_settings::metadata_modified() {
+		_impl->last_level_id.clear();
+	}
 
+	void Level_settings::update_and_draw() {
 		if(_impl->last_level_id!=_metadata.id) {
 			_impl->last_level_id = _metadata.id;
 			_impl->input_name.reset(_metadata.name);
@@ -85,7 +97,7 @@ namespace editor {
 		auto ctx = _gui.ctx();
 		if (nk_begin_titled(ctx, &layout, "settings", text("settings"), nk_rect(0, 0, 400, 800),
 		             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE|
-		             NK_WINDOW_TITLE|NK_WINDOW_SCROLL_AUTO_HIDE)) {
+		             NK_WINDOW_TITLE|NK_WINDOW_SCALABLE|NK_WINDOW_SCROLL_AUTO_HIDE)) {
 
 			auto data = _metadata; // temporary copy
 
@@ -135,10 +147,7 @@ namespace editor {
 			gui::color_picker(ctx, data.background_tint, 400);
 			nk_layout_row_dynamic(ctx, row_h, 1);
 
-			nk_layout_row_dynamic(ctx, row_h*2, 1);
-
 			// TODO[low]: selection of music
-			nk_layout_row_dynamic(ctx, row_h, 1);
 
 			if(data!=_metadata) {
 				// reuse last command if nothing else has happend (avoids >9000 commands for gradual modifications)
@@ -147,7 +156,8 @@ namespace editor {
 					apply_metadata(_systems, _metadata);
 
 				} else {
-					_impl->last_update_cmd = &_commands.execute<Metadata_update_cmd>(_systems,
+					_impl->last_update_cmd = &_commands.execute<Metadata_update_cmd>(*this,
+					                                                                 _systems,
 					                                                                 _metadata,
 					                                                                 std::move(data) );
 				}

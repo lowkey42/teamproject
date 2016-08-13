@@ -76,10 +76,6 @@ namespace lux {
 		                 [&]{_load_next_level(-1);},
 		                 [&]{return _load_next_level_allowed();} );
 
-		_menu.add_action("load"_strid, "tex:editor_icon_load"_aid, tooltip("load"),
-		                 [&]{/*TODO: open dialog*/});
-		_menu.disable_action("load"_strid); // remove after impl
-
 		_menu.add_action("load_next"_strid, "tex:editor_icon_load_next"_aid, tooltip("load_next"),
 		                 [&]{_load_next_level(1);},
 		                 [&]{return _load_next_level_allowed();} );

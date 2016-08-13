@@ -51,9 +51,6 @@ namespace lux {
 
 			Meta_system _systems;
 
-			// TODO: save-file management
-			// TODO: plot player movement trail
-
 			renderer::Camera_2d _camera_menu;
 			renderer::Camera_sidescroller _camera_world;
 

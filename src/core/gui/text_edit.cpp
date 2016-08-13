@@ -20,7 +20,7 @@ namespace gui {
 
 		nk_textedit_free(&_data.get_or_throw());
 		nk_textedit_init_default(&_data.get_or_throw());
-		nk_str_append_text_utf8(&_data.get_or_throw().string, str.data(), static_cast<int>(str.length()));
+		nk_str_append_text_char(&_data.get_or_throw().string, str.data(), static_cast<int>(str.length()));
 	}
 
 	void Text_edit::get(std::string& str)const {

@@ -27,9 +27,9 @@ namespace lux {
 namespace gui {
 
 	// TODO: gamepad input: https://gist.github.com/vurtun/519801825b4ccfad6767
+	//                      https://github.com/vurtun/nuklear/issues/50
 	// TODO: theme support: https://github.com/vurtun/nuklear/blob/master/demo/style.c
 	//                      https://github.com/vurtun/nuklear/blob/master/example/skinning.c
-	// TODO[bug]: input fields don't handle mutlibyte characters correctly
 	// TODO: merge fixes in nuklear.h back into upstream
 	class Gui {
 		public:
