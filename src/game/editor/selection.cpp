@@ -195,31 +195,43 @@ namespace editor {
 		}
 	}
 	void Selection::_on_mouse_released(glm::vec2 mp) {
-		auto done_something = false;
+		static constexpr auto epsilon = 0.0000001f;
+		auto handled = false;
 
 		if(_selected_entity && _current_action!=Action_type::none && _current_action!=Action_type::inactive) {
 			if(_current_action==Action_type::mod_form && _selected_entity->has<Terrain_comp>()) {
 				if(_snap_to_grid) {
 					_curr_point_position = glm::round(_curr_point_position*2.f) / 2.f;
 				}
-				done_something = true;
-				_commands.execute<Point_moved_cmd>(_selected_entity,
-				                                   _current_shape_index,
-				                                   _point_created,
-				                                   _curr_point_position,
-				                                   _prev_point_position);
+
+				if(_point_created || glm::length2(_curr_point_position-_prev_point_position)>=epsilon) {
+					handled = true;
+					_commands.execute<Point_moved_cmd>(_selected_entity,
+					                                   _current_shape_index,
+					                                   _point_created,
+					                                   _curr_point_position,
+					                                   _prev_point_position);
+				}
 
 			} else if(_selected_entity->has<physics::Transform_comp>()) {
 				auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-				done_something = true;
-				_commands.execute<Transform_cmd>(*this, _selected_entity,
-				                                 _curr_copy && _curr_copy_created,
-				                                 transform.position(),
-				                                 transform.rotation(),
-				                                 transform.scale(),
-				                                 _prev_entity_position*1_m,
-				                                 _prev_entity_rotation,
-				                                 _prev_entity_scale);
+
+				auto diff_pos = remove_units(transform.position()) - _prev_entity_position;
+				auto diff_rot = transform.rotation() - _prev_entity_rotation;
+				auto diff_scale = transform.scale() - _prev_entity_scale;
+				auto copied = _curr_copy && _curr_copy_created;
+
+				if(copied || glm::length2(diff_pos)>=epsilon || abs(diff_rot)>=epsilon || abs(diff_scale)>=epsilon) {
+					handled = true;
+					_commands.execute<Transform_cmd>(*this, _selected_entity,
+					                                 _curr_copy && _curr_copy_created,
+					                                 transform.position(),
+					                                 transform.rotation(),
+					                                 transform.scale(),
+					                                 _prev_entity_position*1_m,
+					                                 _prev_entity_rotation,
+					                                 _prev_entity_scale);
+				}
 			}
 		}
 
@@ -227,7 +239,7 @@ namespace editor {
 
 
 		// if click
-		if(glm::length2(mp-_mouse_pressed_pos)<5.0f && !done_something) {
+		if(glm::length2(mp-_mouse_pressed_pos)<5.0f && !handled) {
 			_change_selection(_mouse_pressed_pos);
 		}
 	}
