@@ -40,7 +40,7 @@ namespace editor {
 					_settings.metadata_modified();
 					apply_metadata(_systems, _live_metadata);
 				}
-				auto name()const -> const std::string& {
+				auto name()const -> const std::string& override {
 					return _name;
 				}
 

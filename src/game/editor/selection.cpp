@@ -221,7 +221,9 @@ namespace editor {
 				auto diff_scale = transform.scale() - _prev_entity_scale;
 				auto copied = _curr_copy && _curr_copy_created;
 
-				if(copied || glm::length2(diff_pos)>=epsilon || abs(diff_rot)>=epsilon || abs(diff_scale)>=epsilon) {
+				if(copied || glm::length2(diff_pos)>=epsilon
+				        || std::abs(diff_rot)>=epsilon
+				        || std::abs(diff_scale)>=epsilon) {
 					handled = true;
 					_commands.execute<Transform_cmd>(*this, _selected_entity,
 					                                 _curr_copy && _curr_copy_created,

@@ -35,6 +35,13 @@ namespace lux {
 				static_cast<int>(size.y),
 				true, true};
 		}
+		auto create_effect_framebuffer(Engine& engine) {
+			auto size = shadowbuffer_size(engine);
+			return Framebuffer{
+				static_cast<int>(size.x),
+				static_cast<int>(size.y),
+				false, true};
+		}
 		auto create_decals_framebuffer(Engine& engine) {
 			auto size = shadowbuffer_size(engine) / 2.f;
 			return Framebuffer{
@@ -57,7 +64,7 @@ namespace lux {
 			    graphics_ctx(engine.graphics_ctx()),
 			    canvas{create_framebuffer(engine), create_framebuffer(engine)},
 			    blur_canvas{create_blur_framebuffer(engine), create_blur_framebuffer(engine)},
-			    motion_blur_canvas(create_framebuffer(engine)),
+			    motion_blur_canvas(create_effect_framebuffer(engine)),
 			    decals_canvas(create_decals_framebuffer(engine))
 			{
 				render_queue.shared_uniforms(std::make_unique<Global_uniform_map>());
@@ -160,15 +167,13 @@ namespace lux {
 						motion_blur_shader.bind();
 						motion_blur_shader.set_uniform("dir", motion_blur_dir*motion_blur_intensity);
 
-						constexpr auto steps = 1;
-						for(auto i : util::range(steps*2)) {
-							auto src = i%2;
-							auto dest = src>0?0:1;
-
-							auto fbo_cleanup = Framebuffer_binder{dest==0 ? active_canvas() : motion_blur_canvas};
-
-							renderer::draw_fullscreen_quad(src==0 ? active_canvas() : motion_blur_canvas, Texture_unit::last_frame);
-						}
+						motion_blur_canvas.bind_target();
+						motion_blur_canvas.clear();
+						renderer::draw_fullscreen_quad(active_canvas(), Texture_unit::last_frame);
+						active_canvas().bind_target();
+						renderer::draw_fullscreen_quad(motion_blur_canvas, Texture_unit::last_frame);
+						active_canvas().unbind_target();
+						active_canvas().bind(int(Texture_unit::last_frame));
 					}
 				}
 
