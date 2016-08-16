@@ -28,10 +28,11 @@ namespace renderer {
 		int display;
 		bool fullscreen;
 		bool borderless_fullscreen;
-		float gamma;
-		bool bloom;
-		float supersampling;
-		float shadow_softness;
+		float gamma = 2.2f;
+		bool bloom = true;
+		float supersampling = 1.0f;
+		float shadow_softness = 0.5f;
+		bool fast_lighting = false;
 	};
 
 	extern auto default_settings(int display=0) -> Graphics_settings;

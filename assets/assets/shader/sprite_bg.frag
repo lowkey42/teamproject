@@ -83,7 +83,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 
 float my_smoothstep(float edge0, float edge1, float x) {
 	x = clamp((x-edge0)/(edge1-edge0), 0.0, 1.0);
-	return x*x*x*(x*(x*6.0 -15.0) + 10.0);
+	return x*x*(3.0-2.0*x);
 }
 
 vec3 calc_point_light(Point_light light, vec3 normal, vec3 albedo, vec3 view_dir, float roughness, float metalness, float reflectance) {
@@ -97,8 +97,7 @@ vec3 calc_point_light(Point_light light, vec3 normal, vec3 albedo, vec3 view_dir
 	float theta = atan(light_dir.y, -light_dir.x)-light.dir;
 	theta = ((theta/(2.0*PI)) - floor(theta/(2.0*PI))) * 2.0*PI - PI;
 
-	float max_angle = (light.angle + my_smoothstep(1.8*PI, 2.0*PI, light.angle)*0.2) / 2.0;
-	attenuation *= my_smoothstep(0.0, 0.1, clamp(max_angle-abs(theta), -1.0, 1.0));
+	attenuation *= my_smoothstep(0.0, 0.1, clamp(light.angle-abs(theta), -1.0, 1.0));
 
 	return calc_light(light_dir, light.color, normal, albedo, view_dir, roughness, metalness, reflectance) * attenuation;
 }

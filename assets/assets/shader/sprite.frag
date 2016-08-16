@@ -40,6 +40,7 @@ uniform Point_light light[8];
 
 uniform vec3 eye;
 uniform float alpha_cutoff;
+uniform bool fast_lighting;
 
 float G1V ( float dotNV, float k ) {
 	return 1.0 / (dotNV*(1.0 - k) + k);
@@ -95,7 +96,7 @@ vec3 calc_light(vec3 light_dir, vec3 light_color, vec3 normal, vec3 albedo, vec3
 
 float my_smoothstep(float edge0, float edge1, float x) {
 	x = clamp((x-edge0)/(edge1-edge0), 0.0, 1.0);
-	return x*x*x*(x*(x*6.0 -15.0) + 10.0);
+	return x*x*(3.0-2.0*x);
 }
 
 float calc_shadow(int light_num) {
@@ -114,12 +115,13 @@ vec3 calc_point_light(Point_light light, vec3 normal, vec3 albedo, vec3 view_dir
 
 	float attenuation = clamp(1.0 / (light.factors.x + light_dist*light.factors.y + light_dist*light_dist*light.factors.z)-0.01, 0.0, 1.0);
 
-	const float PI = 3.141;
-	float theta = atan(light_dir.y, -light_dir.x)-light.dir;
-	theta = ((theta/(2.0*PI)) - floor(theta/(2.0*PI))) * 2.0*PI - PI;
+	if(!fast_lighting) {
+		const float PI = 3.141;
+		float theta = atan(light_dir.y, -light_dir.x)-light.dir;
+		theta = ((theta/(2.0*PI)) - floor(theta/(2.0*PI))) * 2.0*PI - PI;
 
-	float max_angle = (light.angle + my_smoothstep(1.8*PI, 2.0*PI, light.angle)*1.0) / 2.0;
-	attenuation *= my_smoothstep(-0.2, 0.6, clamp(max_angle-abs(theta), -1.0, 1.0));
+		attenuation *= my_smoothstep(-0.2, 0.6, clamp(light.angle-abs(theta), -1.0, 1.0));
+	}
 
 	return calc_light(light_dir, light.color, normal, albedo, view_dir, roughness, metalness, reflectance) * attenuation;
 }
@@ -192,14 +194,22 @@ void main() {
 
 	vec3 view_dir = normalize(pos_frag-vec3(eye.xy, eye.z*10.0));
 
-	vec3 ambient = (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
+	vec3 ambient = fast_lighting ? vec3(light_ambient*0.5) : (pow(textureCube(environment_tex, normal, 10.0).rgb, vec3(2.2)) * light_ambient);
 	vec3 color = vec3(0.0);
 
-	for(int i=0; i<2; i++) {
-		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance) * calc_shadow(i);
-	}
-	for(int i=2; i<8; i++) {
-		color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
+
+	if(fast_lighting) {
+		for(int i=0; i<4; i++) {
+			color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
+		}
+
+	} else {
+		for(int i=0; i<2; i++) {
+			color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance) * calc_shadow(i);
+		}
+		for(int i=2; i<8; i++) {
+			color += calc_point_light(light[i], normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
+		}
 	}
 
 	// in low-light scene, discard colors but keep down-scaled luminance
@@ -208,9 +218,11 @@ void main() {
 	color += albedo.rgb * ambient;
 	color += calc_dir_light(light_sun, normal, albedo.rgb, view_dir, roughness, metalness, reflectance);
 
-	vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,normal), 10.0*roughness).rgb, vec3(2.2));
-	refl *= mix(vec3(1,1,1), albedo.rgb, metalness);
-	color += refl*reflectance*0.2;
+	if(!fast_lighting) {
+		vec3 refl = pow(textureCube(environment_tex, reflect(view_dir,normal), 10.0*roughness).rgb, vec3(2.2));
+		refl *= mix(vec3(1,1,1), albedo.rgb, metalness);
+		color += refl*reflectance*0.2;
+	}
 
 	color = mix(color, albedo.rgb*3.0, emmision);
 

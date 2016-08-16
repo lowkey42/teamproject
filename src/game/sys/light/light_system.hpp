@@ -54,7 +54,8 @@ namespace light {
 			auto background_tint()const noexcept {return _background_tint;}
 
 			auto shadowcaster_batch() -> auto& {return _shadowcaster_batch;}
-			void prepare_draw(renderer::Command_queue&, const renderer::Camera& camera);
+			void prepare_draw(renderer::Command_queue&, const renderer::Camera& camera,
+			                  bool shadows=true);
 			void update(Time dt);
 
 		private:

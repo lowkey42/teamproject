@@ -104,7 +104,8 @@ namespace renderer {
 		gamma,
 		bloom,
 		supersampling,
-		shadow_softness
+		shadow_softness,
+		fast_lighting
 	)
 
 	auto default_settings(int display) -> Graphics_settings {
@@ -126,6 +127,7 @@ namespace renderer {
 		s.bloom = true;
 		s.supersampling = 1.f;
 		s.shadow_softness = 0.5f;
+		s.fast_lighting = false;
 
 		return s;
 
@@ -140,6 +142,7 @@ namespace renderer {
 		s.bloom = false;
 		s.supersampling = 1.f;
 		s.shadow_softness = 0.0f;
+		s.fast_lighting = false;
 
 		return s;
 #endif

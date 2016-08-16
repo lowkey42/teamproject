@@ -54,7 +54,7 @@ namespace lux {
 			return Framebuffer{
 				static_cast<int>(size.x),
 				static_cast<int>(size.y),
-				false, false};
+				false, true};
 		}
 	}
 
@@ -286,9 +286,13 @@ namespace lux {
 		_post_renderer->decals_canvas.bind(int(Texture_unit::decals));
 
 		auto uniforms = queue.shared_uniforms();
+		const auto fast_lighting = _engine.graphics_ctx().settings().fast_lighting;
+		uniforms->emplace("fast_lighting", fast_lighting);
 
-		renderer.draw_shadowcaster(lights.shadowcaster_batch(), cam);
-		lights.prepare_draw(queue, cam);
+		if(!fast_lighting) {
+			renderer.draw_shadowcaster(lights.shadowcaster_batch(), cam);
+		}
+		lights.prepare_draw(queue, cam, !fast_lighting);
 
 		{
 			// reuses the shadow/light camera, that is further away from the scene,

@@ -162,7 +162,8 @@ namespace light {
 		}
 	}
 	void Light_system::prepare_draw(renderer::Command_queue& queue,
-	                                const renderer::Camera& camera) {
+	                                const renderer::Camera& camera,
+	                                bool shadows) {
 
 		std::array<Light_info, max_lights> lights{};
 		fill_with_relevant_lights(camera, _lights, lights);
@@ -170,12 +171,14 @@ namespace light {
 		auto uniforms = queue.shared_uniforms();
 		_setup_uniforms(*uniforms, camera, lights);
 
-		_draw_occlusion_map(uniforms);
-		_draw_shadow_map(lights);
-		_draw_final(lights);
-		_blur_shadows();
+		if(shadows) {
+			_draw_occlusion_map(uniforms);
+			_draw_shadow_map(lights);
+			_draw_final(lights);
+			_blur_shadows();
 
-		_occlusion_map[0].bind((int) Texture_unit::shadowmaps);
+			_occlusion_map[0].bind((int) Texture_unit::shadowmaps);
+		}
 	}
 	void Light_system::_draw_shadow_map(gsl::span<Light_info> lights) {
 		_shadowmap_shader.bind();
@@ -265,6 +268,10 @@ namespace light {
 			l.flat_pos = p.xy() / p.w;
 		}
 
+		auto process_angle = [&](auto a) {
+			return (a.value() + glm::smoothstep(1.8f*glm::pi<float>(), 2.0f*PI, a.value())*1.0f) / 2.0f;
+		};
+
 		// TODO: fade out light color, when they left the screen
 #define SET_LIGHT_UNIFORMS(N) \
 		if(lights[N].light) {\
@@ -273,7 +280,7 @@ namespace light {
 			uniforms.emplace("light["#N"].dir", -lights[N].transform->rotation().value()\
 			                                               + lights[N].light->_direction.value());\
 \
-			uniforms.emplace("light["#N"].angle", lights[N].light->_angle.value());\
+			uniforms.emplace("light["#N"].angle", process_angle(lights[N].light->_angle));\
 			uniforms.emplace("light["#N"].color", lights[N].light->color()); \
 			uniforms.emplace("light["#N"].factors", lights[N].light->_factors);\
 		} else {\

@@ -127,6 +127,9 @@ namespace input {
 	}
 
 	void Input_manager::update(Time dt) {
+		for(auto i : util::range(_max_pointers))
+			_pointer_world_pos[i] = _screen_to_world_coords(_pointer_screen_pos[i]);
+
 		for(auto& gp : _gamepads)
 			gp->update(dt);
 
