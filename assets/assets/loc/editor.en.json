@@ -47,7 +47,8 @@
         "sun": "Sun:",
         "background": "Background:",
         "brightness": "Brightness:",
-        "music": "Music:"
+        "music": "Music:",
+		"loading": "Loading..."
     }
 
 }

@@ -41,6 +41,8 @@ namespace gui {
 
 			auto ctx() -> nk_context*;
 
+			auto centered(int width, int height) -> struct nk_rect;
+
 
 		private:
 			struct PImpl;

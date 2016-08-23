@@ -18,7 +18,7 @@ namespace renderer {
 
 	class Skybox {
 		public:
-			Skybox(asset::Asset_manager&, const asset::AID& sky);
+			Skybox(asset::Asset_manager&);
 
 			void draw(Command_queue&)const;
 

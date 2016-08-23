@@ -258,7 +258,7 @@ namespace renderer {
 		} else {
 			if(count<=0) count = static_cast<int>(_data.at(0).size());
 
-			if(!_instanced) {
+			if(!_instanced || _data.size()==1) {
 				glDrawArrays(to_gl(_mode), offset, count);
 			} else {
 				glDrawArraysInstanced(to_gl(_mode), offset, count, _data.at(1).size());

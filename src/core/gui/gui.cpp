@@ -436,5 +436,12 @@ namespace gui {
 		return &_impl->ctx.ctx;
 	}
 
+	auto Gui::centered(int width, int height) -> struct nk_rect {
+		return nk_rect(_impl->camera.size().x/2.f - width/2.f,
+		               _impl->camera.size().y/2.f - height/2.f,
+		               width,
+		               height);
+	};
+
 }
 }

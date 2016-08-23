@@ -110,10 +110,12 @@ namespace lux {
 	auto get_level(Engine& engine, const std::string& id) -> Level_info_ptr {
 		return engine.assets().load<Level_info>(level_aid(id));
 	}
-	auto load_level(Engine& engine, ecs::Entity_manager& ecs, const std::string& id) -> Level_info {
+	auto load_level(Engine& engine, ecs::Entity_manager& ecs, const std::string& id) -> util::maybe<Level_info> {
 		auto data = engine.assets().load_raw(level_aid(id));
 
-		INVARIANT(!data.is_nothing(), "Level doesn't exists: "<<id);
+		if(data.is_nothing()) {
+			return util::nothing();
+		}
 
 		auto& stream = data.get_or_throw();
 

@@ -23,13 +23,13 @@ namespace lux {
 		std::string description;
 		std::string pack;
 
-		std::string environment_id;
+		std::string environment_id = "default_env";
 		float environment_brightness = 1.f;
-		Rgb environment_light_color;
+		Rgb environment_light_color = {0.1f, 0.1f, 0.1f};
 		glm::vec3 environment_light_direction = {0.1f, -0.5f, 0.5f};
-		float ambient_brightness;
+		float ambient_brightness = 0.25f;
 		Rgba background_tint {1,1,1,0};
-		std::string music_id;
+		std::string music_id = "default_music";
 
 		bool operator==(const Level_info& rhs)const noexcept;
 		bool operator!=(const Level_info& rhs)const noexcept {return !(*this==rhs);}
@@ -54,7 +54,7 @@ namespace lux {
 
 	extern auto list_local_levels(Engine&) -> std::vector<Level_info_ptr>;
 	extern auto get_level(Engine&, const std::string& id) -> Level_info_ptr;
-	extern auto load_level(Engine&, ecs::Entity_manager& ecs, const std::string& id) -> Level_info;
+	extern auto load_level(Engine&, ecs::Entity_manager& ecs, const std::string& id) -> util::maybe<Level_info>;
 	extern void save_level(Engine&, ecs::Entity_manager& ecs, const Level_info&);
 
 	extern auto list_level_packs(Engine&) -> std::vector<Level_pack_ptr>;

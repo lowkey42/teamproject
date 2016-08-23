@@ -77,6 +77,8 @@ void init(int argc, char** argv, char** env) {
 
 		if(argc>1 && argv[1]=="game"s) // TODO: reverse for release version
 			engine->screens().enter<World_map_screen>("jungle");
+		else if(argc>2 && argv[1]=="editor"s)
+			engine->screens().enter<Editor_screen>(argv[2]);
 		else
 			engine->screens().enter<Editor_screen>("jungle_01");
 

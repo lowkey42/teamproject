@@ -56,7 +56,7 @@ namespace lux {
 			Meta_system(Engine& engine);
 			~Meta_system();
 
-			auto load_level(const std::string& id) -> Level_info;
+			auto load_level(const std::string& id, bool create=false) -> Level_info;
 
 			void update(Time dt, Update_mask mask=update_all);
 			void update(Time dt, Update update=Update::none);

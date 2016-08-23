@@ -177,7 +177,7 @@ namespace renderer {
 #ifndef EMSCRIPTEN
 		_window.reset(SDL_CreateWindow(_name.c_str(),
 		                               SDL_WINDOWPOS_CENTERED_DISPLAY(display), SDL_WINDOWPOS_CENTERED_DISPLAY(display),
-		                               800, 600, win_flags) );
+		                               _settings->width, _settings->height, win_flags) );
 
 		if (!_window)
 			FAIL("Unable to create window");

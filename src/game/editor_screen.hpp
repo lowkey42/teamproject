@@ -74,6 +74,9 @@ namespace lux {
 			util::Command_marker _last_saved;
 			Level_info _level_metadata;
 
+			util::maybe<std::string> _load_requested = util::nothing();
+			bool _load_ready = false;
+
 			auto _handle_pointer_cam(util::maybe<glm::vec2> mp1, util::maybe<glm::vec2> mp2) -> bool;
 			void _load_next_level(int dir);
 			bool _load_next_level_allowed();

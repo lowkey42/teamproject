@@ -171,7 +171,8 @@ namespace lux {
 
 		_render_queue.shared_uniforms(renderer::make_uniform_map("vp", _camera_menu.vp()));
 
-		_level_metadata = _systems.load_level(level_id);
+		_load_requested = level_id;
+		// _level_metadata = _systems.load_level(level_id);
 	}
 
 	void Editor_screen::_load_next_level(int dir) {
@@ -183,7 +184,7 @@ namespace lux {
 
 				DEBUG("Level "<<curr_index.get_or_throw()<<" => "<<next_index<<"  aka "<<pack->level_ids.at(next_index).aid);
 
-				_level_metadata = _systems.load_level(pack->level_ids.at(next_index).aid);
+				_load_requested = pack->level_ids.at(next_index).aid;
 				_selection.select({});
 				_commands.clear();
 			} else {
@@ -195,7 +196,7 @@ namespace lux {
 		}
 	}
 	bool Editor_screen::_load_next_level_allowed() {
-		if(_level_metadata.pack.empty())
+		if(_level_metadata.pack.empty() || _load_requested.is_some())
 			return false;
 
 		auto pack = get_level_pack(_engine,_level_metadata.pack);
@@ -308,16 +309,38 @@ namespace lux {
 		}
 
 		if(_ambient_light_override.is_some()) {
-		    _systems.light_config(_level_metadata.environment_light_color,
+			_systems.light_config(_level_metadata.environment_light_color,
 		                          _level_metadata.environment_light_direction,
 		                          _ambient_light_override.get_or_throw(),
 		                          _level_metadata.background_tint);
-	    } else if(!_settings.visible()) {
-		    _systems.light_config(_level_metadata.environment_light_color,
+		} else if(!_settings.visible()) {
+			_systems.light_config(_level_metadata.environment_light_color,
 		                          _level_metadata.environment_light_direction,
 		                          _level_metadata.ambient_brightness,
 		                          _level_metadata.background_tint);
-	    }
+		}
+
+		if(_load_requested.is_some()) {
+			if(_load_ready) {
+				_level_metadata = _systems.load_level(_load_requested.get_or_throw(),
+				                                      true);
+				_load_ready = false;
+				_load_requested = util::nothing();
+
+			} else {
+				auto load_text = _engine.translator().translate("editor", "loading").c_str();
+
+				nk_panel p;
+				nk_begin_titled(_engine.gui().ctx(), &p, "loading",
+				                load_text,
+				                _engine.gui().centered(200, 120),
+				                NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_TITLE);
+				nk_layout_row_dynamic(_engine.gui().ctx(),40, 1);
+				nk_label(_engine.gui().ctx(), load_text, NK_TEXT_LEFT);
+				nk_end(_engine.gui().ctx());
+				_load_ready = true;
+			}
+		}
 	}
 
 

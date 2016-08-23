@@ -69,10 +69,8 @@ namespace renderer {
 		};
 	}
 
-	Skybox::Skybox(asset::Asset_manager& assets,
-	               const asset::AID& sky)
-	    : _obj(sky_vertex_layout, create_buffer(skybox_vertices)),
-	      _tex(assets.load<Texture>(sky)) {
+	Skybox::Skybox(asset::Asset_manager& assets)
+	    : _obj(sky_vertex_layout, create_buffer(skybox_vertices)) {
 
 		_prog
 		        .attach_shader(assets.load<Shader>("vert_shader:skybox"_aid))
@@ -80,13 +78,15 @@ namespace renderer {
 		        .bind_all_attribute_locations(sky_vertex_layout)
 		        .build()
 		        .uniforms(make_uniform_map(
-	                "texture", int(Texture_unit::environment)
-	            ));
-
-		_tex->bind(int(Texture_unit::environment));
+		            "texture", int(Texture_unit::environment)
+		        ));
 	}
 
 	void Skybox::draw(Command_queue& q)const {
+		if(!_tex) {
+			return;
+		}
+
 		if(_dirty) {
 			_prog.bind().set_uniform("tint", _tint).set_uniform("brightness", _brightness);
 			_dirty = false;

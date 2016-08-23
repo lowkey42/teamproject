@@ -197,7 +197,7 @@ namespace lux {
 	      gameplay(engine, entity_manager, physics, camera, controller, [&]{load_level(_current_level);}),
 
 	      _engine(engine),
-	      _skybox(engine.assets(), "tex_cube:default_env"_aid),
+	      _skybox(engine.assets()),
 	      _post_renderer(std::make_unique<Post_renderer>(engine)) {
 	}
 
@@ -236,9 +236,22 @@ namespace lux {
 		_skybox.tint(vec3(ambient_brightness) + sun_light);
 	}
 
-	auto Meta_system::load_level(const std::string& id) -> Level_info {
+	auto Meta_system::load_level(const std::string& id, bool create) -> Level_info {
 		_current_level = id;
-		auto level_meta_data = ::lux::load_level(_engine, entity_manager, id);
+		auto level_meta_data = [&] {
+			auto level = ::lux::load_level(_engine, entity_manager, id);
+			if(level.is_nothing()) {
+				INVARIANT(create, "Level doesn't exists: "<<id);
+
+				entity_manager.clear();
+				auto l = Level_info{};
+				l.id = id;
+				l.name = id;
+				return l;
+			}
+			return level.get_or_throw();
+		}();
+
 		_skybox.texture(_engine.assets().load<Texture>({"tex_cube"_strid, level_meta_data.environment_id}));
 
 		light_config(level_meta_data.environment_light_color,
