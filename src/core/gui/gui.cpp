@@ -441,7 +441,7 @@ namespace gui {
 		               _impl->camera.size().y/2.f - height/2.f,
 		               width,
 		               height);
-	};
+	}
 
 }
 }

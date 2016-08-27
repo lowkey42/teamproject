@@ -161,6 +161,12 @@ namespace gameplay {
 	void Gameplay_system::update_post_physic(Time dt) {
 		if(_first_update_after_reset) {
 			_mailbox.enable();
+
+			if(_players.size()==0) {
+				WARN("No players left in level after reload (level file might be compromised)");
+				_mailbox.send<Level_finished>();
+				return;
+			}
 			_first_update_after_reset = false;
 		}
 
@@ -181,12 +187,11 @@ namespace gameplay {
 			DEBUG("Everyone is dead!");
 
 			// set camera to slowly lerp back to player and block input
-			// TODO: maybe make the lerp time dependent on the distance to the start position
 			_camera_sys.start_slow_lerp(1.0_s);
 			_controller_sys.block_input(0.5_s);
 
 			_mailbox.disable();
-			_reload();
+			_reload();// FIXME: complete reload is too slow on some systems, maybe backup dynamic objects on start and only reset those
 			_game_timer = 0_s;
 			_first_update_after_reset = true;
 		}
