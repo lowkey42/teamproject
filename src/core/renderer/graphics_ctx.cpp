@@ -284,7 +284,7 @@ namespace renderer {
 			osstr<<(int(_cpu_delta_time_smoothed*10000.0f)/10.0f)<<" ms/frame [cpu])";
 
 #ifdef EMSCRIPTEN
-			DEBUG(_cpu_delta_time_smoothed);
+			// DEBUG(_cpu_delta_time_smoothed);
 #else
 			SDL_SetWindowTitle(_window.get(), osstr.str().c_str());
 #endif
