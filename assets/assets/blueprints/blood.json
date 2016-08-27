@@ -1,0 +1,15 @@
+{
+	"Transform":{
+	},
+	"Editor": {
+		"bounds": {"x":4, "y":4, "z":1}
+	},
+	"Decal": {
+		"size": {"x":4.0, "y":4.0},
+		"texture": "tex:blood_stain_white"
+	},
+	"Paint": {
+		"radius": 1.5,
+		"color": "white"
+	}
+}

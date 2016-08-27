@@ -1,3 +1,5 @@
+#define GLM_SWIZZLE
+
 #include "graphic_system.hpp"
 
 #include "../physics/transform_comp.hpp"
@@ -51,8 +53,9 @@ namespace graphic {
 	      _sprites(entity_manager.list<Sprite_comp>()),
 	      _anim_sprites(entity_manager.list<Anim_sprite_comp>()),
 	      _terrains(entity_manager.list<Terrain_comp>()),
-		  _particles(entity_manager.list<Particle_comp>()),
-		  _particle_renderer(asset_manager),
+	      _particles(entity_manager.list<Particle_comp>()),
+	      _decals(entity_manager.list<Decal_comp>()),
+	      _particle_renderer(asset_manager),
 	      _sprite_batch(512),
 	      _sprite_batch_bg(_background_shader, 256)
 	{
@@ -179,6 +182,20 @@ namespace graphic {
 				terrain._smart_texture.draw(position, batch);
 			}
 		}
+	}
+
+	void Graphic_system::draw_decals(renderer::Command_queue& queue,
+	                                 const renderer::Camera&)const {
+		for(Decal_comp& d : _decals) {
+			auto& trans = d.owner().get<physics::Transform_comp>().get_or_throw();
+			auto pos = remove_units(trans.position()).xy();
+			_decal_batch.insert(*d._texture,
+			                    pos,
+			                    d._size*trans.scale(),
+			                    trans.rotation());
+		}
+
+		_decal_batch.flush(queue);
 	}
 
 	void Graphic_system::update(Time dt) {

@@ -5,6 +5,15 @@ blueprint:test_bg = blueprints/test_bg.json
 blueprint:test_light = blueprints/test_light.json
 blueprint:terrain_dirt = blueprints/test.json
 
+blueprint:blood = blueprints/blood.json
+blueprint:blood_blue = blueprints/blood_blue.json
+blueprint:blood_cyan = blueprints/blood_cyan.json
+blueprint:blood_green = blueprints/blood_green.json
+blueprint:blood_magenta = blueprints/blood_magenta.json
+blueprint:blood_red = blueprints/blood_red.json
+blueprint:blood_white = blueprints/blood_white.json
+blueprint:blood_yellow = blueprints/blood_yellow.json
+
 blueprint:player = blueprints/player_green.json
 blueprint:player_base = blueprints/player_base.json
 

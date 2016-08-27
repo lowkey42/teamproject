@@ -30,9 +30,6 @@ namespace gameplay {
 
 
 	namespace {
-		constexpr auto blood_stain_radius = 2.0f;
-		constexpr auto blood_collision_scale = 0.75f;
-
 		float dot(vec2 a, vec2 b) {
 			return a.x*b.x + a.y*b.y;
 		}
@@ -49,38 +46,32 @@ namespace gameplay {
 	Gameplay_system::Gameplay_system(Engine& engine, ecs::Entity_manager& ecs,
 	                                 physics::Physics_system& physics_world,
 	                                 cam::Camera_system& camera_sys,
-	                                 controller::Controller_system& controller_sys,
-	                                 std::function<void()> reload)
+	                                 controller::Controller_system& controller_sys)
 	    : _engine(engine),
+	      _ecs(ecs),
 	      _mailbox(engine.bus()),
 	      _enlightened(ecs.list<Enlightened_comp>()),
 	      _players(ecs.list<Player_tag_comp>()),
 	      _lamps(ecs.list<Lamp_comp>()),
+	      _paints(ecs.list<Paint_comp>()),
 	      _finish_marker(ecs.list<Finish_marker_comp>()),
+	      _reset_comps(ecs.list<Reset_comp>()),
 	      _physics_world(physics_world),
 	      _camera_sys(camera_sys),
 	      _controller_sys(controller_sys),
-	      _reload(reload),
-	      _rng(util::create_random_generator()),
-	      _blood_batch(64,true) {
-
-		_blood_stain_textures[static_cast<uint8_t>(Light_color::white)] = engine.assets().load<Texture>("tex:blood_stain_white"_aid);
-		_blood_stain_textures[static_cast<uint8_t>(Light_color::red)] = engine.assets().load<Texture>("tex:blood_stain_red"_aid);
-		_blood_stain_textures[static_cast<uint8_t>(Light_color::green)] = engine.assets().load<Texture>("tex:blood_stain_green"_aid);
-		_blood_stain_textures[static_cast<uint8_t>(Light_color::blue)] = engine.assets().load<Texture>("tex:blood_stain_blue"_aid);
-		_blood_stain_textures[static_cast<uint8_t>(Light_color::cyan)] = engine.assets().load<Texture>("tex:blood_stain_cyan"_aid);
-		_blood_stain_textures[static_cast<uint8_t>(Light_color::magenta)] = engine.assets().load<Texture>("tex:blood_stain_magenta"_aid);
-		_blood_stain_textures[static_cast<uint8_t>(Light_color::yellow)] = engine.assets().load<Texture>("tex:blood_stain_yellow"_aid);
+	      _rng(util::create_random_generator()) {
 
 		ecs.register_component_type<Collectable_comp>();
 		ecs.register_component_type<Reflective_comp>();
 		ecs.register_component_type<Paintable_comp>();
+		ecs.register_component_type<Paint_comp>();
 		ecs.register_component_type<Transparent_comp>();
 		ecs.register_component_type<Lamp_comp>();
 		ecs.register_component_type<Light_leech_comp>();
 		ecs.register_component_type<Prism_comp>();
 		ecs.register_component_type<Deadly_comp>();
 		ecs.register_component_type<Finish_marker_comp>();
+		ecs.register_component_type<Reset_comp>();
 
 		_mailbox.subscribe_to([&](sys::physics::Collision& c) {
 			if(!_level_finished) {
@@ -145,16 +136,6 @@ namespace gameplay {
 		}
 	}
 
-	void Gameplay_system::draw_blood(renderer::Command_queue& q, const renderer::Camera&) {
-		for(auto& bs : _blood_stains) {
-			_blood_batch.insert(*_blood_stain_textures[static_cast<uint8_t>(bs.color)],
-			                    bs.position, glm::vec2{blood_stain_radius,blood_stain_radius}*2.f*bs.scale,
-			                    bs.rotation);
-		}
-
-		_blood_batch.flush(q);
-
-	}
 	void Gameplay_system::update_pre_physic(Time dt) {
 		_update_light(dt);
 	}
@@ -162,11 +143,22 @@ namespace gameplay {
 		if(_first_update_after_reset) {
 			_mailbox.enable();
 
+			for(auto& d : _reset_data) {
+				_ecs.restore(d);
+			}
+			_reset_data.clear();
+
 			if(_players.size()==0) {
 				WARN("No players left in level after reload (level file might be compromised)");
 				_mailbox.send<Level_finished>();
 				return;
 			}
+
+			_reset_data.reserve(_reset_comps.size());
+			for(Reset_comp& c : _reset_comps) {
+				_reset_data.push_back(c.owner().manager().backup(c.owner_ptr()));
+			}
+
 			_first_update_after_reset = false;
 		}
 
@@ -191,7 +183,9 @@ namespace gameplay {
 			_controller_sys.block_input(0.5_s);
 
 			_mailbox.disable();
-			_reload();// FIXME: complete reload is too slow on some systems, maybe backup dynamic objects on start and only reset those
+			for(Reset_comp& c : _reset_comps) {
+				c.owner().manager().erase(c.owner_ptr());
+			}
 			_game_timer = 0_s;
 			_first_update_after_reset = true;
 		}
@@ -219,12 +213,18 @@ namespace gameplay {
 		});
 
 		auto paint_res = hit->get<Paintable_comp>().process(Light_op_res{Light_color::black, Light_color::black},
-		                                                   [&](auto& p) {
+		                                                   [&](auto&) {
 			auto reflected = Light_color::black;
 
-			for(auto& bs : _blood_stains) {
-				if(glm::length2(bs.position-pos)<blood_stain_radius*blood_stain_radius*bs.scale*blood_collision_scale) {
-					reflected = reflected | interactive_color(bs.color, light._color);
+			for(auto& p : _paints) {
+				auto interaction = interactive_color(p._color, light._color);
+
+				if(interaction!=Light_color::black) {
+					auto& transform = p.owner().get<physics::Transform_comp>().get_or_throw();
+					auto paint_pos = remove_units(transform.position()).xy();
+					if(glm::length2(paint_pos-pos) < p._radius*p._radius*transform.scale()) {
+						reflected = reflected | interaction;
+					}
 				}
 			}
 
@@ -426,12 +426,44 @@ namespace gameplay {
 				auto light = e.get<Enlightened_comp>();
 				if(light.is_some()) {
 					auto& transform = e.get<physics::Transform_comp>().get_or_throw();
-					auto pos = remove_units(transform.position()).xy();
 					auto color = light.get_or_throw()._color;
-					_blood_stains.emplace_back(pos, color,
-					                           Angle::from_degrees(util::random_real(_rng, 0.f, 360.f)),
-					                           util::random_real(_rng, 0.8f, 1.0f));
+
+					ecs::Entity_ptr blood;
+
+					switch (color) {
+						case Light_color::blue:
+							blood = _ecs.emplace("blueprint:blood_blue"_aid);
+							break;
+						case Light_color::cyan:
+							blood = _ecs.emplace("blueprint:blood_cyan"_aid);
+							break;
+						case Light_color::green:
+							blood = _ecs.emplace("blueprint:blood_green"_aid);
+							break;
+						case Light_color::magenta:
+							blood = _ecs.emplace("blueprint:blood_magenta"_aid);
+							break;
+						case Light_color::red:
+							blood = _ecs.emplace("blueprint:blood_red"_aid);
+							break;
+						case Light_color::white:
+							blood = _ecs.emplace("blueprint:blood_white"_aid);
+							break;
+						case Light_color::yellow:
+							blood = _ecs.emplace("blueprint:blood_yellow"_aid);
+							break;
+						case Light_color::black:
+							break;
+					}
+
+					if(blood) {
+						auto& t = blood->get<physics::Transform_comp>().get_or_throw();
+						t.position(transform.position());
+						t.scale(util::random_real(_rng, 0.8f, 1.0f));
+						t.rotation(Angle::from_degrees(util::random_real(_rng, 0.f, 360.f)));
+					}
 				}
+
 				e.manager().erase(e.shared_from_this());
 				break;
 			}

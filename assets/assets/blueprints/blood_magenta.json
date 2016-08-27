@@ -1,0 +1,10 @@
+{
+	"$import": "blood",
+
+	"Decal": {
+		"texture": "tex:blood_stain_magenta"
+	},
+	"Paint": {
+		"color": "magenta"
+	}
+}

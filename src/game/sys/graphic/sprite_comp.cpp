@@ -31,8 +31,9 @@ namespace graphic {
 			sf2::vmember("decals_sticky", _decals_sticky)
 		);
 
-		_material = assets.load<renderer::Material>(asset::AID(aid));
-		INVARIANT(_material, "Material '"<<aid<<"' not found");
+		if(!aid.empty())
+			_material = assets.load<renderer::Material>(asset::AID(aid));
+
 		_hue_change_target = hc_target_deg * 1_deg;
 		_hue_change_replacement = hc_replacement_deg * 1_deg;
 	}
@@ -77,9 +78,11 @@ namespace graphic {
 			sf2::vmember("decals_sticky", _decals_sticky)
 		);
 
-		auto anim_set = assets.load<renderer::Sprite_animation_set>(asset::AID(aid));
-		INVARIANT(anim_set, "Animation_set '"<<aid<<"' not found");
-		_anim_state.animation_set(anim_set, anim_clip);
+		if(!aid.empty()) {
+			auto anim_set = assets.load<renderer::Sprite_animation_set>(asset::AID(aid));
+			INVARIANT(anim_set, "Animation_set '"<<aid<<"' not found");
+			_anim_state.animation_set(anim_set, anim_clip);
+		}
 
 		_hue_change_target = hc_target_deg * 1_deg;
 		_hue_change_replacement = hc_replacement_deg * 1_deg;

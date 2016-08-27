@@ -10,12 +10,14 @@
 #include "sprite_comp.hpp"
 #include "terrain_comp.hpp"
 #include "particle_comp.hpp"
+#include "decal_comp.hpp"
 
 #include "../../entity_events.hpp"
 
 #include <core/renderer/camera.hpp>
 #include <core/renderer/sprite_batch.hpp>
 #include <core/renderer/particles.hpp>
+#include <core/renderer/texture_batch.hpp>
 #include <core/utils/messagebus.hpp>
 
 
@@ -31,6 +33,8 @@ namespace graphic {
 
 			void draw(renderer::Command_queue&, const renderer::Camera& camera)const;
 			void draw_shadowcaster(renderer::Sprite_batch&, const renderer::Camera& camera)const;
+			void draw_decals(renderer::Command_queue&,
+			                 const renderer::Camera& camera)const;
 			void update(Time dt);
 
 			void post_load();
@@ -45,10 +49,12 @@ namespace graphic {
 			Anim_sprite_comp::Pool& _anim_sprites;
 			Terrain_comp::Pool& _terrains;
 			Particle_comp::Pool& _particles;
+			Decal_comp::Pool& _decals;
 
 			renderer::Particle_renderer _particle_renderer;
 			mutable renderer::Sprite_batch _sprite_batch;
 			mutable renderer::Sprite_batch _sprite_batch_bg;
+			mutable renderer::Texture_batch _decal_batch;
 
 			void _update_particles(Time dt);
 	};

@@ -43,5 +43,7 @@
 		"linear_damping": 0.1
 	},
 	"Particle": {
+	},
+	"Reset": {
 	}
 }

@@ -24,6 +24,19 @@ namespace gameplay {
 		);
 	}
 
+	void Paint_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
+		state.read_virtual(
+			sf2::vmember("color", _color),
+			sf2::vmember("radius", _radius)
+		);
+	}
+	void Paint_comp::save(sf2::JsonSerializer& state)const {
+		state.write_virtual(
+			sf2::vmember("color", _color),
+			sf2::vmember("radius", _radius)
+		);
+	}
+
 	void Transparent_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
 		state.read_virtual(
 			sf2::vmember("color", _color)

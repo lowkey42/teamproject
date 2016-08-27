@@ -194,7 +194,7 @@ namespace lux {
 	      camera(engine, entity_manager),
 	      lights(engine.bus(), entity_manager, engine.assets(), engine.graphics_ctx()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
-	      gameplay(engine, entity_manager, physics, camera, controller, [&]{load_level(_current_level);}),
+	      gameplay(engine, entity_manager, physics, camera, controller),
 
 	      _engine(engine),
 	      _skybox(engine.assets()),
@@ -313,7 +313,7 @@ namespace lux {
 			auto blend_cleanup = Blend_add{};
 			auto fbo_cleanup = Framebuffer_binder{_post_renderer->decals_canvas};
 			_post_renderer->decals_canvas.clear();
-			gameplay.draw_blood(queue, cam);
+			renderer.draw_decals(queue, cam);
 			queue.flush();
 		}
 

@@ -106,6 +106,22 @@ namespace gameplay {
 			friend class Gameplay_system;
 	};
 
+	class Paint_comp : public ecs::Component<Paint_comp> {
+		public:
+			static constexpr const char* name() {return "Paint";}
+			void load(sf2::JsonDeserializer& state, asset::Asset_manager&)override;
+			void save(sf2::JsonSerializer& state)const override;
+			Paint_comp(ecs::Entity& owner) : Component(owner) {}
+
+			auto color()const noexcept {return _color;}
+
+		private:
+			friend class Gameplay_system;
+
+			Light_color _color;
+			float _radius;
+	};
+
 	class Light_leech_comp : public ecs::Component<Light_leech_comp> {
 		public:
 			static constexpr const char* name() {return "Light_leech";}
