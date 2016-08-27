@@ -109,15 +109,16 @@ namespace renderer {
 		}
 	}
 
-	void Texture_batch::flush(Command_queue& queue) {
-		_draw(queue);
+	void Texture_batch::flush(Command_queue& queue, bool order_independent) {
+		_draw(queue, order_independent);
 		_vertices.clear();
 		_free_obj = 0;
 	}
 
-	void Texture_batch::_draw(Command_queue& queue) {
-		// partition _vertices by texture
-		//std::stable_sort(_vertices.begin(), _vertices.end());
+	void Texture_batch::_draw(Command_queue& queue, bool order_independent) {
+		if(order_independent) {
+			std::stable_sort(_vertices.begin(), _vertices.end());
+		}
 
 		_reserve_objects();
 
@@ -125,16 +126,17 @@ namespace renderer {
 		auto last = _vertices.begin();
 		for(auto current = _vertices.begin(); current!=_vertices.end(); ++current) {
 			if(current->tex != last->tex) {
-				queue.push_back(_draw_part(last, current));
+				queue.push_back(_draw_part(last, current, order_independent));
 				last = current;
 			}
 		}
 
 		if(last!=_vertices.end())
-			queue.push_back(_draw_part(last, _vertices.end()));
+			queue.push_back(_draw_part(last, _vertices.end(), order_independent));
 	}
 
-	auto Texture_batch::_draw_part(Vertex_citer begin, Vertex_citer end) -> Command {
+	auto Texture_batch::_draw_part(Vertex_citer begin, Vertex_citer end,
+	                               bool order_independent) -> Command {
 		INVARIANT(begin!=end && begin->tex, "Invalid iterators");
 
 		auto obj_idx = _free_obj++;
@@ -146,9 +148,11 @@ namespace renderer {
 		auto cmd = create_command()
 		        .shader(*tex_shader)
 		        .require_not(Gl_option::depth_write)
-		        .order_dependent()
 		        .texture(Texture_unit::color, *begin->tex)
 		        .object(_objects.at(obj_idx));
+
+		if(!order_independent)
+			cmd.order_dependent();
 
 		if(!_depth_test)
 			cmd.require_not(Gl_option::depth_test);

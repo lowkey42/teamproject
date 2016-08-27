@@ -57,7 +57,8 @@ namespace graphic {
 	      _decals(entity_manager.list<Decal_comp>()),
 	      _particle_renderer(asset_manager),
 	      _sprite_batch(512),
-	      _sprite_batch_bg(_background_shader, 256)
+	      _sprite_batch_bg(_background_shader, 256),
+	      _decal_batch(32, false)
 	{
 		entity_manager.register_component_type<Sprite_comp>();
 		entity_manager.register_component_type<Anim_sprite_comp>();
@@ -195,7 +196,7 @@ namespace graphic {
 			                    trans.rotation());
 		}
 
-		_decal_batch.flush(queue);
+		_decal_batch.flush(queue, true);
 	}
 
 	void Graphic_system::update(Time dt) {

@@ -46,7 +46,7 @@ namespace renderer {
 
 			void insert(const Texture& texture, glm::vec2 pos, glm::vec2 size={-1,-1},
 			            Angle rotation=Angle{0}, glm::vec4 clip_rect=glm::vec4{0,0,1,1});
-			void flush(Command_queue&);
+			void flush(Command_queue&, bool order_independent=false);
 
 			void layer(float layer) {_layer = layer;}
 
@@ -60,8 +60,9 @@ namespace renderer {
 
 			float _layer = 0.f;
 
-			void _draw(Command_queue&);
-			auto _draw_part(Vertex_citer begin, Vertex_citer end) -> Command;
+			void _draw(Command_queue&, bool order_independent);
+			auto _draw_part(Vertex_citer begin, Vertex_citer end,
+			                bool order_independent) -> Command;
 			void _reserve_objects();
 	};
 

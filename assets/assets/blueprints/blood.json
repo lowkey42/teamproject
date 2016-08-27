@@ -9,7 +9,7 @@
 		"texture": "tex:blood_stain_white"
 	},
 	"Paint": {
-		"radius": 1.5,
+		"radius": 1.75,
 		"color": "white"
 	}
 }

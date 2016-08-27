@@ -30,7 +30,7 @@ namespace graphic {
 		std::string aid = _texture ? _texture.aid().str() : "";
 
 		state.write_virtual(
-			sf2::vmember("material", aid),
+			sf2::vmember("texture", aid),
 			sf2::vmember("size", _size)
 		);
 	}
