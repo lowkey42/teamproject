@@ -26,11 +26,27 @@
 using namespace lux; // import game namespace
 using namespace std::string_literals;
 
-std::unique_ptr<Engine> engine;
 
-void init(int argc, char** argv, char** env);
-void onFrame();
-void shutdown();
+namespace {
+	std::unique_ptr<Engine> engine;
+
+	void init_env(int argc, char** argv, char** env);
+	void init_engine();
+	void onFrame();
+	void shutdown();
+
+#ifdef EMSCRIPTEN
+	void init_ems() {
+		if(lux::asset::storage_ready()) {
+			DEBUG("init");
+			init_engine();
+
+			emscripten_cancel_main_loop();
+			emscripten_set_main_loop(onFrame, 0, 0);
+		}
+	}
+#endif
+}
 
 
 #ifdef main
@@ -41,15 +57,16 @@ int main(int argc, char** argv) {
 int main(int argc, char** argv, char** env) {
 #endif
 
+	init_env(argc, argv, env);
+
 	#ifdef EMSCRIPTEN
-		init(argc, argv, env);
-
-		emscripten_set_main_loop(onFrame, 0, 1);
-
+		emscripten_set_main_loop(init_ems, 0, 1);
 		shutdown();
 		emscripten_exit_with_live_runtime();
+
+
 	#else
-		init(argc, argv, env);
+		init_engine();
 
 		while(engine->running())
 			onFrame();
@@ -57,58 +74,79 @@ int main(int argc, char** argv, char** env) {
 		shutdown();
 	#endif
 
-    return 0;
+	return 0;
 }
 
-void init(int argc, char** argv, char** env) {
-	const auto app_name = "IntoTheLight";
+namespace {
+	constexpr auto app_name = "IntoTheLight";
+	int argc;
+	char** argv;
+	char** env;
 
-	INFO("Game started from: "<<argv[0]<<"\n"
-	     <<"Working dir: "<<asset::pwd()<<"\n"
-	     <<"Version: "<<version_info::name<<"\n"
-	     <<"Version-Hash: "<<version_info::hash<<"\n"
-	     <<"Version-Date: "<<version_info::date<<"\n"
-	     <<"Version-Subject: "<<version_info::subject<<"\n");
-	// TODO: print system information
+	void init_env(int argc, char** argv, char** env) {
+		::argc = argc;
+		::argv = argv;
+		::env  = env;
 
-	try {
-		util::init_stacktrace(argv[0]);
-		engine.reset(new Engine(app_name, argc, argv, env));
+		INFO("Game started from: "<<argv[0]<<"\n"
+		     <<"Working dir: "<<asset::pwd()<<"\n"
+		     <<"Version: "<<version_info::name<<"\n"
+		     <<"Version-Hash: "<<version_info::hash<<"\n"
+			 <<"Version-Date: "<<version_info::date<<"\n"
+			 <<"Version-Subject: "<<version_info::subject<<"\n");
+		// TODO: print system information
 
-		if(argc>1 && argv[1]=="game"s) // TODO: reverse for release version
-			engine->screens().enter<World_map_screen>("jungle");
-		else if(argc>2 && argv[1]=="editor"s)
-			engine->screens().enter<Editor_screen>(argv[2]);
-		else
-			engine->screens().enter<Editor_screen>("jungle_01");
+		try {
+			util::init_stacktrace(argv[0]);
+			lux::asset::setup_storage();
 
-	} catch (const util::Error& ex) {
-		CRASH_REPORT("Exception in init: "<<ex.what());
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Sorry :-(", "Error in init", nullptr);
-		shutdown();
-		exit(1);
+		} catch (const util::Error& ex) {
+			CRASH_REPORT("Exception in init: "<<ex.what());
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Sorry :-(", "Error in init", nullptr);
+			shutdown();
+			exit(1);
+		}
 	}
-}
 
-void onFrame() {
-	try {
-		engine->on_frame();
+	void init_engine() {
+		try {
+			engine.reset(new Engine(app_name, argc, argv, env));
 
-	} catch (const util::Error& ex) {
-		CRASH_REPORT("Exception in onFrame: "<<ex.what());
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Sorry :-(", "Error in onFrame", nullptr);
-		shutdown();
-		exit(2);
+			if(argc>1 && argv[1]=="game"s) // TODO: reverse for release version
+				engine->screens().enter<World_map_screen>("jungle");
+			else if(argc>2 && argv[1]=="editor"s)
+				engine->screens().enter<Editor_screen>(argv[2]);
+			else
+				engine->screens().enter<Editor_screen>("jungle_01");
+
+		} catch (const util::Error& ex) {
+			CRASH_REPORT("Exception in init: "<<ex.what());
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Sorry :-(", "Error in init", nullptr);
+			shutdown();
+			exit(1);
+		}
 	}
-}
 
-void shutdown() {
-	try {
-		engine.reset();
+	void onFrame() {
+		try {
+			engine->on_frame();
 
-	} catch (const util::Error& ex) {
-		CRASH_REPORT("Exception in shutdown: "<<ex.what());
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Sorry :-(", "Error in shutdown", nullptr);
-		exit(3);
+		} catch (const util::Error& ex) {
+			CRASH_REPORT("Exception in onFrame: "<<ex.what());
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Sorry :-(", "Error in onFrame", nullptr);
+			shutdown();
+			exit(2);
+		}
+	}
+
+	void shutdown() {
+		try {
+			engine.reset();
+
+		} catch (const util::Error& ex) {
+			CRASH_REPORT("Exception in shutdown: "<<ex.what());
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Sorry :-(", "Error in shutdown", nullptr);
+			exit(3);
+		}
 	}
 }

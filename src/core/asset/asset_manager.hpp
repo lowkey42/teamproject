@@ -32,6 +32,9 @@ namespace asset {
 
 	extern std::string pwd();
 
+	extern void setup_storage();
+	extern bool storage_ready();
+
 	template<class R>
 	class Ptr {
 		public:

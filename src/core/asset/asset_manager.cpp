@@ -97,6 +97,47 @@ namespace asset {
 		return cCurrentPath;
 	}
 
+
+#ifdef EMSCRIPTEN
+	static bool initial_sync_done = false;
+
+	extern "C" void EMSCRIPTEN_KEEPALIVE post_sync_handler() {
+		initial_sync_done = true;
+	}
+
+	void setup_storage() {
+		EM_ASM(
+			FS.mkdir('/persistent_data');
+			FS.mount(IDBFS, {}, '/persistent_data');
+
+			Module.syncdone = 0;
+
+			//populate persistent_data directory with existing persistent source data
+			//stored with Indexed Db
+			//first parameter = "true" mean synchronize from Indexed Db to
+			//Emscripten file system,
+			// "false" mean synchronize from Emscripten file system to Indexed Db
+			//second parameter = function called when data are synchronized
+			FS.syncfs(true, function(err) {
+				//assert(!err);
+				Module.print("end file sync..");
+				Module.syncdone = 1;
+				ccall('post_sync_handler', 'v');
+			});
+		);
+	}
+
+	bool storage_ready() {
+		return initial_sync_done;
+	}
+#else
+	void setup_storage() {}
+	bool storage_ready() {
+		return true;
+	}
+
+#endif
+
 	static Asset_manager* current_instance = nullptr;
 	auto get_asset_manager() -> Asset_manager& {
 		INVARIANT(current_instance!=nullptr, "Asset_manager has not been initialized!");
@@ -117,24 +158,7 @@ namespace asset {
 		);
 
 #ifdef EMSCRIPTEN
-		EM_ASM(
-			FS.mkdir('/persistent_data');
-			FS.mount(IDBFS, {}, '/persistent_data');
-
-			Module.syncdone = 0;
-
-			//populate persistent_data directory with existing persistent source data
-			//stored with Indexed Db
-			//first parameter = "true" mean synchronize from Indexed Db to
-			//Emscripten file system,
-			// "false" mean synchronize from Emscripten file system to Indexed Db
-			//second parameter = function called when data are synchronized
-			FS.syncfs(true, function(err) {
-				//assert(!err);
-				Module.print("end file sync..");
-				Module.syncdone = 1;
-			});
-		);
+		INVARIANT(storage_ready(), "Storage is not ready");
 		write_dir_parent = "/persistent_data";
 #endif
 
