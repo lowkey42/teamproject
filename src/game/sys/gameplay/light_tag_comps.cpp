@@ -82,7 +82,6 @@ namespace gameplay {
 		);
 	}
 
-	// TODO: test me
 	auto Lamp_comp::in_range(Position p)const -> bool {
 		auto& transform = owner().get<physics::Transform_comp>().get_or_throw();
 		auto my_pos = transform.position() + _offset;
@@ -99,7 +98,7 @@ namespace gameplay {
 				dir_diff = 360_deg - dir_diff;
 			dir_diff = std::abs(dir_diff);
 
-			return true;//dd _angle.value()<0.f || dir_diff <= _angle/2.f;
+			return true;//TODO: _angle.value()<0.f || dir_diff <= _angle/2.f;
 		}
 
 		return false;

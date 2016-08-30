@@ -140,14 +140,11 @@ namespace editor {
 
 			nk_label(ctx, text("background"), NK_TEXT_LEFT);
 			nk_layout_row_dynamic(ctx, row_h, 1);
-			// TODO[low]: selection of image
 			data.environment_brightness = nk_propertyf(ctx, text("brightness"), 0,
 			                                           data.environment_brightness,
 			                                           1.0, 0.02f,0.005f);
 			gui::color_picker(ctx, data.background_tint, 400);
 			nk_layout_row_dynamic(ctx, row_h, 1);
-
-			// TODO[low]: selection of music
 
 			if(data!=_metadata) {
 				// reuse last command if nothing else has happend (avoids >9000 commands for gradual modifications)

@@ -60,7 +60,7 @@ namespace lux {
 		};
 
 		_menu.add_action("back"_strid, "tex:editor_icon_exit"_aid, tooltip("back"),
-		                 [&]{_engine.exit();/*TODO: warn on unsaved changes*/});
+		                 [&]{_engine.exit();});
 
 		_menu.add_action("settings"_strid, "tex:editor_icon_settings"_aid, false, tooltip("settings"),
 		                 [&](bool s){_settings.visible(s);});
@@ -150,7 +150,6 @@ namespace lux {
 		});
 
 
-		// TODO: move to method
 		_mailbox.subscribe_to([&](input::Continuous_action& e) {
 			switch(e.id) {
 				case "scroll_l"_strid:
@@ -172,7 +171,6 @@ namespace lux {
 		_render_queue.shared_uniforms(renderer::make_uniform_map("vp", _camera_menu.vp()));
 
 		_load_requested = level_id;
-		// _level_metadata = _systems.load_level(level_id);
 	}
 
 	void Editor_screen::_load_next_level(int dir) {
@@ -205,7 +203,7 @@ namespace lux {
 		return curr_index.is_some();
 	}
 
-	void Editor_screen::_on_enter(util::maybe<Screen&> prev) {
+	void Editor_screen::_on_enter(util::maybe<Screen&>) {
 		_engine.input().screen_to_world_coords([&](auto p) {
 			return _camera_world.screen_to_world(p, glm::vec3(0,0,0)).xy();
 		});
@@ -215,7 +213,7 @@ namespace lux {
 		_menu.toggle_input(true);
 	}
 
-	void Editor_screen::_on_leave(util::maybe<Screen&> next) {
+	void Editor_screen::_on_leave(util::maybe<Screen&>) {
 		_menu.toggle_input(false);
 		_mailbox.disable();
 		_engine.input().world_space_events(true);
@@ -234,7 +232,6 @@ namespace lux {
 			auto wtarget = this->_camera_world.screen_to_world(curr, glm::vec3(0,0,0));
 
 			this->_camera_world.move((wsrc-wtarget)* 1_m);
-			// TODO: multi-touch => zoom
 		};
 
 		return true;

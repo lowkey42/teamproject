@@ -16,8 +16,6 @@ namespace gui {
 	void Text_edit::reset(const std::string& str) {
 		INVARIANT(_data.is_some(), "Text_edit is in moved-from state!");
 
-		DEBUG("Reset: "<<str);
-
 		nk_textedit_free(&_data.get_or_throw());
 		nk_textedit_init_default(&_data.get_or_throw());
 		nk_str_append_text_char(&_data.get_or_throw().string, str.data(), static_cast<int>(str.length()));
