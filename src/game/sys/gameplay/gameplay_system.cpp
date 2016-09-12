@@ -622,7 +622,7 @@ namespace gameplay {
 							_disable_light(*interactive, true, false);
 						}
 
-						c._last_impact = 0_s;
+						c._last_impact = c.enabled() ? c._latency_compensation-1_s/60.f : 0_s;
 						c._last_impact_point = glm::vec3{
 							pos.x+direction.x * move_distance,
 							pos.y+direction.y * move_distance,
