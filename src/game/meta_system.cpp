@@ -195,6 +195,7 @@ namespace lux {
 	      lights(engine.bus(), entity_manager, engine.assets(), engine.graphics_ctx()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
 	      gameplay(engine, entity_manager, physics, camera, controller),
+	      sound(engine),
 
 	      _engine(engine),
 	      _skybox(engine.assets()),
@@ -284,6 +285,7 @@ namespace lux {
 		if(mask & Update::input) {
 			gameplay.update_post_physic(dt);
 			scene_graph.update(dt);
+			sound.update(dt);
 		}
 
 		if(mask & Update::animations) {

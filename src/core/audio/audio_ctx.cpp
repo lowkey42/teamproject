@@ -39,24 +39,23 @@ namespace lux {
 			constexpr auto default_cfg = Sounds_cfg{44100, 2, 4096, 0.8f, 1.0f};
 #endif
 
+
 			constexpr auto create_mask(int i) -> uint16_t {
 				return i==1 ? 1 : (create_mask(i-1)<<1 | 1);
 			}
-
-			constexpr auto static_channels = 32;
 
 			constexpr auto version_bits = 4u;
 
 			constexpr auto version_mask = create_mask(version_bits);
 
 			constexpr auto extract_channel(Channel_id c) {
-				return c>>version_bits;
+				return static_cast<int16_t>(c>>version_bits);
 			}
 			constexpr auto extract_version(Channel_id c) {
-				return c & version_mask;
+				return static_cast<uint8_t>(c & version_mask);
 			}
-			constexpr auto build_channel_id(int16_t channel, int8_t version) {
-				return channel<<version_bits | version;
+			constexpr auto build_channel_id(int16_t channel, uint8_t version) {
+				return channel<<version_bits | (version & version_mask);
 			}
 		}
 
@@ -97,7 +96,7 @@ namespace lux {
 				FAIL("Initializing Sound incomplete: " << Mix_GetError());
 			}
 
-			Mix_AllocateChannels(_dynamic_channels+static_channels);
+			Mix_AllocateChannels(_dynamic_channels+_static_channels);
 			Mix_ReserveChannels(_dynamic_channels);
 
 			sound_volume(cfg.sound_volume);
@@ -107,6 +106,12 @@ namespace lux {
 		Audio_ctx::~Audio_ctx() {
 			Mix_CloseAudio();
 			Mix_Quit();
+		}
+
+		auto Audio_ctx::_reserve_channel(int16_t channel) -> uint8_t {
+			auto& v = _channel_versions.at(channel);
+			v = (v+1) & version_mask;
+			return v;
 		}
 
 		void Audio_ctx::flip() {
@@ -144,12 +149,13 @@ namespace lux {
 #endif
 		}
 
-		auto Audio_ctx::play_static(const audio::Sound& sound) -> Channel_id {
+		auto Audio_ctx::play_static(const audio::Sound& sound, bool loop) -> Channel_id {
 			if(!sound.valid())
 				return -1;
 
-			auto c = Mix_PlayChannel(-1, sound.getSound(), 0);
-			return build_channel_id(c, 0);
+			auto c = Mix_PlayChannel(-1, sound.getSound(), loop ? -1 : 0);
+
+			return build_channel_id(c, _reserve_channel(c));
 		}
 		auto Audio_ctx::play_dynamic(const audio::Sound& sound, Angle angle, float dist_percentage,
 		                             bool loop, Channel_id id) -> Channel_id {
@@ -191,7 +197,7 @@ namespace lux {
 				c = _free_channels.back();
 				_free_channels.pop_back();
 
-				v = ++_channel_versions[c];
+				v = _reserve_channel(c);
 
 				id = build_channel_id(c,v);
 			}
@@ -207,7 +213,7 @@ namespace lux {
 
 			auto c = extract_channel(id);
 			auto v = extract_version(id);
-			if(c<_dynamic_channels && _channel_versions[c]==v) {
+			if(_channel_versions[c]==v) {
 #ifndef EMSCRIPTEN
 				auto a = angle.in_degrees();
 
@@ -231,8 +237,19 @@ namespace lux {
 #else
 				Mix_Volume(c, std::max(1-dist_percentage, 0.f) * 255 * _sound_volume);
 #endif
-				_channels[c] = true;
+				if(c<_dynamic_channels) {
+					_channels[c] = true;
+				}
 			}
+		}
+
+		bool Audio_ctx::playing(Channel_id id) {
+			if(id<0) return false;
+
+			auto c = extract_channel(id);
+			auto v = extract_version(id);
+
+			return _channel_versions[c]==v && Mix_Playing(c)==1;
 		}
 
 		void Audio_ctx::stop(Channel_id id) {
@@ -240,15 +257,17 @@ namespace lux {
 
 			auto c = extract_channel(id);
 			auto v = extract_version(id);
-			if(c>=_dynamic_channels || _channel_versions[c]==v) {
+			if(_channel_versions[c]==v) {
 #ifndef EMSCRIPTEN
 				Mix_FadeOutChannel(c, 100);
 #else
 				Mix_HaltChannel(c);
 #endif
-				_free_channels.push_back(c);
-				_channels[c]=_channels_last[c] = false;
-				_channel_sounds[c] = nullptr;
+				if(c<_dynamic_channels) {
+					_free_channels.push_back(c);
+					_channels[c]=_channels_last[c] = false;
+					_channel_sounds[c] = nullptr;
+				}
 			}
 		}
 

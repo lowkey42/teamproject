@@ -476,9 +476,9 @@ namespace sf2 {
 			  read_value(T& inst) {
 				inst.clear();
 
-				typename T::key_type key;
-				typename T::mapped_type val;
 				while(reader.in_obj()) {
+					typename T::key_type key;
+					typename T::mapped_type val;
 
 					read_value(key);
 					read_value(val);
@@ -495,8 +495,8 @@ namespace sf2 {
 			  read_value(T& inst) {
 				inst.clear();
 
-				typename T::value_type v;
 				while(reader.in_array()) {
+					typename T::value_type v;
 					read_value(v);
 
 					inst.emplace(std::move(v));
@@ -511,8 +511,8 @@ namespace sf2 {
 			  read_value(T& inst) {
 				inst.clear();
 
-				typename T::value_type v;
 				while(reader.in_array()) {
+					typename T::value_type v;
 					read_value(v);
 
 					inst.emplace_back(std::move(v));

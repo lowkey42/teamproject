@@ -13,10 +13,6 @@
 #include "../physics/physics_system.hpp"
 #include "../light/light_comp.hpp"
 
-#include <core/audio/music.hpp>
-#include <core/audio/sound.hpp>
-#include <core/audio/audio_ctx.hpp>
-
 #include <core/ecs/serializer.hpp>
 
 
@@ -319,6 +315,7 @@ namespace gameplay {
 				}
 			}
 			if(res_color!=c._color) {
+				_mailbox.send<Animation_event>("color_sound"_strid, &c.owner());
 				_color_player(c, res_color);
 			}
 		}
@@ -414,10 +411,6 @@ namespace gameplay {
 		auto& e = *static_cast<ecs::Entity*>(event.owner);
 
 		switch(event.name) {
-			case "death_sound"_strid:
-				_engine.audio_ctx().play_static(*_engine.assets().load<audio::Sound>("sound:slime"_aid));
-				break;
-
 			case "left"_strid:
 				e.manager().erase(e.shared_from_this());
 				break;
@@ -623,6 +616,8 @@ namespace gameplay {
 							interactive->_air_time = 0_s;
 							c._initial_timer = 0_s;
 
+							_mailbox.send<Animation_event>("reflected"_strid, &c.owner());
+
 						} else {
 							_disable_light(*interactive, true, false);
 						}
@@ -669,6 +664,10 @@ namespace gameplay {
 		}
 	}
 	void Gameplay_system::_disable_light(Enlightened_comp& c, bool final_impulse, bool boost) {
+		c.owner().get<graphic::Anim_sprite_comp>().process([&](auto& s) {
+			s.play("untransform"_strid);
+		});
+
 		if(c._state == Enlightened_State::disabled)
 			return;
 

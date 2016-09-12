@@ -16,6 +16,7 @@
 #include "sys/light/light_system.hpp"
 #include "sys/physics/transform_system.hpp"
 #include "sys/physics/physics_system.hpp"
+#include "sys/sound/sound_sys.hpp"
 
 #include <core/engine.hpp>
 #include <core/ecs/ecs.hpp>
@@ -75,6 +76,7 @@ namespace lux {
 			sys::light::Light_system lights;
 			sys::graphic::Graphic_system renderer;
 			sys::gameplay::Gameplay_system gameplay;
+			sys::sound::Sound_sys sound;
 
 		private:
 			struct Post_renderer;

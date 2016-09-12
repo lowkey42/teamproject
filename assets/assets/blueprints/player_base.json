@@ -5,9 +5,9 @@
 	"Anim_sprite": {
 		"animation_set": "anim:player",
 		"animation_clip": "enter",
-		"size": {"x":0.75, "y":1},
+		"size": {"x":1, "y":1},
 		"shadowcaster": false,
-		"hue_change_target": 300,
+		"hue_change_target": 171,
 		"hue_change_replacement": 0
 	},
 	"Editor": {
@@ -35,6 +35,7 @@
 		"initial_acceleration_time": 0.1
 	},
 	"Dynamic_body": {
+		"size": {"x":0.75, "y":1},
 		"shape": "humanoid",
 		"bullet": true,
 		"fixed_rotation": true,

@@ -2,7 +2,6 @@
 	"$import": "player_base",
 
 	"Anim_sprite": {
-		"hue_change_target": 300,
 		"hue_change_replacement": 305
 	},
 	"Light": {

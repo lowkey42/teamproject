@@ -151,7 +151,7 @@ float luminance(vec3 c) {
 
 vec3 hue_shift(vec3 in_color) {
 	vec3 hsv = rgb2hsv(in_color);
-	hsv.x = abs(hsv.x-hue_change_frag.x)<0.01 ? hue_change_frag.y : hsv.x;
+	hsv.x = abs(hsv.x-hue_change_frag.x)<0.025 ? hue_change_frag.y : hsv.x;
 	return hsv2rgb(hsv);
 }
 vec4 read_albedo(vec2 uv) {

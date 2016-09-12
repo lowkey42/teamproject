@@ -21,7 +21,7 @@ namespace lux {
 	class Game_screen : public Screen {
 		public:
 			Game_screen(Engine& game_engine, const std::string& level_id);
-			~Game_screen()noexcept = default;
+			~Game_screen()noexcept;
 
 		protected:
 			void _update(Time delta_time)override;
@@ -43,6 +43,7 @@ namespace lux {
 			renderer::Command_queue _render_queue;
 
 			std::string _current_level;
+			std::string _music_aid;
 
 			bool _fadeout = false;
 			Time _fadeout_fadetimer {};

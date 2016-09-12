@@ -339,21 +339,18 @@ namespace controller {
 				if(!is_light) {
 					_move(c, body, effective_move, grounded, dt);
 
-					if(_jump) {
-						_start_jump(c, body, dt);
-					} else {
-						_stop_jump(c, body, dt);
-					}
-
 					if(glm::abs(c._last_velocity)>0.0001f) {
-						ctransform.flip_horizontal(effective_move<0.f);
+						if(std::abs(effective_move)>0.f) {
+							ctransform.flip_horizontal(effective_move<0.f);
+						}
 						sprite.process([&](auto& s){s.play_if("idle"_strid, "walk"_strid, glm::abs(c._last_velocity)/c._ground_velocity);});
 					} else {
 						sprite.process([&](auto& s){s.play_if("walk"_strid, "idle"_strid);});
 					}
 
-					if(_jump && body.velocity().y>0.1f) {
+					if(_jump && c._jump_cooldown_timer<=0_s && c._air_time<=0_s) {
 						sprite.process([&](auto& s){s.play("jump"_strid);});
+
 					} else if(!body.grounded()) {
 						sprite.process([&](auto& s){s.play("fall"_strid);});
 					} else {
@@ -361,6 +358,12 @@ namespace controller {
 							s.play_if("fall"_strid, "land"_strid);
 							s.play_if("jump"_strid, "land"_strid);
 						});
+					}
+
+					if(_jump) {
+						_start_jump(c, body, dt);
+					} else {
+						_stop_jump(c, body, dt);
 					}
 				}
 

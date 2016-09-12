@@ -2,9 +2,11 @@
 	"$import": "player_base",
 
 	"Anim_sprite": {
-		"size": {"x":0.56, "y":0.75},
-		"hue_change_target": 300,
+		"size": {"x":0.75, "y":0.75},
 		"hue_change_replacement": 240
+	},
+	"Dynamic_body": {
+		"size": {"x":0.56, "y":0.75}
 	},
 	"Light": {
 		"color": {"r":0.25, "g":0.25, "b":5.0},

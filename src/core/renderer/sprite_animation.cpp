@@ -187,6 +187,13 @@ namespace renderer {
 		}
 
 		_curr_clip.process([&](Sprite_animation_Clip& clip) {
+			if(_frame==0 && _runtime<=0_s && clip.events.size()>0 && dt>0_s && _speed_factor>0) {
+				for(const auto& event : clip.events) {
+					if(event.frame==0)
+						bus.send<Animation_event>(event.name, _owner);
+				}
+			}
+
 			_runtime += dt * _speed_factor;
 
 			auto frame_skip = static_cast<int_fast16_t>(std::floor(_runtime/1_s * clip.fps));

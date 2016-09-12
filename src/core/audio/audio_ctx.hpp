@@ -34,12 +34,13 @@ namespace audio{
 			void flip();
 
 			void play_music  (std::shared_ptr<const audio::Music> music, Time fade_time = Time{0});
-			auto play_static (const audio::Sound& sound) -> Channel_id;
+			auto play_static (const audio::Sound& sound, bool loop=false) -> Channel_id;
 			auto play_dynamic(const audio::Sound& sound, Angle angle, float dist_percentage,
 			                  bool loop, Channel_id=-1) -> Channel_id;
 
 			void update    (Channel_id id, Angle angle, float dist_percentage);
 			void stop      (Channel_id);
+			bool playing   (Channel_id);
 			void stop_music(Time fade_time=Time{0}) {play_music({}, fade_time);}
 
 			void pause_sounds ();
@@ -53,6 +54,7 @@ namespace audio{
 
 		private:
 			static constexpr int16_t _dynamic_channels = 128;
+			static constexpr int16_t _static_channels = 128;
 			using sptr = const audio::Sound*;
 
 			float _sound_volume;
@@ -60,11 +62,14 @@ namespace audio{
 
 			std::array<bool,    _dynamic_channels> _channels;
 			std::array<bool,    _dynamic_channels> _channels_last;
-			std::array<uint8_t, _dynamic_channels> _channel_versions;
 			std::array<sptr,    _dynamic_channels> _channel_sounds;
 			std::vector<int16_t>                   _free_channels;
 
+			std::array<uint8_t, _dynamic_channels+_static_channels> _channel_versions;
+
 			std::shared_ptr<const audio::Music>    _playing_music;
+
+			auto _reserve_channel(int16_t channel) -> uint8_t;
 	};
 
 }

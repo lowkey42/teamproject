@@ -52,7 +52,11 @@ namespace lux {
 
 		_render_queue.shared_uniforms(renderer::make_uniform_map("vp", _camera_ui.vp()));
 
-		_systems.load_level(level_id);
+		auto metadata = _systems.load_level(level_id);
+		_music_aid = metadata.music_id;
+	}
+	Game_screen::~Game_screen()noexcept {
+		_engine.audio_ctx().stop_sounds();
 	}
 
 	void Game_screen::_on_enter(util::maybe<Screen&> prev) {
@@ -61,7 +65,8 @@ namespace lux {
 		_engine.input().screen_to_world_coords([&](auto p) {
 			return _systems.camera.screen_to_world(p).xy();
 		});
-		_engine.audio_ctx().play_music(_engine.assets().load<audio::Music>("music:game.ogg"_aid), 1_s);
+		_engine.audio_ctx().play_music(_engine.assets().load<audio::Music>(asset::AID{"music"_strid, _music_aid}), 1_s);
+		_engine.audio_ctx().resume_sounds();
 	}
 
 	void Game_screen::_on_leave(util::maybe<Screen&> next) {
@@ -70,6 +75,7 @@ namespace lux {
 		});
 		_mailbox.disable();
 		_engine.audio_ctx().stop_music();
+		_engine.audio_ctx().pause_sounds();
 
 	}
 

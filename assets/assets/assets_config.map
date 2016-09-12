@@ -10,6 +10,8 @@ cfg:levels = levels/level_list.json
 cfg:my_levels = my_levels.json
 cfg:savegame = savegame.json
 cfg:remote_highscore = settings/remote_highscore.json
+cfg:sound_effects = sounds/sound_effects.json
+
 level: = levels/
 highscore: = highscores/
 loc: = loc/
