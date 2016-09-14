@@ -1,6 +1,9 @@
 vert_shader:simple = shader/simple.vert
 frag_shader:simple = shader/simple.frag
 
+vert_shader:orb = shader/orb.vert
+frag_shader:orb = shader/orb.frag
+
 vert_shader:ui = shader/ui.vert
 frag_shader:ui = shader/ui.frag
 

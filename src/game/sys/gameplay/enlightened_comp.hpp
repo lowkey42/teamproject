@@ -36,6 +36,9 @@ namespace gameplay {
 
 			Enlightened_comp(ecs::Entity& owner);
 
+			auto air_transforms_left()const noexcept {
+				return _air_transforms_left;
+			}
 			bool can_air_transform()const {return _air_transforms_left>0;}
 			void start_transformation()  {_state = State::pending;}
 			void finish_transformation() {_state = State::activating;}
@@ -59,6 +62,14 @@ namespace gameplay {
 				} else {
 					return false;
 				}
+			}
+
+			auto color()const noexcept {return _color;}
+			auto air_time_percent_left() const noexcept {
+				if(_max_air_time<=0.f)
+					return 0.f;
+
+				return 1.f - std::min(_air_time.value() / _max_air_time, 1.f);
 			}
 
 		private:

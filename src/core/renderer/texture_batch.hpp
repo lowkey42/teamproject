@@ -38,6 +38,10 @@ namespace renderer {
 
 	extern void draw_fullscreen_quad(const renderer::Texture&, Texture_unit unit=Texture_unit::temporary);
 
+	extern auto draw_texture(const renderer::Texture&, glm::vec2 pos,
+	                         float scale=1.f) -> Command;
+
+	extern auto quat_obj() -> Object&;
 
 	class Texture_batch {
 		public:

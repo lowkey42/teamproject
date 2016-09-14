@@ -60,6 +60,25 @@ namespace renderer {
 		single_quat_tex->draw();
 	}
 
+	auto draw_texture(const renderer::Texture& tex, glm::vec2 pos, float scale) -> Command {
+		auto cmd = create_command();
+		cmd.shader(*tex_shader);
+		cmd.object(*single_quat_tex);
+		cmd.order_dependent();
+		cmd.require_not(Gl_option::depth_write);
+		cmd.texture(Texture_unit::color, tex);
+
+		auto size = glm::vec3(scale*tex.width(), scale*tex.height(), 1.f);
+		auto model = glm::translate(glm::mat4(), glm::vec3(pos, 0.f)) * glm::scale(glm::mat4(), size);
+		cmd.uniforms().emplace("model", model);
+
+		return cmd;
+	}
+
+	auto quat_obj() -> Object& {
+		return *single_quat_tex;
+	}
+
 	Texture_batch::Texture_batch(std::size_t expected_size,
 	                             bool depth_test)
 	    : _depth_test(depth_test) {
@@ -158,6 +177,7 @@ namespace renderer {
 			cmd.require_not(Gl_option::depth_test);
 
 		cmd.uniforms().emplace("layer", _layer);
+		cmd.uniforms().emplace("model", glm::mat4());
 
 		return cmd;
 	}

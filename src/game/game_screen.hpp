@@ -39,6 +39,17 @@ namespace lux {
 			Meta_system _systems;
 
 			renderer::Text_dynamic _ui_text;
+			renderer::Texture_ptr _hud_background;
+			renderer::Texture_ptr _hud_timer_background;
+			renderer::Texture_ptr _hud_light_icon;
+			renderer::Texture_ptr _hud_dash_icon;
+			renderer::Texture_ptr _hud_foreground;
+			renderer::Shader_program _orb_shader;
+
+			sys::gameplay::Player_tag_comp::Pool& _players;
+			int _last_selected_idx=0;
+			float _selection_movement = 0.f;
+
 			renderer::Camera_2d _camera_ui;
 			renderer::Command_queue _render_queue;
 
@@ -47,6 +58,12 @@ namespace lux {
 
 			bool _fadeout = false;
 			Time _fadeout_fadetimer {};
+
+			Time _time_acc {0};
+
+			auto _draw_orb(glm::vec2 pos, float scale, ecs::Entity&) -> renderer::Command;
+			void _draw_orbs(sys::gameplay::Player_tag_comp::Pool::iterator selected,
+			                bool left_side, int count, glm::vec2 hud_pos);
 	};
 
 }

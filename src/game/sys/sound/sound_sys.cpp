@@ -83,26 +83,25 @@ namespace sound {
 
 		auto sound = _event_sounds.find(event.name);
 		if(sound!=_event_sounds.end()) {
+			auto& e = *static_cast<ecs::Entity*>(event.owner);
+
+			auto comp = e.get<Sound_comp>();
+			if(comp.is_nothing()) {
+				comp = util::justPtr(&e.emplace<Sound_comp>(&_audio_ctx));
+			} else if(not comp.get_or_throw()._ctx) {
+				comp.get_or_throw()._ctx = &_audio_ctx;
+			}
+
+			for(auto& channel : comp.get_or_throw()._channels) {
+				if(!_audio_ctx.playing(channel)) {
+					channel = _audio_ctx.play_static(*sound->second.sound, sound->second.loop);
+					return;
+				}
+			}
 
 			if(!sound->second.loop) {
 				_audio_ctx.play_static(*sound->second.sound);
-
-			} else if(event.owner) {
-				auto& e = *static_cast<ecs::Entity*>(event.owner);
-
-				auto comp = e.get<Sound_comp>();
-				if(comp.is_nothing()) {
-					comp = util::justPtr(&e.emplace<Sound_comp>(&_audio_ctx));
-				} else if(not comp.get_or_throw()._ctx) {
-					comp.get_or_throw()._ctx = &_audio_ctx;
-				}
-
-				for(auto& channel : comp.get_or_throw()._channels) {
-					if(!_audio_ctx.playing(channel)) {
-						channel = _audio_ctx.play_static(*sound->second.sound, true);
-						return;
-					}
-				}
+			} else {
 				DEBUG("No free entity channel");
 			}
 		}
