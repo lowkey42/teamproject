@@ -12,7 +12,8 @@
 	},
 	"Enlightened": {
 		"color": "magenta",
-		"smash_force": 40
+		"smash_force": 40,
+		"air_transformations": 1
 	},
 	"Particle": {
 		"hue_change": 305

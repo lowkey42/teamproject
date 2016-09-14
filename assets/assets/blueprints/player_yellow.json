@@ -13,7 +13,7 @@
 	"Enlightened": {
 		"color": "yellow",
 		"smash_force": 40,
-		"air_transformations": 3
+		"air_transformations": 1
 	},
 	"Particle": {
 		"hue_change": 60
