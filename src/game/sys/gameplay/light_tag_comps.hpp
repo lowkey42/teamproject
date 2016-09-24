@@ -173,6 +173,7 @@ namespace gameplay {
 			Distance    _max_distance;
 			Angle       _rotation {0};
 			Position    _offset;
+			Time        _cooldown_left {};
 	};
 
 	class Prism_comp : public ecs::Component<Prism_comp> {

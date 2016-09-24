@@ -65,7 +65,8 @@ namespace physics {
 
 			auto& count = _contacts[Contact_key{a,b}];
 			if(count++ == 0) {
-				bus.send<Contact>(a, b, true);
+				bus.send<Contact>(a ? a->shared_from_this() : ecs::Entity_ptr{},
+				                  b ? b->shared_from_this() : ecs::Entity_ptr{}, true);
 			}
 		}
 		void EndContact(b2Contact* contact) override {
@@ -74,7 +75,8 @@ namespace physics {
 
 			auto& count = _contacts[Contact_key{a,b}];
 			if(count-- == 1) {
-				bus.send<Contact>(a, b, true);
+				bus.send<Contact>(a ? a->shared_from_this() : ecs::Entity_ptr{},
+				                  b ? b->shared_from_this() : ecs::Entity_ptr{}, false);
 				_contacts.erase(Contact_key{a,b});
 			}
 		}
@@ -89,7 +91,8 @@ namespace physics {
 					impact+=impulse->normalImpulses[i];
 				}
 
-				bus.send<Collision>(a, b, impact);
+				bus.send<Collision>(a ? a->shared_from_this() : ecs::Entity_ptr{},
+				                    b ? b->shared_from_this() : ecs::Entity_ptr{}, impact);
 			}
 		}
 	};
@@ -311,6 +314,9 @@ namespace physics {
 	}
 	auto Physics_system::query_intersection(Dynamic_body_comp& body,
 	                                        std::function<bool(ecs::Entity&)> filter) -> util::maybe<ecs::Entity&> {
+		if(!_world || !body._body)
+			return util::nothing();
+
 		Check_overlap_callback callback{*body._body, filter};
 		_world->QueryAABB(&callback, calc_aabb(*body._body));
 		return callback.result;

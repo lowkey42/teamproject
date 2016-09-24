@@ -134,6 +134,12 @@ namespace gameplay {
 
 	void Gameplay_system::update_pre_physic(Time dt) {
 		_update_light(dt);
+
+		for(auto& lamp : _lamps) {
+			if(lamp._cooldown_left>0_s) {
+				lamp._cooldown_left -= dt;
+			}
+		}
 	}
 	void Gameplay_system::update_post_physic(Time dt) {
 		if(_first_update_after_reset) {
@@ -310,8 +316,12 @@ namespace gameplay {
 
 			auto res_color = c._color;
 			for(auto& lamp : _lamps) {
-				if(lamp.in_range(transform.position())) {
-					res_color = lamp.resulting_color(res_color);
+				if(lamp._cooldown_left<=0_s && lamp.in_range(transform.position())) {
+					auto new_res_color = lamp.resulting_color(res_color);
+					if(new_res_color!=res_color) {
+						res_color = new_res_color;
+						lamp._cooldown_left = 1_s;
+					}
 				}
 			}
 			if(res_color!=c._color) {
@@ -372,7 +382,7 @@ namespace gameplay {
 
 		auto try_smash = [&](ecs::Entity* e) {
 			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
-				ecs::Entity* other = (c.a==&elc.owner()) ? c.b : c.a;
+				ecs::Entity* other = (c.a.get()==&elc.owner()) ? c.b.get() : c.a.get();
 				auto deadly = other && other->has<Deadly_comp>();
 				if((elc._final_booster_left>0_s && c.impact>=elc._smash_force*0.1f) || c.impact>=elc._smash_force || deadly) {
 					return elc.smash();
@@ -385,8 +395,8 @@ namespace gameplay {
 			});
 		};
 
-		try_smash(c.a);
-		try_smash(c.b);
+		try_smash(c.a.get());
+		try_smash(c.b.get());
 	}
 	void Gameplay_system::_on_smashed(ecs::Entity& e) {
 		e.get<Enlightened_comp>().process([&](auto& e) {

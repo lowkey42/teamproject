@@ -30,19 +30,19 @@ namespace physics {
 	};
 
 	struct Contact {
-		ecs::Entity* a=nullptr;
-		ecs::Entity* b=nullptr;
+		ecs::Entity_ptr a;
+		ecs::Entity_ptr b;
 		bool begin = true;
 		Contact()=default;
-		Contact(ecs::Entity* a, ecs::Entity* b, bool begin) : a(a), b(b), begin(begin) {}
+		Contact(ecs::Entity_ptr a, ecs::Entity_ptr b, bool begin) : a(a), b(b), begin(begin) {}
 	};
 
 	struct Collision {
-		ecs::Entity* a=nullptr;
-		ecs::Entity* b=nullptr;
+		ecs::Entity_ptr a;
+		ecs::Entity_ptr b;
 		float impact = 0.f;
 		Collision()=default;
-		Collision(ecs::Entity* a, ecs::Entity* b, float impact) : a(a), b(b), impact(impact) {}
+		Collision(ecs::Entity_ptr a, ecs::Entity_ptr b, float impact) : a(a), b(b), impact(impact) {}
 	};
 
 	class Physics_system {
