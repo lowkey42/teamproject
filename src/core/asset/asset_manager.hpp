@@ -56,6 +56,7 @@ namespace asset {
 			auto aid()const noexcept -> const AID& {return _aid;}
 			auto mgr()const noexcept -> Asset_manager& {return *_mgr;}
 			void load();
+			auto try_load(bool cache=true, bool warn=true) -> bool;
 			void unload();
 
 			void reset(){_ptr.reset();}

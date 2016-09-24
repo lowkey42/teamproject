@@ -1,4 +1,4 @@
-/** The hub screen for a single world ****************************************
+/** Screen that is shown after each level, to add an entry to the highscore **
  *                                                                           *
  * Copyright (c) 2016 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
@@ -7,21 +7,24 @@
 
 #pragma once
 
-#include "level.hpp"
+#include "game_engine.hpp"
+#include "highscore_manager.hpp"
 
 #include <core/renderer/camera.hpp>
-#include <core/renderer/command_queue.hpp>
+#include <core/renderer/texture.hpp>
+#include <core/renderer/shader.hpp>
+#include <core/renderer/vertex_object.hpp>
+#include <core/renderer/primitives.hpp>
 #include <core/renderer/text.hpp>
-#include <core/engine.hpp>
-#include <core/utils/maybe.hpp>
+#include <core/renderer/command_queue.hpp>
 
 
 namespace lux {
 
-	class World_map_screen : public Screen {
+	class Highscore_add_screen : public Screen {
 		public:
-			World_map_screen(Engine& game_engine, const std::string& level_pack_id);
-			~World_map_screen()noexcept = default;
+			Highscore_add_screen(Engine& engine, std::string level, Time time);
+			~Highscore_add_screen()noexcept = default;
 
 		protected:
 			void _update(Time delta_time)override;
@@ -36,15 +39,19 @@ namespace lux {
 
 		private:
 			util::Mailbox_collection _mailbox;
+			Highscore_manager& _highscores;
 
-			renderer::Text_dynamic _ui_text;
-			renderer::Camera_2d _camera_ui;
+			renderer::Camera_2d _camera;
+
+			renderer::Text_dynamic _debug_Text;
+
 			renderer::Command_queue _render_queue;
 
-			Level_pack_ptr _level_pack;
-			int _current_level = 0;
+			Highscore_list_ptr _highscore_list;
 
-			void _enter_nth_level(std::size_t idx);
+			const std::string _level_id;
+			const Time _time;
+			std::string _player_name;
 	};
 
 }

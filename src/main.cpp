@@ -12,9 +12,10 @@
 #include "core/utils/log.hpp"
 #include "core/utils/stacktrace.hpp"
 
-#include "core/engine.hpp"
+#include "game/game_engine.hpp"
 
 #include "game/editor_screen.hpp"
+#include "game/main_menu_screen.hpp"
 #include "game/world_map_screen.hpp"
 
 #include "info.hpp"
@@ -28,7 +29,7 @@ using namespace std::string_literals;
 
 
 namespace {
-	std::unique_ptr<Engine> engine;
+	std::unique_ptr<Game_engine> engine;
 
 	void init_env(int argc, char** argv, char** env);
 	void init_engine();
@@ -110,14 +111,14 @@ namespace {
 
 	void init_engine() {
 		try {
-			engine.reset(new Engine(app_name, argc, argv, env));
+			engine = std::make_unique<Game_engine>(app_name, argc, argv, env);
 
 			if(argc>1 && argv[1]=="game"s)
 				engine->screens().enter<World_map_screen>("jungle");
 			else if(argc>2 && argv[1]=="editor"s)
 				engine->screens().enter<Editor_screen>(argv[2]);
 			else
-				engine->screens().enter<Editor_screen>("jungle_01"); // TODO: plugin menu/intro here
+				engine->screens().enter<Main_menu_screen>(); // TODO: intro screen ?
 
 		} catch (const util::Error& ex) {
 			CRASH_REPORT("Exception in init: "<<ex.what());

@@ -81,6 +81,9 @@ namespace editor {
 	}
 
 	void Level_settings::update_and_draw() {
+		if(!_visible)
+			return;
+
 		if(_impl->last_level_id!=_metadata.id) {
 			_impl->last_level_id = _metadata.id;
 			_impl->input_name.reset(_metadata.name);
@@ -163,7 +166,6 @@ namespace editor {
 		} else {
 			_visible = false;
 		}
-		nk_window_show(ctx, "settings", _visible ? NK_SHOWN : NK_HIDDEN);
 		nk_end(ctx);
 	}
 

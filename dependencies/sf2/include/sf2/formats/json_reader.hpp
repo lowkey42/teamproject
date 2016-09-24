@@ -84,6 +84,7 @@ namespace format {
 
 			std::istream& _stream;
 			Error_handler _error_handler;
+			bool _error = false;
 			std::vector<State> _state;
 			uint32_t _column = 1;
 			uint32_t _row = 1;
@@ -101,14 +102,23 @@ namespace format {
 	}
 
 	inline void Json_reader::_on_error(const std::string& e) {
-		if(_error_handler)
+		if(_error)
+			return; // ignore all errors after the first
+
+		if(_error_handler) {
 			_error_handler(e, _row, _column);
-		else {
+			_error = true;
+
+		} else {
 			std::cerr<<"Error parsing JSON at "<<_row<<":"<<_column<<" : "<<e<<std::endl;
 			abort();
 		}
 	}
 	inline char Json_reader::_get() {
+		if(_error) {
+			return 0;
+		}
+
 		auto c = _stream.get();
 		_column++;
 		if(c=='\n') {
@@ -146,16 +156,20 @@ namespace format {
 	}
 
 	inline char Json_reader::_next(bool in_string) {
+		if(_error) {
+			return 0;
+		}
+
 		auto c = _get();
 		if(c=='/' && !in_string && _stream.peek()=='*') { // comment
 			_get();
 
-			while(c=='*' && (c=_get())=='/') {
+			while(!_error && c=='*' && (c=_get())=='/') {
 			}
 		}
 
 		if(!in_string) {
-			while(!std::isgraph(c)) {
+			while(!_error && !std::isgraph(c)) {
 				c = _get();
 			}
 		}
@@ -308,8 +322,10 @@ namespace format {
 
 	inline void Json_reader::skip_obj() {
 		auto c = _next();
-		if(c!='{')
+		if(c!='{') {
 			_on_error(std::string("Unexpected character ")+c+" in object");
+			return;
+		}
 
 		int obj_depth = 1;
 		while(obj_depth>0) {
@@ -329,6 +345,10 @@ namespace format {
 					break;
 				}
 				default:
+					if(_error) {
+						return;
+					}
+
 					break; // skip
 			}
 		}
@@ -351,8 +371,10 @@ namespace format {
 	inline void Json_reader::read(std::string& val) {
 		auto c = _next();
 
-		if(c!='\"')
+		if(c!='\"') {
 			_on_error("Missing '\"' at the start of string");
+			return;
+		}
 
 		c = _get();
 

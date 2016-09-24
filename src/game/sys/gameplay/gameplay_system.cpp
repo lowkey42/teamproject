@@ -180,19 +180,22 @@ namespace gameplay {
 		if(_players.size()==0) {
 			DEBUG("Everyone is dead!");
 
-			// set camera to slowly lerp back to player and block input
-			_camera_sys.start_slow_lerp(1.0_s);
-			_controller_sys.block_input(0.5_s);
-
-			_mailbox.disable();
-			for(Reset_comp& c : _reset_comps) {
-				c.owner().manager().erase(c.owner_ptr());
-			}
-			_game_timer = 0_s;
-			_first_update_after_reset = true;
+			reset();
 		}
 
 		_camera_sys.active_only(*_controller_sys.get_controlled());
+	}
+	void Gameplay_system::reset() {
+		// set camera to slowly lerp back to player and block input
+		_camera_sys.start_slow_lerp(1.0_s);
+		_controller_sys.block_input(0.5_s);
+
+		_mailbox.disable();
+		for(Reset_comp& c : _reset_comps) {
+			c.owner().manager().erase(c.owner_ptr());
+		}
+		_game_timer = 0_s;
+		_first_update_after_reset = true;
 	}
 
 	namespace {

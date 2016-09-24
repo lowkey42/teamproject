@@ -1,4 +1,4 @@
-/** The hub screen for a single world ****************************************
+/** The main menu ************************************************************
  *                                                                           *
  * Copyright (c) 2016 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
@@ -6,8 +6,6 @@
 \*****************************************************************************/
 
 #pragma once
-
-#include "level.hpp"
 
 #include <core/renderer/camera.hpp>
 #include <core/renderer/command_queue.hpp>
@@ -18,10 +16,10 @@
 
 namespace lux {
 
-	class World_map_screen : public Screen {
+	class Main_menu_screen : public Screen {
 		public:
-			World_map_screen(Engine& game_engine, const std::string& level_pack_id);
-			~World_map_screen()noexcept = default;
+			Main_menu_screen(Engine& engine);
+			~Main_menu_screen()noexcept = default;
 
 		protected:
 			void _update(Time delta_time)override;
@@ -31,20 +29,16 @@ namespace lux {
 			void _on_leave(util::maybe<Screen&> next) override;
 
 			auto _prev_screen_policy()const noexcept -> Prev_screen_policy override {
-				return Prev_screen_policy::stack;
+				return Prev_screen_policy::discard;
 			}
 
 		private:
 			util::Mailbox_collection _mailbox;
 
-			renderer::Text_dynamic _ui_text;
 			renderer::Camera_2d _camera_ui;
 			renderer::Command_queue _render_queue;
 
-			Level_pack_ptr _level_pack;
-			int _current_level = 0;
-
-			void _enter_nth_level(std::size_t idx);
+			int _active_menu_entry = -1;
 	};
 
 }

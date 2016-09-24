@@ -15,6 +15,9 @@
 				"S": {"type":"continuous", "action":"down"},
 
 				"Space": {"type":"once", "action":"select"},
+				"Return": {"type":"once", "action":"continue"},
+
+				"Backspace": {"type":"once", "action": "backspace"},
 
 				"T_1": {"type":"once", "action":"select_a"},
 				"T_2": {"type":"once", "action":"select_b"},

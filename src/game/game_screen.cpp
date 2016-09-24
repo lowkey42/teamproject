@@ -3,6 +3,7 @@
 #include "game_screen.hpp"
 #include "level.hpp"
 #include "loading_screen.hpp"
+#include "highscore_add_screen.hpp"
 
 #include <core/renderer/graphics_ctx.hpp>
 
@@ -29,10 +30,11 @@ namespace lux {
 		const auto fadeout_sun = Rgb{1.8, 1.75, 0.78} *4.f;
 	}
 
-	Game_screen::Game_screen(Engine& engine, const std::string& level_id)
+	Game_screen::Game_screen(Engine& engine, const std::string& level_id, bool add_to_highscore)
 	    : Screen(engine),
 	      _mailbox(engine.bus()),
 	      _systems(engine),
+	      _add_to_highscore(add_to_highscore),
 	      _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _hud_background(engine.assets().load<Texture>("tex:hud_background"_aid)),
 	      _hud_timer_background(engine.assets().load<Texture>("tex:hud_timer_background"_aid)),
@@ -100,7 +102,6 @@ namespace lux {
 	void Game_screen::_update(Time dt) {
 		_mailbox.update_subscriptions();
 
-		_time_acc+=dt;
 		if(_selection_movement>0.f) {
 			_selection_movement -= 4.f*dt.value();
 
@@ -114,10 +115,12 @@ namespace lux {
 				_selection_movement = 0.f;
 		}
 
-		if(_fadeout)
+		if(_fadeout) {
 			_systems.update(dt, Update::animations | Update::movements | Update::gameplay);
-		else
+		} else {
+			_time_acc+=dt;
 			_systems.update(dt, update_all);
+		}
 
 		if(_systems.gameplay.game_time()>0.0_s) {
 			std::stringstream s;
@@ -136,7 +139,20 @@ namespace lux {
 
 			if(_fadeout_fadetimer>=fadeout_delay) {
 				unlock_next_levels(_engine, _current_level);
-				_engine.screens().leave();
+				if(_add_to_highscore) {
+					_engine.screens().enter<Highscore_add_screen>(_current_level, _systems.gameplay.game_time());
+
+					// reset the game to be ready for continue
+					_systems.light_config(_systems.lights.sun_light(),
+					                      _systems.lights.sun_dir(),
+					                      _systems.lights.ambient_brightness(),
+					                      _systems.lights.background_tint());
+					_fadeout = false;
+					_fadeout_fadetimer = 0_s;
+					_systems.gameplay.reset();
+				} else {
+					_engine.screens().leave();
+				}
 			}
 		}
 	}

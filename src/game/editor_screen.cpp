@@ -60,7 +60,7 @@ namespace lux {
 		};
 
 		_menu.add_action("back"_strid, "tex:editor_icon_exit"_aid, tooltip("back"),
-		                 [&]{_engine.exit();});
+		                 [&]{_engine.screens().leave();});
 
 		_menu.add_action("settings"_strid, "tex:editor_icon_settings"_aid, false, tooltip("settings"),
 		                 [&](bool s){_settings.visible(s);});

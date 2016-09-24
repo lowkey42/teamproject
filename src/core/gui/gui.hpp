@@ -54,6 +54,10 @@ namespace gui {
 	extern bool color_picker(nk_context*, Rgb&  color, int width, float factor=1.f);
 	extern bool color_picker(nk_context*, Rgba& color, int width, float factor=1.f);
 
+	extern void begin_menu(nk_context*, int& active);
+	extern bool menu_button(nk_context*, const char* text, bool enabled=true);
+	extern void end_menu(nk_context*);
+
 	class Text_edit {
 		public:
 			Text_edit();

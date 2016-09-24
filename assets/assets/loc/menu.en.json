@@ -1,0 +1,8 @@
+{
+    "menu": {
+        "game": "Game",
+        "editor": "Editor",
+        "options": "Options",
+        "quit": "Quit"
+    }
+}

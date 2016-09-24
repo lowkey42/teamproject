@@ -1,5 +1,5 @@
 {
-	"host": "localhost",
+	"host": "backend.second-system.de",
 	"port": 80,
-	"path": "/~lowkey/database.php"
+	"path": "/lux_leaderboard.php"
 }

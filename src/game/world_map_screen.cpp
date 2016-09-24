@@ -26,8 +26,7 @@ namespace lux {
 	    : Screen(engine),
 	      _mailbox(engine.bus()),
 	      _ui_text(engine.assets().load<Font>("font:menu_font"_aid)),
-	      _camera_ui(engine.graphics_ctx().viewport(),
-	                   {engine.graphics_ctx().win_width(), engine.graphics_ctx().win_height()}),
+	      _camera_ui(engine.graphics_ctx().viewport(), calculate_vscreen(engine, 1080)),
 	      _level_pack(get_level_pack(engine,level_pack_id))
 	{
 
@@ -79,7 +78,7 @@ namespace lux {
 		auto id = _level_pack->level_ids.at(idx).aid;
 
 		if(!is_level_locked(_engine,id))
-			_engine.screens().enter<Game_screen>(id);
+			_engine.screens().enter<Game_screen>(id, true);
 	}
 
 	void World_map_screen::_on_enter(util::maybe<Screen&> prev) {
@@ -101,6 +100,8 @@ namespace lux {
 			auto id = _level_pack->level_ids.at(i).aid;
 			ss<<"  "<<(i+1)<<". "<<id<<" ("<<(is_level_locked(_engine,id) ? "locked" : "unlocked")<<")\n";
 		}
+
+		ss<<"\nPress the corresponding number to start a level.";
 
 		_ui_text.set(ss.str());
 	}

@@ -1,22 +1,28 @@
 #include "highscore_manager.hpp"
 
+#include <core/utils/template_utils.hpp>
+
+#ifdef _WIN32
+	#include <windows.h>
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <string.h>
+	#include <errno.h>
+	#include <ctype.h>
+#else
+	#include <unistd.h>
+	#include <sys/types.h>
+	#include <sys/stat.h>
+	#include <pwd.h>
+#endif
+
 #include <chrono>
 #include <sstream>
 
 namespace lux {
 
 	using namespace std::chrono;
-
-	sf2_structDef(Highscore,
-		name,
-		time
-	)
-
-	sf2_structDef(Highscore_list,
-		level,
-		scores,
-		timestamp
-	)
+	using namespace unit_literals;
 
 	namespace {
 		struct Config {
@@ -25,6 +31,11 @@ namespace lux {
 			std::string path;
 		};
 		sf2_structDef(Config, host, port, path)
+
+		struct Local_config {
+			std::string last_username;
+		};
+		sf2_structDef(Local_config, last_username)
 
 		// Login information
 		const std::string host = "localhost";
@@ -47,6 +58,63 @@ namespace lux {
 		auto valid_ptr(const Highscore_list_ptr& hlist) {
 			return hlist && valid(*hlist);
 		}
+
+		auto determine_username() -> std::string;
+
+#ifdef _WIN32
+		std::string win_to_utf8(const wchar_t* wstr, DWORD len) {
+			int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr, (int)len, NULL, 0, NULL, NULL);
+
+			std::string out(size_needed, 0);
+			WideCharToMultiByte                  (CP_UTF8, 0, wstr, (int)len, &out[0], size_needed, NULL, NULL);
+			return out;
+		}
+
+		auto determine_username() -> std::string {
+			DWORD bufsize = 0;
+
+			if(GetUserNameW(NULL, &bufsize) == 0) {
+				wchar_t* wbuf = (wchar_t*) malloc(bufsize * sizeof(wchar_t));
+				ON_EXIT {
+					free(wbuf);
+				};
+
+				if(GetUserNameW(wbuf, &bufsize) != 0) {
+					return win_to_utf8(wbuf, bufsize);
+				}
+			}
+
+			return "???";
+		}
+#else
+		auto determine_username() -> std::string {
+			auto uid = getuid();
+			auto pw = getpwuid(uid);
+			if(pw && pw->pw_name) {
+				return pw->pw_name;
+			}
+
+			auto env_user = getenv("USER");
+			if(env_user) {
+				return env_user;
+			}
+
+			return "???";
+		}
+#endif
+	}
+
+	int Highscore_list::get_rank(Time time)const {
+		int i = 0;
+
+		for(auto& score : scores) {
+			if(score.time>time/1_s)
+				break;
+
+			i++;
+		}
+
+		return i;
 	}
 
 
@@ -63,38 +131,54 @@ namespace lux {
 			_remote_port = port;
 			_remote_path = path;
 		}
+
+		auto local_cfg = _assets.load_maybe<Local_config>("cfg:local_highscore"_aid);
+		if(local_cfg.is_some()) {
+			_last_username = local_cfg.get_or_throw()->last_username;
+		} else {
+			_last_username = determine_username();
+		}
+
+
+		INFO("Highscore server: "<<_remote_host<<":"<<_remote_port<<"/"<<_remote_path);
 	}
 
 
-	Highscore_list_results Highscore_manager::get_highscore(const std::vector<std::string>& level_ids) {
+	Highscore_list_results Highscore_manager::get_highscores(const std::vector<std::string>& level_ids) {
 		Highscore_list_results ret;
 		ret.reserve(level_ids.size());
 
 		// For each level_id entry inside the given vector:
 		for(auto& level_id : level_ids) {
-			auto level_aid = highscore_list_aid(level_id);
-			auto hlist = _assets.load_maybe<Highscore_list>(level_aid, true, false);
-
-			if(hlist.is_some()) {
-				ret.emplace_back(hlist.get_or_throw());
-			} else {
-				ret.emplace_back(util::nothing());
-			}
-
-			// fetch list from remote if not already in process
-			if(!hlist.process(false, &valid_ptr) && _running_requests.find(level_id)==_running_requests.end()) {
-				// Create a new Http-Body-Object for fetching the Highscore information from the database
-				auto params = util::rest::Http_parameters{{"level", level_id}, {"op", "ghigh"}};
-				auto body = util::rest::get_request(_remote_host, _remote_port, _remote_path, params);
-				_running_requests.emplace(level_id, std::move(body));
-			}
+			ret.emplace_back(get_highscore(level_id));
 		}
 
 		return ret;
 	}
+	auto Highscore_manager::get_highscore(const std::string& level_id) -> Highscore_list_ptr {
+		auto level_aid = highscore_list_aid(level_id);
+
+		auto hlist = Highscore_list_ptr{_assets, level_aid};
+		hlist.try_load(true, false);
+
+		// fetch list from remote if not already in process
+		if(!valid_ptr(hlist) && _running_requests.find(level_id)==_running_requests.end()) {
+			// Create a new Http-Body-Object for fetching the Highscore information from the database
+			auto params = util::rest::Http_parameters{{"level", level_id}, {"op", "ghigh"}};
+			auto body = util::rest::get_request(_remote_host, _remote_port, _remote_path, params);
+			_running_requests.emplace(level_id, std::move(body));
+		}
+
+		return hlist;
+	}
 
 
-	void Highscore_manager::push_highscore(std::string level_id, const Highscore& score){
+	void Highscore_manager::push_highscore(std::string level_id, const Highscore& score) {
+		if(_last_username != score.name) {
+			_last_username = score.name;
+			_assets.save("cfg:local_highscore"_aid, Local_config{_last_username});
+		}
+
 		// convert score-value from int to str
 		auto time_str = util::to_string(score.time);
 
@@ -129,9 +213,6 @@ namespace lux {
 			auto content = util::rest::get_content(*it);
 			if(content.is_some()){
 				it = _post_requests.erase(it);
-				content.process([&](auto str){
-					DEBUG("POST result: " + str);
-				});
 			} else {
 				it++;
 			}
@@ -162,7 +243,7 @@ namespace lux {
 		// parse highscores from given content-string
 		auto content_stream = std::istringstream{content};
 		sf2::deserialize_json(content_stream, [&](auto& msg, uint32_t row, uint32_t column) {
-			ERROR("Error parsing highscore JSON response for "<<level_id<<" at "<<row<<":"<<column<<": "<<msg);
+			DEBUG("Error parsing highscore JSON response for "<<level_id<<" at "<<row<<":"<<column<<": "<<msg);
 		}, list);
 
 		if(level_id!=list.level) {

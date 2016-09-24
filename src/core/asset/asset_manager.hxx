@@ -121,6 +121,20 @@ namespace asset {
 	}
 
 	template<class R>
+	bool Ptr<R>::try_load(bool cache, bool warn) {
+		if(!_ptr) {
+			INVARIANT(_mgr, "Tried to load unintialized resource-ref");
+			INVARIANT(_aid, "Tried to load unnamed resource");
+			auto loaded = _mgr->load_maybe<R>(_aid, cache, warn);
+			if(loaded.is_some()) {
+				*this = loaded.get_or_throw();
+			}
+		}
+
+		return !!_ptr;
+	}
+
+	template<class R>
 	void Ptr<R>::unload() {
 		_ptr.reset();
 	}

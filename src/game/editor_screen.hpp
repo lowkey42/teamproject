@@ -41,7 +41,7 @@ namespace lux {
 			void _on_leave(util::maybe<Screen&> next) override;
 
 			auto _prev_screen_policy()const noexcept -> Prev_screen_policy override {
-				return Prev_screen_policy::discard;
+				return Prev_screen_policy::stack;
 			}
 
 		private:

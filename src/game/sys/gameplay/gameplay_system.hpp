@@ -51,6 +51,8 @@ namespace gameplay {
 
 			auto game_time()const {return _game_timer;}
 
+			void reset();
+
 		private:
 			Engine& _engine;
 			ecs::Entity_manager& _ecs;

@@ -1,6 +1,6 @@
 /** The screen running the gameplay for a specific level *********************
  *                                                                           *
- * Copyright (c) 2014 Florian Oetke                                          *
+ * Copyright (c) 2016 Florian Oetke                                          *
  *  This file is distributed under the MIT License                           *
  *  See LICENSE file for details.                                            *
 \*****************************************************************************/
@@ -20,7 +20,7 @@ namespace lux {
 
 	class Game_screen : public Screen {
 		public:
-			Game_screen(Engine& game_engine, const std::string& level_id);
+			Game_screen(Engine& game_engine, const std::string& level_id, bool add_to_highscore=false);
 			~Game_screen()noexcept;
 
 		protected:
@@ -37,6 +37,7 @@ namespace lux {
 		private:
 			util::Mailbox_collection _mailbox;
 			Meta_system _systems;
+			bool _add_to_highscore;
 
 			renderer::Text_dynamic _ui_text;
 			renderer::Texture_ptr _hud_background;
