@@ -125,7 +125,7 @@ namespace asset {
 				uint32_t id;
 				AID aid;
 				std::function<void(const AID&)> on_mod;
-				int64_t last_modified;
+				int64_t last_modified = 0;
 
 				Watch_entry(uint32_t id, AID aid, std::function<void(const AID&)> l)
 				    : id(id), aid(aid), on_mod(l) {}

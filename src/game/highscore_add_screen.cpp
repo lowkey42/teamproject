@@ -98,14 +98,14 @@ namespace lux {
 				int i=0;
 				for(auto& score : _highscore_list->scores) {
 					if(i++==rank) {
-						print_score(ss, rank, "* "+_player_name+" *", _time.value());
+						print_score(ss, rank+1, "* "+_player_name+" *", _time.value());
 						i++;
 					}
 
 					print_score(ss, i, score.name, score.time);
 				}
 				if(i==rank) {
-					print_score(ss, rank, _player_name, _time.value());
+					print_score(ss, rank+1, _player_name, _time.value());
 				}
 
 				ss<<"\nEnter your name and press return to continue or escape to retry...";

@@ -4,6 +4,9 @@
 #include "level.hpp"
 #include "loading_screen.hpp"
 
+#include <core/gui/translations.hpp>
+#include <core/gui/gui.hpp>
+
 #include <core/renderer/graphics_ctx.hpp>
 
 #include <core/audio/music.hpp>
@@ -93,23 +96,43 @@ namespace lux {
 	void World_map_screen::_update(Time dt) {
 		_mailbox.update_subscriptions();
 
-		std::stringstream ss;
-		ss<<"Levels in "<<_level_pack->name<<":\n";
+		auto text = [&](auto& key) {
+			return _engine.translator().translate("menu", key).c_str();
+		};
 
-		for(auto i=0u; i<_level_pack->level_ids.size(); i++) {
-			auto id = _level_pack->level_ids.at(i).aid;
-			ss<<"  "<<(i+1)<<". "<<id<<" ("<<(is_level_locked(_engine,id) ? "locked" : "unlocked")<<")\n";
+
+		struct nk_panel layout;
+		auto ctx = _engine.gui().ctx();
+		if(nk_begin(ctx, &layout, "level_selection", _engine.gui().centered(300, 500), NK_WINDOW_BORDER)) {
+
+			gui::begin_menu(ctx, _current_level);
+
+
+			for(auto i=0u; i<_level_pack->level_ids.size(); i++) {
+				auto id = _level_pack->level_ids.at(i).aid;
+
+				std::stringstream ss;
+				ss<<(i+1)<<". "<<id;
+
+				if(is_level_locked(_engine,id))
+					ss << " [Locked]";
+
+				if(gui::menu_button(ctx, ss.str().c_str())) {
+					_enter_nth_level(i);
+				}
+			}
+
+			if(gui::menu_button(ctx, text("quit"))) {
+				_engine.screens().leave();
+			}
+
+			gui::end_menu(ctx);
 		}
-
-		ss<<"\nPress the corresponding number to start a level.";
-
-		_ui_text.set(ss.str());
+		nk_end(ctx);
 	}
 
 
 	void World_map_screen::_draw() {
-		_ui_text.draw(_render_queue, glm::vec2(0,-400), glm::vec4(1,1,1,1), 1.0f);
-
 		_render_queue.flush();
 	}
 }
