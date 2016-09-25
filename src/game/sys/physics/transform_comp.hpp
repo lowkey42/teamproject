@@ -20,6 +20,7 @@ namespace physics {
 	class Transform_comp : public ecs::Component<Transform_comp> {
 		public:
 			static constexpr const char* name() {return "Transform";}
+			static constexpr std::size_t min_components_per_pool_chunk = 256;
 			void load(sf2::JsonDeserializer& state,
 			          asset::Asset_manager& asset_mgr)override;
 			void save(sf2::JsonSerializer& state)const override;

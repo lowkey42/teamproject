@@ -133,14 +133,14 @@ namespace renderer {
 
 #else
 		Graphics_settings s;
-		s.width = 1024;
-		s.height = 512;
+		s.width = 2048;
+		s.height = 1024;
 		s.display = 0;
 		s.fullscreen = false;
 		s.borderless_fullscreen = false;
 		s.gamma = 2.2f;
 		s.bloom = false;
-		s.supersampling = 1.f;
+		s.supersampling = 0.5f;
 		s.shadow_softness = 0.0f;
 		s.fast_lighting = false;
 

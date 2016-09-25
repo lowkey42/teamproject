@@ -244,6 +244,7 @@ namespace lux {
 		auto content_stream = std::istringstream{content};
 		sf2::deserialize_json(content_stream, [&](auto& msg, uint32_t row, uint32_t column) {
 			DEBUG("Error parsing highscore JSON response for "<<level_id<<" at "<<row<<":"<<column<<": "<<msg);
+			DEBUG("BODY: "<<content);
 		}, list);
 
 		if(level_id!=list.level) {

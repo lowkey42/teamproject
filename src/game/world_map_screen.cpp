@@ -111,13 +111,10 @@ namespace lux {
 			for(auto i=0u; i<_level_pack->level_ids.size(); i++) {
 				auto id = _level_pack->level_ids.at(i).aid;
 
-				std::stringstream ss;
-				ss<<(i+1)<<". "<<id;
-
 				if(is_level_locked(_engine,id))
-					ss << " [Locked]";
+					gui::menu_button(ctx, "[Locked]");
 
-				if(gui::menu_button(ctx, ss.str().c_str())) {
+				else if(gui::menu_button(ctx, id.c_str())) {
 					_enter_nth_level(i);
 				}
 			}

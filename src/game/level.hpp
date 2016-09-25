@@ -59,6 +59,7 @@ namespace lux {
 
 	extern auto list_level_packs(Engine&) -> std::vector<Level_pack_ptr>;
 	extern auto get_level_pack(Engine&, const std::string& id) -> Level_pack_ptr;
+	extern auto get_next_level(Engine&, const std::string& level) -> util::maybe<std::string>;
 
 	extern void unlock_level(Engine&, const std::string& id);
 	extern void unlock_next_levels(Engine&, const std::string& id);

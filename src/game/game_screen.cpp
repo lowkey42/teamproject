@@ -102,6 +102,20 @@ namespace lux {
 	void Game_screen::_update(Time dt) {
 		_mailbox.update_subscriptions();
 
+		if(_reset_gameplay) {
+			_reset_gameplay = false;
+
+			// reset the game to be ready for continue
+			_systems.light_config(_org_sun_light.get_or_throw(),
+			                      _systems.lights.sun_dir(),
+			                      _systems.lights.ambient_brightness(),
+			                      _systems.lights.background_tint());
+			_fadeout = false;
+			_fadeout_fadetimer = 0_s;
+			_systems.gameplay.reset();
+		}
+
+
 		if(_selection_movement>0.f) {
 			_selection_movement -= 4.f*dt.value();
 
@@ -124,7 +138,8 @@ namespace lux {
 
 		if(_systems.gameplay.game_time()>0.0_s) {
 			std::stringstream s;
-			s << std::setw(6) <<std::right<< std::fixed << std::setprecision(1) << _systems.gameplay.game_time().value();
+			s << std::setw(6) <<std::right<< std::fixed << std::setprecision(1)
+			  << _systems.gameplay.game_time().value();
 			_ui_text.set(s.str(), true);
 		} else
 			_ui_text.set("");
@@ -132,7 +147,13 @@ namespace lux {
 		if(_fadeout) {
 			_fadeout_fadetimer+=dt;
 
-			_systems.light_config(glm::mix(_systems.lights.sun_light(), fadeout_sun, _fadeout_fadetimer/fadeout_delay),
+			if(_org_sun_light.is_nothing()) {
+				_org_sun_light = _systems.lights.sun_light();
+			}
+
+			_systems.light_config(glm::mix(_org_sun_light.get_or_throw(),
+			                               fadeout_sun,
+			                               _fadeout_fadetimer/fadeout_delay),
 			                      _systems.lights.sun_dir(),
 			                      _systems.lights.ambient_brightness(),
 			                      _systems.lights.background_tint());
@@ -140,16 +161,9 @@ namespace lux {
 			if(_fadeout_fadetimer>=fadeout_delay) {
 				unlock_next_levels(_engine, _current_level);
 				if(_add_to_highscore) {
+					_reset_gameplay = true;
 					_engine.screens().enter<Highscore_add_screen>(_current_level, _systems.gameplay.game_time());
 
-					// reset the game to be ready for continue
-					_systems.light_config(_systems.lights.sun_light(),
-					                      _systems.lights.sun_dir(),
-					                      _systems.lights.ambient_brightness(),
-					                      _systems.lights.background_tint());
-					_fadeout = false;
-					_fadeout_fadetimer = 0_s;
-					_systems.gameplay.reset();
 				} else {
 					_engine.screens().leave();
 				}

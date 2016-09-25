@@ -168,6 +168,25 @@ namespace lux {
 	auto get_level_pack(Engine& engine, const std::string& id) -> Level_pack_ptr {
 		return engine.assets().load<Level_pack>(asset::AID{"level_pack"_strid, id});
 	}
+	auto get_next_level(Engine& engine, const std::string& level_id) -> util::maybe<std::string> {
+		auto level = get_level(engine, level_id);
+		if(!level || level->pack.empty())
+			return util::nothing();
+
+		auto pack = get_level_pack(engine, level->pack);
+		if(!pack)
+			return util::nothing();
+
+		auto level_idx = pack->find_level(level_id);
+		if(level_idx.is_nothing())
+			return util::nothing();
+
+		auto next_idx = static_cast<std::size_t>(level_idx.get_or_throw()+1);
+		if(next_idx >= pack->level_ids.size())
+			return util::nothing();
+
+		return pack->level_ids.at(next_idx).aid;
+	}
 
 	namespace {
 		struct Savegame {
@@ -194,24 +213,12 @@ namespace lux {
 		engine.assets().save(asset::AID{"cfg"_strid, "savegame"}, savegame_copy);
 	}
 	void unlock_next_levels(Engine& engine, const std::string& id) {
-		auto level = get_level(engine, id);
-		if(!level || level->pack.empty())
-			return;
+		get_next_level(engine, id).process([&](auto& next) {
+			auto savegame_copy = load_savegame(engine);
+			savegame_copy.unlocked_levels.emplace(next);
 
-		auto pack = get_level_pack(engine, level->pack);
-		if(!pack)
-			return;
-
-		auto level_idx = pack->find_level(id);
-		if(level_idx.is_nothing())
-			return;
-
-		auto next_idx = (level_idx.get_or_throw()+1) % pack->level_ids.size();
-
-		auto savegame_copy = load_savegame(engine);
-		savegame_copy.unlocked_levels.emplace(pack->level_ids.at(next_idx).aid);
-
-		engine.assets().save(asset::AID{"cfg"_strid, "savegame"}, savegame_copy);
+			engine.assets().save(asset::AID{"cfg"_strid, "savegame"}, savegame_copy);
+		});
 	}
 	auto is_level_locked(Engine& engine, const std::string& id) -> bool {
 		const auto& unlocked_levels = load_savegame(engine).unlocked_levels;

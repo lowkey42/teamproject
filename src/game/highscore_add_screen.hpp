@@ -10,6 +10,7 @@
 #include "game_engine.hpp"
 #include "highscore_manager.hpp"
 
+#include <core/gui/gui.hpp>
 #include <core/renderer/camera.hpp>
 #include <core/renderer/texture.hpp>
 #include <core/renderer/shader.hpp>
@@ -34,7 +35,7 @@ namespace lux {
 			void _on_leave(util::maybe<Screen&> next) override;
 
 			auto _prev_screen_policy()const noexcept -> Prev_screen_policy override {
-				return Prev_screen_policy::stack;
+				return Prev_screen_policy::draw;
 			}
 
 		private:
@@ -50,8 +51,10 @@ namespace lux {
 			Highscore_list_ptr _highscore_list;
 
 			const std::string _level_id;
+			const util::maybe<std::string> _next_level_id;
 			const Time _time;
-			std::string _player_name;
+			gui::Text_edit _player_name;
+			std::string _player_name_str;
 	};
 
 }

@@ -1,10 +1,16 @@
 #include "highscore_add_screen.hpp"
 
-#include "../core/units.hpp"
-#include "../core/renderer/graphics_ctx.hpp"
+#include "game_screen.hpp"
+#include "level.hpp"
+
+#include <core/units.hpp>
+#include <core/renderer/graphics_ctx.hpp>
 
 #include <core/audio/music.hpp>
 #include <core/audio/audio_ctx.hpp>
+
+#include <core/gui/gui.hpp>
+#include <core/gui/translations.hpp>
 
 #include <core/input/events.hpp>
 #include <core/input/input_manager.hpp>
@@ -20,8 +26,6 @@ namespace lux {
 	using namespace unit_literals;
 	using namespace renderer;
 
-	static constexpr auto max_player_name = 15;
-
 	Highscore_add_screen::Highscore_add_screen(Engine& engine, std::string level, Time time)
 	    : Screen(engine),
 	      _mailbox(engine.bus()),
@@ -30,9 +34,11 @@ namespace lux {
 	      _debug_Text(engine.assets().load<Font>("font:menu_font"_aid)),
 	      _highscore_list(_highscores.get_highscore(level)),
 	      _level_id(std::move(level)),
+	      _next_level_id(get_next_level(engine, _level_id)),
 	      _time(time),
-	      _player_name(_highscores.last_username())
+	      _player_name_str(_highscores.last_username())
 	{
+		_player_name.reset(_player_name_str);
 
 		_mailbox.subscribe_to([&](input::Once_action& e){
 			switch(e.id) {
@@ -44,15 +50,12 @@ namespace lux {
 					_engine.screens().leave(2);
 					break;
 
-				case "backspace"_strid:
-					if(!_player_name.empty()) {
-						_player_name.pop_back();
+				case "next"_strid:
+					if(_next_level_id.is_some()) {
+						_engine.screens().leave(2);
+						_engine.screens().enter<Game_screen>(_next_level_id.get_or_throw(), true);
 					}
 					break;
-			}
-		}, [&](input::Char_input& c) {
-			if(_player_name.size()<max_player_name) {
-				_player_name += c.character;
 			}
 		});
 
@@ -69,60 +72,99 @@ namespace lux {
 	void Highscore_add_screen::_on_leave(util::maybe<Screen&> next) {
 		_mailbox.disable();
 
-		if(!_player_name.empty()) {
-			_highscores.push_highscore(_level_id, Highscore{_player_name, _time/1_s});
+		if(_highscore_list) {
+			auto rank = _highscore_list->get_rank(_time);
+			_player_name.get(_player_name_str);
+			if(!_player_name_str.empty() && rank<10) {
+				_highscores.push_highscore(_level_id, Highscore{_player_name_str, _time/1_s});
+			}
 		}
 	}
 
 	namespace {
-		void print_score(std::stringstream& ss, int rank, const std::string& name, float time) {
-			ss<<" "<<std::setw(2)<<std::right<<rank
-			  <<". "<<std::setw(max_player_name+4)<<std::internal<<name<<" | "
-			  <<std::setw(6)<<std::right<< std::fixed << std::setprecision(1)<<time<<"\n";
+		void print_score(nk_context* ctx, int rank, const std::string& name, float time) {
+			std::stringstream ss;
+			ss<<rank<<".";
+			nk_label(ctx, ss.str().c_str(), NK_TEXT_RIGHT);
+			nk_label(ctx, name.c_str(), NK_TEXT_CENTERED);
+
+			ss.str(std::string());
+			ss << std::setw(6) << std::right << std::fixed << std::setprecision(1) << time;
+			nk_label(ctx, ss.str().c_str(), NK_TEXT_RIGHT);
 		}
 	}
 
 	void Highscore_add_screen::_update(Time) {
 		_mailbox.update_subscriptions();
 
-		if(_highscore_list || _highscore_list.try_load()) {
-			auto rank = _highscore_list->get_rank(_time);
+		auto text = [&](auto& key) {
+			return _engine.translator().translate("menu", key).c_str();
+		};
 
-			if(rank>=10) {
-				_engine.screens().leave();
 
-			} else {
-				std::stringstream ss;
-				ss << "New high score at rank "<<rank<<"\n";
+		struct nk_panel layout;
+		auto ctx = _engine.gui().ctx();
+		if(nk_begin(ctx, &layout, "add_score", _engine.gui().centered(400, 600), NK_WINDOW_BORDER)) {
+
+			if(_highscore_list || _highscore_list.try_load()) {
+				auto rank = _highscore_list->get_rank(_time);
+
+				_player_name.get(_player_name_str);
+				auto player = "* "+_player_name_str+" *";
+
+				nk_layout_row_dynamic(ctx, 30, 3);
+
+				nk_label(ctx, text("rank"), NK_TEXT_RIGHT);
+				nk_label(ctx, text("player"), NK_TEXT_CENTERED);
+				nk_label(ctx, text("time"), NK_TEXT_RIGHT);
 
 				int i=0;
 				for(auto& score : _highscore_list->scores) {
 					if(i++==rank) {
-						print_score(ss, rank+1, "* "+_player_name+" *", _time.value());
+						print_score(ctx, rank+1, player, _time.value());
 						i++;
 					}
 
-					print_score(ss, i, score.name, score.time);
+					print_score(ctx, i, score.name, score.time);
+
+					if(i>=10) {
+						break;
+					}
 				}
 				if(i==rank) {
-					print_score(ss, rank+1, _player_name, _time.value());
+					print_score(ctx, rank+1, player, _time.value());
 				}
 
-				ss<<"\nEnter your name and press return to continue or escape to retry...";
+				if(rank<10) {
+					nk_layout_row_dynamic(ctx, 30, 2);
+					nk_label(ctx, text("enter player name"), NK_TEXT_LEFT);
+					_player_name.update_and_draw(ctx, NK_EDIT_FIELD);
+				}
 
-				_debug_Text.set(ss.str(), true);
+				nk_layout_row_dynamic(ctx, 30, 1);
 
+				nk_layout_row_dynamic(ctx, 30, 3);
+				if(nk_button_label(ctx, text("retry"))) {
+					_engine.screens().leave(1);
+				}
+				if(nk_button_label(ctx, text("continue"))) {
+					_engine.screens().leave(2);
+				}
+				if(_next_level_id.is_some() && nk_button_label(ctx, text("next level"))) {
+					_engine.screens().leave(2);
+					_engine.screens().enter<Game_screen>(_next_level_id.get_or_throw(), true);
+				}
+
+			} else {
+				nk_label(ctx, text("loading highscores"), NK_TEXT_CENTERED);
 			}
 
-		} else {
-			_debug_Text.set("loading highscore ...");
 		}
+		nk_end(ctx);
 	}
 
 
 	void Highscore_add_screen::_draw() {
-		_debug_Text.draw(_render_queue,  glm::vec2(0,0), glm::vec4(1,1,1,1), 0.5f);
-
 		_render_queue.flush();
 	}
 

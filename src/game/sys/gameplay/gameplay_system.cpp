@@ -109,7 +109,7 @@ namespace gameplay {
 					player->get<Enlightened_comp>().process([&](auto& e) {
 						this->_disable_light(e, false, false);
 					});
-					player->erase_other<graphic::Anim_sprite_comp, physics::Transform_comp>();
+					player->erase_other<graphic::Anim_sprite_comp, physics::Transform_comp, Reset_comp>();
 					player->get<graphic::Anim_sprite_comp>().process([&](auto &s) {
 						s.play("exit"_strid);
 					});
@@ -196,6 +196,7 @@ namespace gameplay {
 		}
 		_game_timer = 0_s;
 		_first_update_after_reset = true;
+		_level_finished = false;
 	}
 
 	namespace {

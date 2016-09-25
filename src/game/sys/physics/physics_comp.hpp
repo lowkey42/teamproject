@@ -50,6 +50,7 @@ namespace physics {
 	class Dynamic_body_comp : public ecs::Component<Dynamic_body_comp> {
 		public:
 			static constexpr const char* name() {return "Dynamic_body";}
+			static constexpr std::size_t min_components_per_pool_chunk = 128;
 			void load(sf2::JsonDeserializer& state,
 			          asset::Asset_manager& asset_mgr)override;
 			void save(sf2::JsonSerializer& state)const override;

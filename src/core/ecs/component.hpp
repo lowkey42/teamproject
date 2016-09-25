@@ -88,7 +88,7 @@ namespace ecs {
 		public:
 			using Pool = Component_pool<T>;
 			static constexpr std::size_t pool_chunk_size_bytes = 8192;
-			static constexpr std::size_t min_components_per_pool_chunk = 512;
+			static constexpr std::size_t min_components_per_pool_chunk = 64;
 
 
 			static Component_type type();

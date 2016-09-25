@@ -80,6 +80,8 @@ namespace rest {
 			std::stringstream url;
 			url<<"http://"<<host<<":"<<port<<build_path(path, get_param);
 
+			DEBUG("REQ: "<<url.str());
+
 			auto req = std::make_unique<Request>(url.str());
 
 			auto post_str = build_param_str(post_param);
@@ -133,6 +135,7 @@ namespace rest {
 			happyhttp::Connection connection;
 			std::promise<std::string> promise;
 			std::stringstream body_buffer;
+			bool done = false;
 
 			Request(happyhttp::Connection c) : connection(std::move(c)) {}
 		};
@@ -146,6 +149,7 @@ namespace rest {
 			auto req = static_cast<Request*>(userdata);
 
 			req->promise.set_value(req->body_buffer.str());
+			req->done = true;
 		}
 
 		std::vector<std::unique_ptr<Request>> open_connections;
@@ -193,10 +197,14 @@ namespace rest {
 				if((*iter)->connection.outstanding()) {
 					(*iter)->connection.pump();
 					iter++;
-				} else {
+				} else if((*iter)->done) {
 					iter = open_connections.erase(iter);
 				}
 			} catch(happyhttp::Wobbly e) {
+				if(!(*iter)->done) {
+					WARN("HTTP request failed: "<<e.what());
+					(*iter)->promise.set_value(""); // set to avoid broken promise
+				}
 				iter = open_connections.erase(iter);
 			}
 		}

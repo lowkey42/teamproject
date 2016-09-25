@@ -59,6 +59,8 @@ namespace lux {
 
 			bool _fadeout = false;
 			Time _fadeout_fadetimer {};
+			util::maybe<Rgb> _org_sun_light = util::nothing();
+			bool _reset_gameplay = false;
 
 			Time _time_acc {0};
 
