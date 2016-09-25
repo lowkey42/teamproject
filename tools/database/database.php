@@ -1,4 +1,11 @@
-﻿<?php
+<?php
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header('Access-Control-Allow-Credentials: true');    
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS"); 
+} else {
+    header("Access-Control-Allow-Origin: *");
+}
 
 	// ------------------------------ //
 	// DATABASE FORMAT                //
@@ -10,10 +17,10 @@
 	// ------------------------------ //
 
 	// final standard variables for database connection purpose
-	$server = "localhost";
-	$user = "root";
-	$password = "";
-	$database = "test";
+	$server = "TODO__SET_ME";
+	$user = "TODO__SET_ME";
+	$password = "TODO__SET_ME";
+	$database = "TODO__SET_ME";
 	$table = "itl_highscore";
 		
 	// try to read transmitted values (via GET, or POST)
@@ -21,12 +28,11 @@
 		$level = ($_POST) ? $_POST["level"] : $_GET["level"];	
 		$op = ($_POST) ? $_POST["op"] : $_GET["op"];
 	} else {
-		printf("{\"ERROR\": \"NO GET OR POST\"}");
-		exit();
+		die("{\"ERROR\": \"NO GET OR POST\"}");
 	}
 	
 	// Baue Datenbankverbindung auf
-	$db = new mysqli($server, $user, $password, "test");	
+	$db = new mysqli($server, $user, $password, $database);	
 	if($db->connect_errno){
 		echo("Verbindungsaufbau zum Server fehlgeschlagen: ".$db->connect_errno);
 		exit();
@@ -67,10 +73,7 @@
 			}
 			
 		} else {
-			
-			printf("{\"ERROR\": \"UNSET VALUES\"}");
-			exit();
-			
+			die("{\"ERROR\": \"UNSET VALUES\"}");
 		}
 		
 	// --------------
@@ -114,8 +117,7 @@
 		printf("\n]}\n");
 		
 	} else {
-		print_r("op not recognized -> FAILURE");
-		exit();
+		die("op not recognized -> FAILURE");
 	}
 	
 	// Schließe Verbindung zur Datenbank
