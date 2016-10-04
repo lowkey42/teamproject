@@ -7,8 +7,8 @@
 		"offset": {"z":0.1}
     },
     "Sprite": {
-        "material": "mat:test",
-        "size": {"x":0.3, "y":0.3},
+        "material": "mat:crystal_shard",
+        "size": {"x":0.1, "y":0.1},
 		"shadowcaster": false
     },
     "Editor": {

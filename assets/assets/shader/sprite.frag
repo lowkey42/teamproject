@@ -151,7 +151,7 @@ float luminance(vec3 c) {
 
 vec3 hue_shift(vec3 in_color) {
 	vec3 hsv = rgb2hsv(in_color);
-	hsv.x = abs(hsv.x-hue_change_frag.x)<0.025 ? hue_change_frag.y : hsv.x;
+	hsv.x = abs(hsv.x-hue_change_frag.x)<0.1 ? hue_change_frag.y+(hsv.x-hue_change_frag.x) : hsv.x;
 	return hsv2rgb(hsv);
 }
 vec4 read_albedo(vec2 uv) {
@@ -175,7 +175,7 @@ void main() {
 	vec3 material = texture2D(material_tex, uv).xyz;
 	float emmision = material.r;
 	float metalness = material.g;
-	float smoothness = 1.0-material.b;
+	float smoothness = clamp(1.0-material.b, 0.01, 0.99);
 
 	if(albedo.a < alpha_cutoff) {
 		discard;

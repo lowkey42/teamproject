@@ -82,6 +82,15 @@ namespace gameplay {
 		_mailbox.subscribe_to([&](Animation_event& e){
 			_on_animation_event(e);
 		});
+
+		auto dummy = ecs.emplace("blueprint:player_white"_aid);
+		ecs::apply_blueprint(engine.assets(), *dummy, "blueprint:player_red"_aid);
+		ecs::apply_blueprint(engine.assets(), *dummy, "blueprint:player_blue"_aid);
+		ecs::apply_blueprint(engine.assets(), *dummy, "blueprint:player_green"_aid);
+		ecs::apply_blueprint(engine.assets(), *dummy, "blueprint:player_cyan"_aid);
+		ecs::apply_blueprint(engine.assets(), *dummy, "blueprint:player_magenta"_aid);
+		ecs::apply_blueprint(engine.assets(), *dummy, "blueprint:player_yellow"_aid);
+		ecs.erase(dummy);
 	}
 
 	void Gameplay_system::_on_contact(sys::physics::Contact& c) {

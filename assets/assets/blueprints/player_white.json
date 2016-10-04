@@ -2,7 +2,7 @@
 	"$import": "player_base",
 
 	"Anim_sprite": {
-	"animation_set": "anim:player_white",
+		"animation_set": "anim:player_white",
 		"size": {"x":1.5, "y":1.5},
 		"hue_change_target": 0,
 		"hue_change_replacement": 0
