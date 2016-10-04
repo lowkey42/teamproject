@@ -2,6 +2,7 @@
 	"$import": "player_base",
 
 	"Anim_sprite": {
+	"animation_set": "anim:player_yellow",
 		"hue_change_replacement": 60
 	},
 	"Light": {

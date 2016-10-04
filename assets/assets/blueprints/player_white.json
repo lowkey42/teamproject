@@ -2,12 +2,13 @@
 	"$import": "player_base",
 
 	"Anim_sprite": {
-		"size": {"x":1.33, "y":1.33},
+	"animation_set": "anim:player_white",
+		"size": {"x":1.5, "y":1.5},
 		"hue_change_target": 0,
 		"hue_change_replacement": 0
 	},
 	"Dynamic_body": {
-		"size": {"x":1.0, "y":1.33}
+		"size": {"x":1.125, "y":1.5}
 	},
 	"Light": {
 		"color": {"r":7.0, "g":7.0, "b":7.0},
@@ -18,7 +19,9 @@
 	"Enlightened": {
 		"color": "white",
 		"smash_force": 80,
-		"air_transformations": 1
+		"initial_booster_factor": 2.0,
+		"velocity": 16.0,
+		"air_transformations": 3
 	},
 	"Particle": {
 		"hue_change": 60
