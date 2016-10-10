@@ -6,7 +6,7 @@
 
 namespace lux {
 namespace ecs {
-
+/*
 	template<typename Comp>
 	auto Entity_manager::list() -> typename Comp::Pool& {
 		auto it = _pools[Comp::type()].get();
@@ -121,6 +121,6 @@ namespace ecs {
 			return e ? e->get<T>() : util::nothing();
 		});
 	}
-
+*/
 }
 }

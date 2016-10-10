@@ -8,159 +8,136 @@
 #pragma once
 #define ECS_COMPONENT_INCLUDED
 
-#include "../utils/template_utils.hpp"
+#include "types.hpp"
+
+#include "../utils/maybe.hpp"
 #include "../utils/log.hpp"
 #include "../utils/pool.hpp"
-#include "../utils/events.hpp"
-
-#include <sf2/sf2.hpp>
 
 #include <vector>
+#include <unordered_map>
 #include <memory>
+#include <atomic>
+
 
 namespace lux {
-namespace asset {
-	class Asset_manager;
-}
-
 namespace ecs {
 
-	class Entity;
-	using Entity_weak_ptr = std::weak_ptr<Entity>;
-	using Entity_ptr = std::shared_ptr<Entity>;
-	template<typename T> class Component_pool;
-
-	using Component_type = uint16_t;
+	template<class T>
+	class Component_container;
 
 
-	namespace details {
-		constexpr Component_type max_comp_type = 32; // TODO: find better alternative
+	struct Index_policy {
+		void attach(Entity_id, Component_index);
+		void detach(Entity_id);
+		void shrink_to_fit();
+		auto find(Entity_id) -> util::maybe<Component_index>;
+		void clear();
+	};
+	class Sparse_index_policy;  //< for rarely used components
+	class Compact_index_policy; //< for frequently used components
 
-		class Component_base : public util::no_copy {
-			public:
-				Component_base(Entity& owner)noexcept;
-				Component_base(Component_base&& o)noexcept;
+	template<class T>
+	struct Storage_policy {
+		using iterator = void;
+		auto begin() -> iterator;
+		auto end() -> iterator;
 
-				Component_base& operator=(Component_base&& o)noexcept;
+		template<class... Args>
+		auto emplace(Args&&... args) -> std::tuple<T&, Component_index>;
+		void replace(Component_index, T&&);
+		void erase(Component_index);
+		void shrink_to_fit();
+		auto get(Component_index) -> T&;
+		void clear();
+	};
+	template<std::size_t Chunk_size, class T>
+	class Pool_storage_policy;
 
-				auto owner_ptr()const -> Entity_ptr;
-				auto owner()const noexcept -> Entity& {
-					INVARIANT(_owner, "invalid component");
-					return *_owner;
-				}
-				bool valid()const noexcept {
-					return _owner!=nullptr;
-				}
+	// TODO: remove number of moves required for component management (mainly relocation and insertion)
 
-				virtual void load(sf2::JsonDeserializer& state,
-				                  asset::Asset_manager& asset_mgr) {
-					state.read_lambda([](auto&){return false;});
-				}
 
-				virtual void save(sf2::JsonSerializer& state)const {
-					state.write_virtual();
-				}
-
-			protected:
-				static Component_type _next_type_id()noexcept;
-
-				virtual ~Component_base()noexcept=default;
-
-				void _reg_self(Component_type type);
-				void _unreg_self(Component_type type);
-
-				Entity* _owner;
-		};
-		extern void load(sf2::JsonDeserializer& state, Component_base& v);
-		inline void save(sf2::JsonSerializer& state, const Component_base& v) {
-			v.save(state);
-		}
-
-		extern Component_base*& get_component(Entity& e, Component_type t);
-		extern Entity_ptr get_entity(Entity& e);
-	}
-
-	template<typename T>
-	using is_component = std::is_base_of<ecs::details::Component_base, T>;
-
-	template<typename T>
-	class Component : public details::Component_base {
+	/**
+	 * Optional base class for components.
+	 * All components have to be default-constructable, move-assignable and provide a storage_policy,
+	 *   index_policy and a name and a constructor taking only User_data&, Entity_manager&, Entity_handle.
+	 *
+	 * A component is expected to be reasonable lightweight (i.e. cheap to move).
+	 * Any component C may provide the following additional ADL functions for serialisation:
+	 *  - void load_component(ecs::Deserializer& state, C& v)
+	 *  - void save_component(ecs::Serializer& state, const C& v)
+	 */
+	template<class T, class Index_policy=Sparse_index_policy, class Storage_policy=Pool_storage_policy<32, T>>
+	class Base_component {
 		public:
-			using Pool = Component_pool<T>;
-			static constexpr std::size_t pool_chunk_size_bytes = 8192;
-			static constexpr std::size_t min_components_per_pool_chunk = 64;
+			using index_policy   = Index_policy;
+			using storage_policy = Storage_policy;
+			using Pool           = Component_container<T>;
+			// static constexpr auto name = "Component";
 
+			Base_component() : _manager(nullptr), _owner(invalid_entity) {}
+			Base_component(User_data&, Entity_manager& manager, Entity_handle owner)
+			    : _manager(&manager), _owner(owner) {}
 
-			static Component_type type();
-
-			Component(Entity& owner)noexcept;
-			Component(Component&& o)noexcept;
-			Component& operator=(Component&& o)noexcept;
+			auto owner_handle()const noexcept -> Entity_handle {
+				INVARIANT(_owner!=0, "invalid component");
+				return _owner;
+			}
+			auto manager() noexcept -> Entity_manager& {
+				INVARIANT(_manager, "invalid component");
+				return *_manager;
+			}
+			auto owner_facet() -> Entity_facet {
+				return {manager(), owner_handle()};
+			}
 
 		protected:
-			~Component()noexcept;
+			~Base_component()noexcept = default; //< protected destructor to avoid destruction by base-class
 
 		private:
-			using details::Component_base::_next_type_id;
-			using details::Component_base::_reg_self;
-			using details::Component_base::_unreg_self;
-			using details::Component_base::_owner;
+			Entity_manager* _manager;
+			Entity_handle _owner;
 	};
 
 
-	enum class Component_event_type {
-		created,
-		freed,
-	};
-	struct Component_event {
-		Component_event_type type;
-		Entity& handle;
-	};
+	/**
+	 * All operations except for emplace_now, find_now and process_queued_actions are deferred
+	 *   and inherently thread safe.
+	 */
+	class Component_container_base {
+		friend class Entity_manager;
+		protected:
+			Component_container_base() = default;
+			Component_container_base(Component_container_base&&) = delete;
+			Component_container_base(const Component_container_base&) = delete;
+			virtual ~Component_container_base() = default;
 
-	class Component_pool_base {
-		public:
-			virtual ~Component_pool_base()noexcept = default;
-			virtual void free(Entity& owner) = 0;
-			virtual void clear() = 0;
-			virtual void shrink_to_fit() = 0;
+			//< NOT thread-safe
+			virtual void* emplace_or_find_now(Entity_handle owner) = 0;
+
+			//< NOT thread-safe
+			virtual util::maybe<void*> find_now(Entity_handle owner) = 0;
+
+			//< NOT thread-safe
 			virtual void process_queued_actions() = 0;
-	};
 
-	template<typename T>
-	class Component_pool : public Component_pool_base, public util::signal_source<Component_event>, util::no_copy_move {
+			/// thread safe
+			virtual void clear() = 0;
+
+			/// thread safe
+			virtual void erase(Entity_handle owner) = 0;
+
+			/// thread safe
+			// auto find(Entity_handle owner) -> util::maybe<T&>
+
+			/// thread safe
+			// void emplace(Entity_handle owner, Args&&... args);
+
 		public:
-			using pool_type = util::pool<sizeof(T),	util::max(T::pool_chunk_size_bytes/sizeof(T), T::min_components_per_pool_chunk)>;
-			using iterator = util::cast_iterator<typename pool_type::iterator, T>;
-
-
-			Component_pool()=default;
-			~Component_pool()noexcept;
-
-			template<typename... Args>
-			T& create(Entity& owner, Args&&... args);
-			void free(Entity& owner);
-			void clear();
-
-			void shrink_to_fit();
-			void process_queued_actions();
-
-			iterator begin() {
-				return iterator(_pool.begin());
-			}
-
-			iterator end() {
-				return iterator(_pool.end());
-			}
-			std::size_t size()const noexcept {
-				return _pool.size();
-			}
-			bool empty()const noexcept {
-				return size()==0;
-			}
-
-		private:
-			pool_type _pool;
-			std::vector<Entity*> _delete_queue;
+			// begin()
+			// end()
+			// size()
+			// empty()
 	};
 
 } /* namespace ecs */

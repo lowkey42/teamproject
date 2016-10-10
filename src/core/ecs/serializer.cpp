@@ -9,7 +9,7 @@
 #include <sf2/sf2.hpp>
 #include <iostream>
 
-
+/*
 namespace lux {
 namespace ecs {
 	using namespace asset;
@@ -288,4 +288,4 @@ namespace ecs {
 	}
 }
 }
-
+*/

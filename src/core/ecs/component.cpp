@@ -1,55 +1,73 @@
 #include "component.hpp"
 
-#include "ecs.hpp"
-#include "serializer.hpp"
-
 namespace lux {
 namespace ecs {
-namespace details {
 
-	Component_base::Component_base(Entity& owner)noexcept : _owner(&owner) {}
-
-	Component_base::Component_base(Component_base && o)noexcept : _owner(o._owner) {
-		o._owner = nullptr;
+	void Sparse_index_policy::attach(Entity_id owner, Component_index comp) {
+		if(owner!=invalid_entity)
+			_table.emplace(owner, comp);
 	}
-	Component_base& Component_base::operator=(Component_base&& o)noexcept {
-		_owner = o._owner;
-		o._owner = nullptr;
-		return *this;
+	void Sparse_index_policy::detach(Entity_id owner) {
+		if(owner!=invalid_entity)
+			_table.erase(owner);
+	}
+	void Sparse_index_policy::shrink_to_fit() {
+	}
+	auto Sparse_index_policy::find(Entity_handle owner) -> util::maybe<Component_index> {
+		if(owner==invalid_entity)
+			return util::nothing();
+
+		auto iter = _table.find(owner);
+		if(iter!=_table.end()) {
+			return iter->second;
+		}
+
+		return util::nothing();
+	}
+	void Sparse_index_policy::clear() {
+		_table.clear();
 	}
 
-	Entity_ptr Component_base::owner_ptr() const {
-		return get_entity(*_owner);
-	}
 
-	void Component_base::_reg_self(Component_type type) {
-		if(_owner) {
-			get_component(*_owner, type) = this;
+	void Compact_index_policy::attach(Entity_id owner, Component_index comp) {
+		if(owner==invalid_entity)
+			return;
+
+		if(static_cast<Entity_id>(_table.size()) <= owner) {
+			_table.resize(owner + 64);
+		}
+
+		_table[owner] = comp;
+	}
+	void Compact_index_policy::detach(Entity_id owner) {
+		if(owner==invalid_entity)
+			return;
+
+		if(owner < static_cast<Entity_id>(_table.size())) {
+			_table[owner] = -1;
 		}
 	}
+	void Compact_index_policy::shrink_to_fit() {
+		auto new_end = std::find(_table.rbegin(), _table.rend(), -1);
+		_table.erase(std::next(new_end).base(), _table.end());
+		_table.shrink_to_fit();
+	}
+	auto Compact_index_policy::find(Entity_handle owner) -> util::maybe<Component_index> {
+		if(owner==invalid_entity)
+			return util::nothing();
 
-	void Component_base::_unreg_self(Component_type type) {
-		if(_owner) {
-			get_component(*_owner, type) = nullptr;
+		if(owner < static_cast<Entity_id>(_table.size())) {
+			auto comp = _table[owner];
+			if(comp!=-1) {
+				return comp;
+			}
 		}
+
+		return util::nothing();
+	}
+	void Compact_index_policy::clear() {
+		_table.clear();
 	}
 
-	Component_type Component_base::_next_type_id()noexcept {
-		static Component_type type_counter = 1;
-
-		auto id = type_counter;
-		INVARIANT(id < max_comp_type, "type_counter is to small. Requires at least " << id);
-		type_counter++;
-
-		if(type_counter == 0)
-			type_counter = 1;
-
-		return id;
-	}
-
-	void load(sf2::JsonDeserializer& state, Component_base& v){
-		v.load(state, static_cast<EcsDeserializer&>(state).assets);
-	}
-}
 }
 }

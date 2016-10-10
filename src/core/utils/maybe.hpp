@@ -7,10 +7,14 @@
 
 #pragma once
 
+#include "log.hpp"
+#include "func_traits.hpp"
+
 #include <stdexcept>
 #include <functional>
 #include <memory>
-#include "log.hpp"
+#include <type_traits>
+
 
 namespace lux {
 namespace util {
@@ -101,24 +105,34 @@ namespace util {
 				return is_some() ? _data : other;
 			}
 
-			template<typename Func>
-			auto process(Func f)const {
+			template<typename Func, class=std::enable_if_t<std::is_same<std::result_of_t<Func(T&)>, void>::value>>
+			void process(Func&& f)const {
 				if(is_some())
 					f(_data);
-
-				return details::maybe_else_callable{is_nothing()};
+			}
+			template<typename Func, class=std::enable_if_t<not std::is_same<std::result_of_t<Func(T&)>, void>::value>>
+			auto process(Func&& f)const -> maybe<std::result_of_t<Func(const T&)>> {
+				if(is_some())
+					return f(_data);
+				else
+					return nothing();
 			}
 
-			template<typename Func>
-			auto process(Func f) {
+			template<typename Func, class=std::enable_if_t<std::is_same<std::result_of_t<Func(T&)>, void>::value>>
+			void process(Func&& f) {
 				if(is_some())
 					f(_data);
-
-				return details::maybe_else_callable{is_nothing()};
+			}
+			template<typename Func, class=std::enable_if_t<not std::is_same<std::result_of_t<Func(T&)>, void>::value>>
+			auto process(Func&& f) -> maybe<std::result_of_t<Func(T&)>> {
+				if(is_some())
+					return f(_data);
+				else
+					return nothing();
 			}
 
 			template<typename RT, typename Func>
-			auto process(RT def, Func f) -> RT {
+			auto process(RT def, Func&& f) -> RT {
 				if(is_some())
 					return f(_data);
 
@@ -126,7 +140,7 @@ namespace util {
 			}
 
 			template<typename RT, typename Func>
-			auto process(RT def, Func f)const -> RT {
+			auto process(RT def, Func&& f)const -> RT {
 				if(is_some())
 					return f(_data);
 
@@ -142,6 +156,7 @@ namespace util {
 			};
 	};
 
+	// TODO: change to nothing_t
 	struct nothing {
 		template<typename T>
 		operator maybe<T>()const noexcept {
@@ -237,16 +252,34 @@ namespace util {
 				return is_some() ? *_ref : other;
 			}
 
-			template<typename Func>
-			auto process(Func f)const {
+			template<typename Func, class=std::enable_if_t<std::is_same<std::result_of_t<Func(T&)>, void>::value>>
+			void process(Func&& f)const {
 				if(is_some())
-					f(get_or_throw());
+					f(*_ref);
+			}
+			template<typename Func, class=std::enable_if_t<not std::is_same<std::result_of_t<Func(T&)>, void>::value>>
+			auto process(Func&& f)const -> maybe<std::result_of_t<Func(const T&)>> {
+				if(is_some())
+					return f(*_ref);
+				else
+					return nothing();
+			}
 
-				return details::maybe_else_callable{is_nothing()};
+			template<typename Func, class=std::enable_if_t<std::is_same<std::result_of_t<Func(T&)>, void>::value>>
+			void process(Func&& f) {
+				if(is_some())
+					f(*_ref);
+			}
+			template<typename Func, class=std::enable_if_t<not std::is_same<std::result_of_t<Func(T&)>, void>::value>>
+			auto process(Func&& f) -> maybe<std::result_of_t<Func(T&)>> {
+				if(is_some())
+					return f(*_ref);
+				else
+					return nothing();
 			}
 
 			template<typename RT, typename Func>
-			auto process(RT def, Func f) -> RT {
+			auto process(RT def, Func&& f) -> RT {
 				if(is_some())
 					return f(get_or_throw());
 
@@ -254,7 +287,7 @@ namespace util {
 			}
 
 			template<typename RT, typename Func>
-			auto process(RT def, Func f)const -> RT {
+			auto process(RT def, Func&& f)const -> RT {
 				if(is_some())
 					return f(get_or_throw());
 
