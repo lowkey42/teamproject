@@ -17,14 +17,15 @@
 #include "string_utils.hpp"
 #include "template_utils.hpp"
 
+
 namespace lux {
 namespace util {
 
 	template<class POOL>
 	class pool_iterator;
 
-	// TODO: make thread-safe
-	template<class T, std::size_t ElementsPerChunk, class Index_type=int_fast64_t>
+	template<class T, std::size_t ElementsPerChunk, class Index_type=int_fast64_t,
+	         bool use_empty_values=false>
 	class pool {
 		static_assert(alignof(T)<=alignof(std::max_align_t), "Alignment not supported");
 		friend class pool_iterator<pool<T, ElementsPerChunk>>;
@@ -53,7 +54,9 @@ namespace util {
 			void clear()noexcept {
 				for(auto& chunk : _chunks) {
 					for(Index_type i=0; i<chunk_len; i++) {
-						chunk[i].~T();
+						if(_is_valid(chunk+i)) {
+							chunk[i].~T();
+						}
 					}
 				}
 				_chunks.clear();
@@ -159,7 +162,7 @@ namespace util {
 				return _chunks.back()[(i % chunk_len) * element_size];
 			}
 
-		private:
+		protected:
 			using chunk_type = std::unique_ptr<unsigned char[]>;
 			std::vector<chunk_type> _chunks;
 			Index_type _used_elements = 0;
@@ -177,8 +180,58 @@ namespace util {
 					return _chunks(chunk_idx) + (_used_elements % chunk_len);
 				}
 			}
+			virtual bool _valid(const T*)const noexcept {
+				return true;
+			}
 	};
+	
+	
+	template<class T, std::size_t ElementsPerChunk, std::size_t Offset_of_marker, class T Marker_type, Marker_type Free_mark, class Index_type=int_fast64_t>
+	class pool<T, ElementsPerChunk, Index_type, true> : public pool<T, ElementsPerChunk, Index_type, false> {
+		using base_t = pool<T, ElementsPerChunk, Index_type, false>;
+			
+		public:
+			void clear()noexcept {
+				base_t::clear();
+				_freelist.clear();
+			}
+			
+			auto erase(Index_type i) {
+				INVARIANT(i<_used_elements, "erase is out of range");
 
+				if(i==(size() -1)) {
+					pop_back();
+				} else {
+					get(i).~T();
+					auto& marker = *static_cast<Marker_type*>(static_cast<char*>(obj) + Offset_of_marker);
+					marker = Free_mark;
+					_freelist.emplace_back(i);
+				}
+			}
+			
+			template<class... Args>
+			auto emplace_back(Args&&... args) -> std::tuple<T&, Index_type> {
+				// TODO
+			}
+			
+			void shrink_to_fit() {
+				// TODO
+			}
+			
+			
+		protected:
+			std::vector<Index_type> _freelist;
+			
+			bool _valid(const T* obj)const noexcept override {
+				if(obj==nullptr)
+					return true;
+				
+				auto marker = *static_cast<const Marker_type*>(static_cast<const char*>(obj) + Offset_of_marker);
+				return marker != Free_mark;
+			}
+	};
+	
+	
 	template<class Pool>
 	class pool_iterator {
 		public:
@@ -202,12 +255,14 @@ namespace util {
 			value_type operator->()noexcept {return _element_iter;}
 
 			pool_iterator& operator++() {
-				++_element_iter;
-				if(_element_iter==_element_iter_end) {
-					++_chunk_index;
-					_element_iter = _pool->_chunk(_chunk_index);
-					_element_iter_end = _pool->_chunk_end(_chunk_index);
-				}
+				do {
+					++_element_iter;
+					if(_element_iter==_element_iter_end) {
+						++_chunk_index;
+						_element_iter = _pool->_chunk(_chunk_index);
+						_element_iter_end = _pool->_chunk_end(_chunk_index);
+					}
+				} while(!_pool->_valid(_element_iter));
 
 				return *this;
 			}
@@ -233,13 +288,13 @@ namespace util {
 			value_type* _element_iter_end;
 	};
 
-	template<class T, std::size_t ElementsPerChunk, class Index_type>
-	auto pool<T, ElementsPerChunk, Index_type>::begin()noexcept -> iterator {
+	template<class T, std::size_t ElementsPerChunk, class Index_type, bool use_empty_values>
+	auto pool<T, ElementsPerChunk, Index_type, use_empty_values>::begin()noexcept -> iterator {
 		return iterator{*this};
 	}
 
-	template<class T, std::size_t ElementsPerChunk, class Index_type>
-	auto pool<T, ElementsPerChunk, Index_type>::end()noexcept -> iterator {
+	template<class T, std::size_t ElementsPerChunk, class Index_type, bool use_empty_values>
+	auto pool<T, ElementsPerChunk, Index_type, use_empty_values>::end()noexcept -> iterator {
 		return iterator{};
 	}
 
