@@ -8,8 +8,8 @@ namespace sound {
 	class Sound_sys;
 
 
-	Sound_comp::Sound_comp(ecs::Entity& owner, audio::Audio_ctx* ctx)
-	    : Component(owner), _ctx(ctx) {
+	Sound_comp::Sound_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner, audio::Audio_ctx* ctx)
+	    : Component(manager, owner), _ctx(ctx) {
 
 		std::fill(_channels.begin(), _channels.end(), -1);
 	}

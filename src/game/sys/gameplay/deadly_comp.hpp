@@ -9,7 +9,7 @@
 
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -18,9 +18,10 @@ namespace gameplay {
 
 	class Deadly_comp : public ecs::Component<Deadly_comp> {
 		public:
-			static constexpr const char* name() {return "Deadly";}
+			static constexpr auto name() {return "Deadly";}
 
-			Deadly_comp(ecs::Entity& owner) : Component(owner) {}
+			Deadly_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 	};
 
 }

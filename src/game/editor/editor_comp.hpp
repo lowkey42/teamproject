@@ -9,7 +9,7 @@
 
 #include <core/renderer/texture.hpp>
 
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 #include <core/units.hpp>
 
 
@@ -20,13 +20,12 @@ namespace editor {
 
 	class Editor_comp : public ecs::Component<Editor_comp> {
 		public:
-			static constexpr const char* name() {return "Editor";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			static constexpr auto name() {return "Editor";}
+			friend void load_component(ecs::Deserializer&, Editor_comp&);
+			friend void save_component(ecs::Serializer&,   const Editor_comp&);
 
-			Editor_comp(ecs::Entity& owner)noexcept
-			  : Component(owner) {}
+			Editor_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)noexcept
+			  : Component(manager, owner) {}
 
 			auto bounds()const noexcept {return _bounds;}
 			auto bounds(Position bounds) {_bounds = bounds;}
@@ -36,6 +35,7 @@ namespace editor {
 
 			Position _bounds;
 	};
+
 
 }
 }

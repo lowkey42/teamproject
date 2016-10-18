@@ -8,7 +8,7 @@
 #pragma once
 
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 #include <core/renderer/material.hpp>
 #include <core/renderer/sprite_animation.hpp>
 
@@ -35,12 +35,12 @@ namespace graphic {
 	class Sprite_comp : public ecs::Component<Sprite_comp> {
 		public:
 			static constexpr const char* name() {return "Sprite";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Sprite_comp&);
+			friend void save_component(ecs::Serializer& state, const Sprite_comp&);
 
-			Sprite_comp(ecs::Entity& owner, renderer::Material_ptr material = {}) :
-				Component(owner), _material(material) {}
+			Sprite_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner,
+			            renderer::Material_ptr material = {}) :
+				Component(manager, owner), _material(material) {}
 
 			auto size()const noexcept {return _size;}
 			void size(glm::vec2 size) {_size = size;}
@@ -67,11 +67,10 @@ namespace graphic {
 	class Anim_sprite_comp : public ecs::Component<Anim_sprite_comp> {
 		public:
 			static constexpr const char* name() {return "Anim_sprite";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Anim_sprite_comp&);
+			friend void save_component(ecs::Serializer& state, const Anim_sprite_comp&);
 
-			Anim_sprite_comp(ecs::Entity& owner);
+			Anim_sprite_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			auto size()const noexcept {return _size;}
 			void size(glm::vec2 size) {_size = size;}

@@ -45,8 +45,8 @@ namespace ecs {
 			Entity_manager(User_data& userdata);
 
 		// user interface; thread-safe
-			auto emplace() -> Entity_facet;
-			auto emplace(const std::string& blueprint) -> Entity_handle;
+			auto emplace()noexcept -> Entity_facet;
+			auto emplace(const std::string& blueprint) -> Entity_facet;
 			auto get(Entity_handle entity) -> util::maybe<Entity_facet>;
 			auto validate(Entity_handle entity) -> bool {
 				return _handles.valid(entity);
@@ -58,6 +58,7 @@ namespace ecs {
 			template<typename C>
 			auto list() -> Component_container<C>&;
 
+			auto& userdata()noexcept {return _userdata;}
 
 		// serialization interface; not thread-safe (yet?)
 			auto write_one(Entity_handle source) -> ETO;

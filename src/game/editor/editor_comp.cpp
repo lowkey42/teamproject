@@ -1,5 +1,7 @@
 #include "editor_comp.hpp"
 
+#include <core/ecs/serializer.hpp>
+
 #include <core/utils/sf2_glm.hpp>
 
 namespace lux {
@@ -7,20 +9,18 @@ namespace editor {
 
 	using namespace unit_literals;
 
-	void Editor_comp::load(sf2::JsonDeserializer& state,
-	                       asset::Asset_manager& asset_mgr) {
-		auto bounds = remove_units(_bounds);
+	void load_component(ecs::Deserializer& state, Editor_comp& comp) {
+		auto bounds = remove_units(comp._bounds);
 
 		state.read_virtual(
 			sf2::vmember("bounds", bounds)
 		);
 
-		_bounds = bounds * 1_m;
+		comp._bounds = bounds * 1_m;
 	}
-	void Editor_comp::save(sf2::JsonSerializer& state)const {
-
+	void save_component(ecs::Serializer& state, const Editor_comp& comp) {
 		state.write_virtual(
-			sf2::vmember("bounds", remove_units(_bounds))
+			sf2::vmember("bounds", remove_units(comp._bounds))
 		);
 	}
 

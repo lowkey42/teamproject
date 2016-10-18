@@ -79,9 +79,9 @@ namespace gameplay {
 
 
 			void _update_light(Time);
-			auto _is_reflective(glm::vec2 p, Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res;
-			auto _is_solid(Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res;
-			void _on_smashed(ecs::Entity& e);
+			auto _is_reflective(glm::vec2 p, Enlightened_comp& light, ecs::Entity_facet* hit) -> Light_op_res;
+			auto _is_solid(Enlightened_comp& light, ecs::Entity_facet* hit) -> Light_op_res;
+			void _on_smashed(ecs::Entity_facet& e);
 			void _on_animation_event(const renderer::Animation_event& event);
 
 			void _on_collision(sys::physics::Collision&);

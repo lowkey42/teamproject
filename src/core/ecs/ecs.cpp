@@ -28,17 +28,17 @@ namespace ecs {
 	Entity_facet Entity_manager::emplace()noexcept {
 		return {*this, _handles.get_new()};
 	}
-	Entity_handle Entity_manager::emplace(const asset::AID& blueprint)noexcept {
+	Entity_facet Entity_manager::emplace(const std::string& blueprint) {
 		auto e = emplace();
 
 		// TODO: apply_blueprint(_asset_mgr, *e, blueprint);
 
-		return e.handle();
+		return {*this, e.handle()};
 	}
 
 	auto Entity_manager::get(Entity_handle entity) -> util::maybe<Entity_facet> {
 		if(validate(entity))
-			return {*this, entity};
+			return Entity_facet{*this, entity};
 
 		return util::nothing();
 	}
@@ -54,7 +54,7 @@ namespace ecs {
 	void Entity_manager::process_queued_actions() {
 		std::array<Entity_handle, 32> erase_buffer;
 		do {
-			std::size_t count = _queue_erase.try_dequeue_bulk(erase_buffer, erase_buffer.size());
+			std::size_t count = _queue_erase.try_dequeue_bulk(erase_buffer.data(), erase_buffer.size());
 
 			if(count>0) {
 				for(std::size_t i=0; i<count; i++) {
@@ -72,7 +72,7 @@ namespace ecs {
 
 		for(auto& component : _components) {
 			if(component)
-				component.process_queued_actions();
+				component->process_queued_actions();
 		}
 	}
 

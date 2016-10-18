@@ -14,6 +14,9 @@
 namespace lux {
 namespace util {
 
+	template<typename T>
+	struct void_t {};
+
 	struct no_move {
 		protected:
 			no_move() = default;

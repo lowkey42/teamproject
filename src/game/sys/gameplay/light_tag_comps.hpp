@@ -9,7 +9,7 @@
 
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 #include <cstdint>
 
@@ -85,9 +85,11 @@ namespace gameplay {
 	class Reflective_comp : public ecs::Component<Reflective_comp> {
 		public:
 			static constexpr const char* name() {return "Reflective";}
-			void load(sf2::JsonDeserializer& state, asset::Asset_manager&)override;
-			void save(sf2::JsonSerializer& state)const override;
-			Reflective_comp(ecs::Entity& owner) : Component(owner) {}
+			friend void load_component(ecs::Deserializer& state, Reflective_comp&);
+			friend void save_component(ecs::Serializer& state, const Reflective_comp&);
+
+			Reflective_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 			auto color()const noexcept {return _color;}
 
@@ -100,7 +102,11 @@ namespace gameplay {
 	class Paintable_comp : public ecs::Component<Paintable_comp> {
 		public:
 			static constexpr const char* name() {return "Paintable";}
-			Paintable_comp(ecs::Entity& owner) : Component(owner) {}
+			friend void load_component(ecs::Deserializer& state, Paintable_comp&);
+			friend void save_component(ecs::Serializer& state, const Paintable_comp&);
+
+			Paintable_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 		private:
 			friend class Gameplay_system;
@@ -109,9 +115,11 @@ namespace gameplay {
 	class Paint_comp : public ecs::Component<Paint_comp> {
 		public:
 			static constexpr const char* name() {return "Paint";}
-			void load(sf2::JsonDeserializer& state, asset::Asset_manager&)override;
-			void save(sf2::JsonSerializer& state)const override;
-			Paint_comp(ecs::Entity& owner) : Component(owner) {}
+			friend void load_component(ecs::Deserializer& state, Paint_comp&);
+			friend void save_component(ecs::Serializer& state, const Paint_comp&);
+
+			Paint_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 			auto color()const noexcept {return _color;}
 
@@ -125,7 +133,11 @@ namespace gameplay {
 	class Light_leech_comp : public ecs::Component<Light_leech_comp> {
 		public:
 			static constexpr const char* name() {return "Light_leech";}
-			Light_leech_comp(ecs::Entity& owner) : Component(owner) {}
+			friend void load_component(ecs::Deserializer& state, Light_leech_comp&);
+			friend void save_component(ecs::Serializer& state, const Light_leech_comp&);
+
+			Light_leech_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 		private:
 			friend class Gameplay_system;
@@ -134,9 +146,11 @@ namespace gameplay {
 	class Transparent_comp : public ecs::Component<Transparent_comp> {
 		public:
 			static constexpr const char* name() {return "Transparent";}
-			void load(sf2::JsonDeserializer& state, asset::Asset_manager&)override;
-			void save(sf2::JsonSerializer& state)const override;
-			Transparent_comp(ecs::Entity& owner) : Component(owner) {}
+			friend void load_component(ecs::Deserializer& state, Transparent_comp&);
+			friend void save_component(ecs::Serializer& state, const Transparent_comp&);
+
+			Transparent_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 			auto color()const noexcept {return _color;}
 
@@ -150,9 +164,11 @@ namespace gameplay {
 	class Lamp_comp : public ecs::Component<Lamp_comp> {
 		public:
 			static constexpr const char* name() {return "Lamp";}
-			void load(sf2::JsonDeserializer& state, asset::Asset_manager&)override;
-			void save(sf2::JsonSerializer& state)const override;
-			Lamp_comp(ecs::Entity& owner) : Component(owner) {}
+			friend void load_component(ecs::Deserializer& state, Lamp_comp&);
+			friend void save_component(ecs::Serializer& state, const Lamp_comp&);
+
+			Lamp_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 			auto color()const noexcept {return _color;}
 
@@ -179,9 +195,11 @@ namespace gameplay {
 	class Prism_comp : public ecs::Component<Prism_comp> {
 		public:
 			static constexpr const char* name() {return "Prism";}
-			void load(sf2::JsonDeserializer& state, asset::Asset_manager&)override;
-			void save(sf2::JsonSerializer& state)const override;
-			Prism_comp(ecs::Entity& owner) : Component(owner) {}
+			friend void load_component(ecs::Deserializer& state, Prism_comp&);
+			friend void save_component(ecs::Serializer& state, const Prism_comp&);
+
+			Prism_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 		private:
 			friend class Gameplay_system;

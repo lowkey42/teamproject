@@ -10,7 +10,7 @@
 #include <core/renderer/camera.hpp>
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -21,16 +21,12 @@ namespace cam {
 
 	class Camera_target_comp : public ecs::Component<Camera_target_comp> {
 		public:
-			static constexpr const char* name() {return "Camera_target";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			static constexpr auto name() {return "Camera_target";}
 
-			Camera_target_comp(ecs::Entity& owner);
+			Camera_target_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			void active(bool a) {_active = a;}
 			auto active()const noexcept {return _active;}
-
 
 		private:
 			friend class Camera_system;

@@ -10,7 +10,7 @@
 #include <core/audio/audio_ctx.hpp>
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -23,7 +23,8 @@ namespace sound {
 		public:
 			static constexpr const char* name() {return "Sound";}
 
-			Sound_comp(ecs::Entity& owner, audio::Audio_ctx* ctx=nullptr);
+			Sound_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner,
+			           audio::Audio_ctx* ctx=nullptr);
 			Sound_comp(Sound_comp&&)noexcept;
 			Sound_comp& operator=(Sound_comp&&)noexcept;
 			~Sound_comp();

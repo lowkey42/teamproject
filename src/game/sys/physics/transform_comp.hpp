@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 #include <core/units.hpp>
 
 
@@ -17,16 +17,15 @@ namespace physics {
 
 	class Transform_system;
 
-	class Transform_comp : public ecs::Component<Transform_comp> {
+	class Transform_comp : public ecs::Component<Transform_comp, ecs::Compact_index_policy,
+	                                             ecs::Pool_storage_policy<256, Transform_comp>> {
 		public:
-			static constexpr const char* name() {return "Transform";}
-			static constexpr std::size_t min_components_per_pool_chunk = 256;
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			static constexpr auto name() {return "Transform";}
+			friend void load_component(ecs::Deserializer& state, Transform_comp&);
+			friend void save_component(ecs::Serializer& state, const Transform_comp&);
 
-			Transform_comp(ecs::Entity& owner)noexcept
-			  : Component(owner) {}
+			Transform_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)noexcept
+			  : Component(manager, owner) {}
 
 			auto position()const noexcept {return _position;}
 			void position(Position pos)noexcept;

@@ -8,7 +8,7 @@
 #pragma once
 
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -18,11 +18,10 @@ namespace light {
 	struct Light_comp : public ecs::Component<Light_comp> {
 		public:
 			static constexpr const char* name() {return "Light";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Light_comp&);
+			friend void save_component(ecs::Serializer& state, const Light_comp&);
 
-			Light_comp(ecs::Entity& owner);
+			Light_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			auto color(Rgb color)noexcept {_color=color;}
 			auto color()const noexcept {return _color*_color_factor;}

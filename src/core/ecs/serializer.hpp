@@ -24,10 +24,10 @@ namespace asset {
 
 namespace ecs {
 
-	struct EcsSerializer : public sf2::JsonSerializer {
-		EcsSerializer(std::ostream& stream, Entity_manager& m,
-		              asset::Asset_manager& assets,
-		              Component_filter filter={})
+	struct Serializer : public sf2::JsonSerializer {
+		Serializer(std::ostream& stream, Entity_manager& m,
+		           asset::Asset_manager& assets,
+		           Component_filter filter={})
 			: sf2::JsonSerializer(stream),
 			  manager(m), assets(assets), filter(filter) {
 		}
@@ -36,11 +36,11 @@ namespace ecs {
 		asset::Asset_manager& assets;
 		Component_filter filter;
 	};
-	struct EcsDeserializer : public sf2::JsonDeserializer {
-		EcsDeserializer(const std::string& source_name,
-		                std::istream& stream, Entity_manager& m,
-		                asset::Asset_manager& assets,
-		                Component_filter filter={});
+	struct Deserializer : public sf2::JsonDeserializer {
+		Deserializer(const std::string& source_name,
+		             std::istream& stream, Entity_manager& m,
+		             asset::Asset_manager& assets,
+		             Component_filter filter={});
 
 		Entity_manager& manager;
 		asset::Asset_manager& assets;

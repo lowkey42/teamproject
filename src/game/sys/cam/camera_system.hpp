@@ -37,7 +37,7 @@ namespace cam {
 
 			void update(Time);
 
-			void active_only(ecs::Entity& e);
+			void active_only(ecs::Entity_handle& e);
 			void screen_shake(Time t, float force) {
 				_screen_shake_time_left = t;
 				_screen_shake_force = force;

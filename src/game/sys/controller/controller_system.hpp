@@ -39,7 +39,7 @@ namespace controller {
 			auto get_controlled() {
 				return _active_controlled_entity;
 			}
-			void set_controlled(ecs::Entity_ptr e) {
+			void set_controlled(ecs::Entity_handle e) {
 				_active_controlled_entity = e;
 			}
 
@@ -59,7 +59,7 @@ namespace controller {
 			bool _transform_pending = false;
 			bool _transform = false;
 
-			ecs::Entity_ptr _active_controlled_entity;
+			ecs::Entity_handle _active_controlled_entity;
 			int _active_controlled_idx = 0;
 
 			Time _input_block_remainder {};

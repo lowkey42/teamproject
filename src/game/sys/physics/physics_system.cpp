@@ -12,10 +12,10 @@
 
 namespace lux {
 	struct Contact_key {
-		ecs::Entity* a;
-		ecs::Entity* b;
-		Contact_key() : a(nullptr), b(nullptr) {}
-		Contact_key(ecs::Entity* a, ecs::Entity* b) : a(std::min(a,b)), b(std::max(a,b)){}
+		ecs::Entity_handle a;
+		ecs::Entity_handle b;
+		Contact_key() = default;
+		Contact_key(ecs::Entity_handle a, ecs::Entity_handle b) : a(std::min(a,b)), b(std::max(a,b)){}
 
 		auto operator<(const Contact_key& rhs)const noexcept {
 			return std::tie(a,b) < std::tie(rhs.a, rhs.b);
@@ -60,39 +60,36 @@ namespace physics {
 		Contact_listener(Engine& e) : bus(e.bus()) {}
 
 		void BeginContact(b2Contact* contact) override {
-			auto a = static_cast<ecs::Entity*>(contact->GetFixtureA()->GetBody()->GetUserData());
-			auto b = static_cast<ecs::Entity*>(contact->GetFixtureB()->GetBody()->GetUserData());
+			auto a = ecs::to_entity_handle(contact->GetFixtureA()->GetBody()->GetUserData());
+			auto b = ecs::to_entity_handle(contact->GetFixtureB()->GetBody()->GetUserData());
 
 			auto& count = _contacts[Contact_key{a,b}];
 			if(count++ == 0) {
-				bus.send<Contact>(a ? a->shared_from_this() : ecs::Entity_ptr{},
-				                  b ? b->shared_from_this() : ecs::Entity_ptr{}, true);
+				bus.send<Contact>(a, b, true);
 			}
 		}
 		void EndContact(b2Contact* contact) override {
-			auto a = static_cast<ecs::Entity*>(contact->GetFixtureA()->GetBody()->GetUserData());
-			auto b = static_cast<ecs::Entity*>(contact->GetFixtureB()->GetBody()->GetUserData());
+			auto a = ecs::to_entity_handle(contact->GetFixtureA()->GetBody()->GetUserData());
+			auto b = ecs::to_entity_handle(contact->GetFixtureB()->GetBody()->GetUserData());
 
 			auto& count = _contacts[Contact_key{a,b}];
 			if(count-- == 1) {
-				bus.send<Contact>(a ? a->shared_from_this() : ecs::Entity_ptr{},
-				                  b ? b->shared_from_this() : ecs::Entity_ptr{}, false);
+				bus.send<Contact>(a, b, false);
 				_contacts.erase(Contact_key{a,b});
 			}
 		}
 
 		void PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) override {
-			auto a = static_cast<ecs::Entity*>(contact->GetFixtureA()->GetBody()->GetUserData());
-			auto b = static_cast<ecs::Entity*>(contact->GetFixtureB()->GetBody()->GetUserData());
+			auto a = ecs::to_entity_handle(contact->GetFixtureA()->GetBody()->GetUserData());
+			auto b = ecs::to_entity_handle(contact->GetFixtureB()->GetBody()->GetUserData());
 
-			if(a!=nullptr && b!=nullptr) {
+			if(a && b) {
 				auto impact = 0.f;
 				for(auto i=0; i<impulse->count; ++i) {
 					impact+=impulse->normalImpulses[i];
 				}
 
-				bus.send<Collision>(a ? a->shared_from_this() : ecs::Entity_ptr{},
-				                    b ? b->shared_from_this() : ecs::Entity_ptr{}, impact);
+				bus.send<Collision>(a, b, impact);
 			}
 		}
 	};
@@ -214,10 +211,10 @@ namespace physics {
 	namespace {
 		struct Simple_ray_callback : public b2RayCastCallback {
 			float max_dist = 1.f;
-			ecs::Entity* exclude = nullptr;
+			ecs::Entity_handle exclude;
 			util::maybe<Raycast_result> result = util::nothing();
 
-			Simple_ray_callback(float max_dist, ecs::Entity* exclude=nullptr)
+			Simple_ray_callback(float max_dist, ecs::Entity_handle exclude={})
 			    : max_dist(max_dist), exclude(exclude) {
 			}
 
@@ -226,7 +223,7 @@ namespace physics {
 				//if(fixture->IsSensor())
 				//	return -1.f; // ignore
 
-				auto hit_entity = static_cast<ecs::Entity*>(fixture->GetBody()->GetUserData());
+				auto hit_entity = ecs::to_entity_handle(fixture->GetBody()->GetUserData());
 				if(exclude && hit_entity==exclude)
 					return -1.f; // ignore
 
@@ -255,14 +252,14 @@ namespace physics {
 		return callback.result;
 	}
 	auto Physics_system::raycast(glm::vec2 position, glm::vec2 dir, float max_dist,
-	                             ecs::Entity& exclude) -> util::maybe<Raycast_result> {
+	                             ecs::Entity_handle exclude) -> util::maybe<Raycast_result> {
 		if(!(glm::length2(dir*max_dist)>0.f)) {
 			WARN("raycast with 0 length");
 			return util::nothing();
 		}
 		const auto target = position + dir*max_dist;
 
-		Simple_ray_callback callback{max_dist, &exclude};
+		Simple_ray_callback callback{max_dist, exclude};
 		_world->RayCast(&callback, b2Vec2{position.x, position.y}, b2Vec2{target.x, target.y});
 
 		return callback.result;
@@ -271,10 +268,10 @@ namespace physics {
 	namespace {
 		struct Check_overlap_callback : b2QueryCallback{
 			const b2Body& body;
-			std::function<bool(ecs::Entity&)> filter;
-			util::maybe<ecs::Entity&> result;
+			std::function<bool(ecs::Entity_handle)> filter;
+			util::maybe<ecs::Entity_handle> result;
 
-			Check_overlap_callback(const b2Body& body, std::function<bool(ecs::Entity&)> filter)
+			Check_overlap_callback(const b2Body& body, std::function<bool(ecs::Entity_handle)> filter)
 			    : body(body), filter(filter) {}
 
 			bool ReportFixture(b2Fixture* fixture) override {
@@ -282,9 +279,9 @@ namespace physics {
 					return true;
 
 				for(auto bf = body.GetFixtureList(); bf; bf = bf->GetNext()) {
-					auto entity = static_cast<ecs::Entity*>(fixture->GetBody()->GetUserData());
-					if(entity && b2TestOverlap(fixture->GetShape(), 0, bf->GetShape(), 0, fixture->GetBody()->GetTransform(), body.GetTransform()) && filter(*entity)) {
-						result = util::justPtr(entity);
+					auto entity = ecs::to_entity_handle(fixture->GetBody()->GetUserData());
+					if(entity && b2TestOverlap(fixture->GetShape(), 0, bf->GetShape(), 0, fixture->GetBody()->GetTransform(), body.GetTransform()) && filter(entity)) {
+						result = util::just(entity);
 						return false;
 					}
 				}
@@ -313,7 +310,7 @@ namespace physics {
 		}
 	}
 	auto Physics_system::query_intersection(Dynamic_body_comp& body,
-	                                        std::function<bool(ecs::Entity&)> filter) -> util::maybe<ecs::Entity&> {
+	                                        std::function<bool(ecs::Entity_handle)> filter) -> util::maybe<ecs::Entity_handle> {
 		if(!_world || !body._body)
 			return util::nothing();
 

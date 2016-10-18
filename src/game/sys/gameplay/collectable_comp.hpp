@@ -9,7 +9,7 @@
 
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -18,9 +18,10 @@ namespace gameplay {
 
 	class Collectable_comp : public ecs::Component<Collectable_comp> {
 		public:
-			static constexpr const char* name() {return "Collectable";}
+			static constexpr auto name() {return "Collectable";}
 
-			Collectable_comp(ecs::Entity& owner) : Component(owner) {}
+			Collectable_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 		private:
 			friend class Gameplay_system;

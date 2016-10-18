@@ -8,7 +8,7 @@
 #pragma once
 
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 #include <core/renderer/texture.hpp>
 
 
@@ -19,11 +19,11 @@ namespace graphic {
 	class Decal_comp : public ecs::Component<Decal_comp> {
 		public:
 			static constexpr const char* name() {return "Decal";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Decal_comp&);
+			friend void save_component(ecs::Serializer& state, const Decal_comp&);
 
-			Decal_comp(ecs::Entity& owner) : Component(owner) {}
+			Decal_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 		private:
 			friend class Graphic_system;

@@ -2,6 +2,7 @@
 
 #include "particle_comp.hpp"
 
+#include <core/ecs/serializer.hpp>
 #include <core/utils/sf2_glm.hpp>
 
 #include <sf2/sf2.hpp>
@@ -15,21 +16,20 @@ namespace graphic {
 
 	using namespace unit_literals;
 
-	void Particle_comp::load(sf2::JsonDeserializer& state,
-	                         asset::Asset_manager& assets) {
+	void load_component(ecs::Deserializer& state, Particle_comp& comp) {
 		auto types = std::vector<renderer::Particle_type_id>{};
-		auto hue_change = _hue_change.in_degrees();
+		auto hue_change = comp._hue_change.in_degrees();
 
 		state.read_virtual(
-			sf2::vmember("offset", _offset),
+			sf2::vmember("offset", comp._offset),
 			sf2::vmember("emitters", types),
 			sf2::vmember("hue_change", hue_change)
 		);
 
-		_hue_change = hue_change * 1_deg;
+		comp._hue_change = hue_change * 1_deg;
 
 		if(!types.empty()) {
-			for(auto& e : _emitters) {
+			for(auto& e : comp._emitters) {
 				e.reset();
 			}
 			for(auto& t : types)
@@ -37,18 +37,18 @@ namespace graphic {
 		}
 	}
 
-	void Particle_comp::save(sf2::JsonSerializer& state)const {
+	void save_component(ecs::Serializer& state, const Particle_comp& comp) {
 		auto types = std::vector<renderer::Particle_type_id>{};
-		types.reserve(_emitters.size());
-		for(auto& e : _emitters) {
+		types.reserve(comp._emitters.size());
+		for(auto& e : comp._emitters) {
 			if(e) {
 				types.emplace_back(e->type());
 			}
 		}
-		auto hue_change = _hue_change.in_degrees();
+		auto hue_change = comp._hue_change.in_degrees();
 
 		state.write_virtual(
-			sf2::vmember("offset", _offset),
+			sf2::vmember("offset", comp._offset),
 			sf2::vmember("emitters", types),
 			sf2::vmember("hue_change", hue_change)
 		);

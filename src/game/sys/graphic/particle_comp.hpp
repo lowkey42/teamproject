@@ -8,7 +8,7 @@
 #pragma once
 
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 #include <core/renderer/particles.hpp>
 
 
@@ -19,12 +19,12 @@ namespace graphic {
 	class Particle_comp : public ecs::Component<Particle_comp> {
 		public:
 			static constexpr const char* name() {return "Particle";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Particle_comp&);
+			friend void save_component(ecs::Serializer& state, const Particle_comp&);
 
-			Particle_comp(ecs::Entity& owner, renderer::Particle_emitter_ptr e = {}) :
-				Component(owner), _emitters{{e}} {}
+			Particle_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner,
+			              renderer::Particle_emitter_ptr e = {})
+			    : Component(manager, owner), _emitters{{e}} {}
 
 			void add(renderer::Particle_type_id id);
 			void remove(renderer::Particle_type_id id);

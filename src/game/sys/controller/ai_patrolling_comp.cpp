@@ -1,26 +1,27 @@
 #include "ai_patrolling_comp.hpp"
 
+#include <core/ecs/serializer.hpp>
 #include <core/utils/sf2_glm.hpp>
 
 namespace lux {
 namespace sys {
 namespace controller {
 
-	void Ai_patrolling_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
+	void load_component(ecs::Deserializer& state, Ai_patrolling_comp& comp) {
 		state.read_virtual(
-			sf2::vmember("velocity", _velocity),
-			sf2::vmember("max_distance", _max_distance),
-			sf2::vmember("flip_horizontal_on_return", _flip_horizontal_on_return),
-			sf2::vmember("flip_vertical_on_return", _flip_vertical_on_return)
+			sf2::vmember("velocity", comp._velocity),
+			sf2::vmember("max_distance", comp._max_distance),
+			sf2::vmember("flip_horizontal_on_return", comp._flip_horizontal_on_return),
+			sf2::vmember("flip_vertical_on_return", comp._flip_vertical_on_return)
 		);
 	}
 
-	void Ai_patrolling_comp::save(sf2::JsonSerializer& state)const {
+	void save_component(ecs::Serializer& state, const Ai_patrolling_comp& comp) {
 		state.write_virtual(
-			sf2::vmember("velocity", _velocity),
-			sf2::vmember("max_distance", _max_distance),
-			sf2::vmember("flip_horizontal_on_return", _flip_horizontal_on_return),
-			sf2::vmember("flip_vertical_on_return", _flip_vertical_on_return)
+			sf2::vmember("velocity", comp._velocity),
+			sf2::vmember("max_distance", comp._max_distance),
+			sf2::vmember("flip_horizontal_on_return", comp._flip_horizontal_on_return),
+			sf2::vmember("flip_vertical_on_return", comp._flip_vertical_on_return)
 		);
 	}
 

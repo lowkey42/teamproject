@@ -9,7 +9,7 @@
 
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -18,12 +18,12 @@ namespace controller {
 
 	class Ai_patrolling_comp : public ecs::Component<Ai_patrolling_comp> {
 		public:
-			static constexpr const char* name() {return "Ai_patrolling";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			static constexpr auto name() {return "Ai_patrolling";}
+			friend void load_component(ecs::Deserializer& state, Ai_patrolling_comp&);
+			friend void save_component(ecs::Serializer& state, const Ai_patrolling_comp&);
 
-			Ai_patrolling_comp(ecs::Entity& owner) : Component(owner) {}
+			Ai_patrolling_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 		private:
 			friend class Controller_system;

@@ -10,7 +10,7 @@
 #include <core/renderer/camera.hpp>
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -21,12 +21,11 @@ namespace controller {
 
 	class Input_controller_comp : public ecs::Component<Input_controller_comp> {
 		public:
-			static constexpr const char* name() {return "Input_controller";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			static constexpr auto name() {return "Input_controller";}
+			friend void load_component(ecs::Deserializer& state, Input_controller_comp&);
+			friend void save_component(ecs::Serializer& state, const Input_controller_comp&);
 
-			Input_controller_comp(ecs::Entity& owner);
+			Input_controller_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 		private:
 			friend class Controller_system;

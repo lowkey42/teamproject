@@ -8,7 +8,7 @@
 #pragma once
 
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 #include <core/renderer/smart_texture.hpp>
 
 namespace lux {
@@ -18,22 +18,22 @@ namespace graphic {
 	class Terrain_data_comp : public ecs::Component<Terrain_data_comp> {
 		public:
 			static constexpr const char* name() {return "Terrain_data";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Terrain_data_comp&);
+			friend void save_component(ecs::Serializer& state, const Terrain_data_comp&);
 
-			Terrain_data_comp(ecs::Entity& owner) : Component(owner){}
+			Terrain_data_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner){}
 	};
 
 
 	class Terrain_comp : public ecs::Component<Terrain_comp> {
 		public:
 			static constexpr const char* name() {return "Terrain";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Terrain_comp&);
+			friend void save_component(ecs::Serializer& state, const Terrain_comp&);
 
-			Terrain_comp(ecs::Entity& owner, renderer::Material_ptr material = {});
+			Terrain_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner,
+			             renderer::Material_ptr material = {});
 
 			auto& smart_texture()noexcept {return _smart_texture;}
 			auto& smart_texture()const noexcept {return _smart_texture;}

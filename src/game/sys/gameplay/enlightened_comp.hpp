@@ -11,7 +11,7 @@
 
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -30,11 +30,10 @@ namespace gameplay {
 
 		public:
 			static constexpr const char* name() {return "Enlightened";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Enlightened_comp&);
+			friend void save_component(ecs::Serializer& state, const Enlightened_comp&);
 
-			Enlightened_comp(ecs::Entity& owner);
+			Enlightened_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			auto air_transforms_left()const noexcept {
 				return _air_transforms_left;

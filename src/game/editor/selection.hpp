@@ -30,7 +30,7 @@ namespace editor {
 			Selection(Engine& engine, ecs::Entity_manager& entity_manager,
 			          renderer::Camera& world_cam, util::Command_manager&);
 
-			void select(ecs::Entity_ptr e) {_selected_entity = std::move(e);}
+			void select(ecs::Entity_facet e) {_selected_entity = std::move(e);}
 			auto selection() {return _selected_entity;}
 
 			void draw(renderer::Command_queue& queue, renderer::Camera&);
@@ -53,6 +53,7 @@ namespace editor {
 			renderer::Camera& _world_cam;
 			util::Command_manager& _commands;
 			input::Input_manager& _input_manager;
+			ecs::Entity_manager& _ecs;
 			Editor_comp::Pool& _editor_comps;
 
 			renderer::Texture_batch _batch;
@@ -62,7 +63,7 @@ namespace editor {
 			renderer::Texture_ptr _icon_rotate;
 			renderer::Texture_ptr _icon_scale;
 
-			ecs::Entity_ptr _selected_entity;
+			ecs::Entity_facet _selected_entity;
 			bool      _curr_copy = false;
 			bool      _curr_copy_created = false;
 			glm::vec3 _curr_entity_position;

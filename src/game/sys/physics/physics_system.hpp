@@ -26,23 +26,23 @@ namespace physics {
 	struct Raycast_result {
 		glm::vec2 normal;
 		float distance;
-		ecs::Entity* entity=nullptr;
+		ecs::Entity_handle entity;
 	};
 
 	struct Contact {
-		ecs::Entity_ptr a;
-		ecs::Entity_ptr b;
+		ecs::Entity_handle a;
+		ecs::Entity_handle b;
 		bool begin = true;
 		Contact()=default;
-		Contact(ecs::Entity_ptr a, ecs::Entity_ptr b, bool begin) : a(a), b(b), begin(begin) {}
+		Contact(ecs::Entity_handle a, ecs::Entity_handle b, bool begin) : a(a), b(b), begin(begin) {}
 	};
 
 	struct Collision {
-		ecs::Entity_ptr a;
-		ecs::Entity_ptr b;
+		ecs::Entity_handle a;
+		ecs::Entity_handle b;
 		float impact = 0.f;
 		Collision()=default;
-		Collision(ecs::Entity_ptr a, ecs::Entity_ptr b, float impact) : a(a), b(b), impact(impact) {}
+		Collision(ecs::Entity_handle a, ecs::Entity_handle b, float impact) : a(a), b(b), impact(impact) {}
 	};
 
 	class Physics_system {
@@ -57,9 +57,9 @@ namespace physics {
 
 			auto raycast(glm::vec2 position, glm::vec2 dir, float max_dist) -> util::maybe<Raycast_result>;
 			auto raycast(glm::vec2 position, glm::vec2 dir, float max_dist,
-			             ecs::Entity& exclude) -> util::maybe<Raycast_result>;
+			             ecs::Entity_handle exclude) -> util::maybe<Raycast_result>;
 			auto query_intersection(Dynamic_body_comp&,
-			                        std::function<bool(ecs::Entity&)> filter) -> util::maybe<ecs::Entity&>;
+			                        std::function<bool(ecs::Entity_handle)> filter) -> util::maybe<ecs::Entity_handle>;
 
 		private:
 			struct Contact_listener;

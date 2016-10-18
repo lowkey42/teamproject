@@ -9,7 +9,7 @@
 
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 class b2Body;
@@ -47,15 +47,14 @@ namespace physics {
 		std::vector<glm::vec2> vertices;
 	};
 
-	class Dynamic_body_comp : public ecs::Component<Dynamic_body_comp> {
+	class Dynamic_body_comp : public ecs::Component<Dynamic_body_comp, ecs::Compact_index_policy,
+	                                                ecs::Pool_storage_policy<64, Dynamic_body_comp>> {
 		public:
 			static constexpr const char* name() {return "Dynamic_body";}
-			static constexpr std::size_t min_components_per_pool_chunk = 128;
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Dynamic_body_comp&);
+			friend void save_component(ecs::Serializer& state, const Dynamic_body_comp&);
 
-			Dynamic_body_comp(ecs::Entity& owner);
+			Dynamic_body_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			void apply_force(glm::vec2 f);
 			void foot_friction(bool enable);//< only for humanoids
@@ -93,14 +92,14 @@ namespace physics {
 			void _update_ground_info(Physics_system&);
 	};
 
-	class Static_body_comp : public ecs::Component<Static_body_comp> {
+	class Static_body_comp : public ecs::Component<Static_body_comp, ecs::Compact_index_policy,
+	                                               ecs::Pool_storage_policy<128, Static_body_comp>> {
 		public:
 			static constexpr const char* name() {return "Static_body";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Static_body_comp&);
+			friend void save_component(ecs::Serializer& state, const Static_body_comp&);
 
-			Static_body_comp(ecs::Entity& owner);
+			Static_body_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			void active(bool e) {_def.active = e;}
 

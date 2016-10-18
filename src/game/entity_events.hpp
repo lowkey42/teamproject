@@ -14,7 +14,7 @@
 namespace lux {
 
 	struct State_change {
-		ecs::Entity_ptr entity;
+		ecs::Entity_facet entity;
 		util::Str_id id;
 		float magnitute;
 		bool continuous;

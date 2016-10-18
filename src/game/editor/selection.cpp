@@ -27,7 +27,7 @@ namespace editor {
 
 	namespace {
 
-		bool is_inside(ecs::Entity& e, glm::vec2 p, Camera& cam, bool forgiving=false,
+		bool is_inside(ecs::Entity_facet& e, glm::vec2 p, Camera& cam, bool forgiving=false,
 		               bool in_screenspace=false) {
 			bool inside = false;
 
@@ -69,6 +69,7 @@ namespace editor {
 	                     renderer::Camera& world_cam, util::Command_manager& commands)
 	    : _mailbox(engine.bus()), _world_cam(world_cam), _commands(commands),
 	      _input_manager(engine.input()),
+	      _ecs(entity_manager),
 	      _editor_comps(entity_manager.list<Editor_comp>()),
 	      _last_primary_pointer_pos(util::nothing()),
 	      _last_secondary_pointer_pos(util::nothing()) {
@@ -90,10 +91,10 @@ namespace editor {
 
 	void Selection::draw(renderer::Command_queue& queue, renderer::Camera& cam) {
 		if(_selected_entity) {
-			auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+			auto& transform = _selected_entity.get<physics::Transform_comp>().get_or_throw();
 			auto center = remove_units(transform.position());
-			auto editor = _selected_entity->get<Editor_comp>();
-			auto terrain = _selected_entity->get<Terrain_comp>();
+			auto editor = _selected_entity.get<Editor_comp>();
+			auto terrain = _selected_entity.get<Terrain_comp>();
 
 			if(terrain.is_some()) {
 				auto& points = terrain.get_or_throw().smart_texture().points();
@@ -183,7 +184,7 @@ namespace editor {
 			_curr_copy_created = false;
 
 			_current_action = Action_type::none;
-			auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+			auto& transform = _selected_entity.get<physics::Transform_comp>().get_or_throw();
 
 			_prev_entity_position = remove_units(transform.position());
 			_prev_entity_rotation = transform.rotation();
@@ -199,7 +200,7 @@ namespace editor {
 		auto handled = false;
 
 		if(_selected_entity && _current_action!=Action_type::none && _current_action!=Action_type::inactive) {
-			if(_current_action==Action_type::mod_form && _selected_entity->has<Terrain_comp>()) {
+			if(_current_action==Action_type::mod_form && _selected_entity.has<Terrain_comp>()) {
 				if(_snap_to_grid) {
 					_curr_point_position = glm::round(_curr_point_position*2.f) / 2.f;
 				}
@@ -213,8 +214,8 @@ namespace editor {
 					                                   _prev_point_position);
 				}
 
-			} else if(_selected_entity->has<physics::Transform_comp>()) {
-				auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+			} else if(_selected_entity.has<physics::Transform_comp>()) {
+				auto& transform = _selected_entity.get<physics::Transform_comp>().get_or_throw();
 
 				auto diff_pos = remove_units(transform.position()) - _prev_entity_position;
 				auto diff_rot = transform.rotation() - _prev_entity_rotation;
@@ -248,7 +249,7 @@ namespace editor {
 
 	auto Selection::handle_pointer(util::maybe<glm::vec2> mp1,
 	                               util::maybe<glm::vec2> mp2) -> bool {
-		auto base_pos = _selected_entity ? remove_units(_selected_entity->get<physics::Transform_comp>().get_or_throw().position())
+		auto base_pos = _selected_entity ? remove_units(_selected_entity.get<physics::Transform_comp>().get_or_throw().position())
 		                                 : glm::vec3(_world_cam.eye_position().xy(), 0.f);
 
 		if(mp1.is_some()) {
@@ -275,7 +276,7 @@ namespace editor {
 		        || !_selected_entity || _current_action==Action_type::inactive)
 			return false;
 
-		if(_current_action==Action_type::none && !is_inside(*_selected_entity, _last_primary_pointer_pos.get_or_throw(), _world_cam, true))
+		if(_current_action==Action_type::none && !is_inside(_selected_entity, _last_primary_pointer_pos.get_or_throw(), _world_cam, true))
 			return false;
 
 
@@ -309,9 +310,9 @@ namespace editor {
 		return true;
 	}
 	auto Selection::_handle_singletouch(glm::vec2 prev, glm::vec2 curr) -> bool {
-		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-		auto& editor    = _selected_entity->get<Editor_comp>().get_or_throw();
-		auto terrain    = _selected_entity->get<Terrain_comp>();
+		auto& transform = _selected_entity.get<physics::Transform_comp>().get_or_throw();
+		auto& editor    = _selected_entity.get<Editor_comp>().get_or_throw();
+		auto terrain    = _selected_entity.get<Terrain_comp>();
 
 		auto center      = remove_units(transform.position());
 
@@ -407,27 +408,27 @@ namespace editor {
 	auto Selection::copy_content()const -> std::string {
 		INVARIANT(_selected_entity, "No entity selected!");
 
-		return _selected_entity->manager().backup(_selected_entity);
+		return _ecs.write_one(_selected_entity);
 	}
 
 	void Selection::_change_selection(glm::vec2 point, bool cycle) {
-		ecs::Entity_ptr entity;
-		auto max_compv = std::make_pair(-1000.f, (void*) nullptr);
-		auto limit_compv = std::make_pair(1000.f, (void*) nullptr);
-		cycle = cycle && _selected_entity && is_inside(*_selected_entity, point, _world_cam, false, true);
+		ecs::Entity_facet entity;
+		auto max_compv = std::make_pair(-1000.f, ecs::invalid_entity);
+		auto limit_compv = std::make_pair(1000.f, ecs::invalid_entity);
+		cycle = cycle && _selected_entity && is_inside(_selected_entity, point, _world_cam, false, true);
 		if(cycle) {
-			auto z = _selected_entity->get<physics::Transform_comp>().get_or_throw().position().z.value();
-			limit_compv = std::make_pair(z, static_cast<void*>(_selected_entity.get()));
+			auto z = _selected_entity.get<physics::Transform_comp>().get_or_throw().position().z.value();
+			limit_compv = std::make_pair(z, _selected_entity.handle());
 		}
 
 		for(auto& comp : _editor_comps) {
 			if(is_inside(comp.owner(), point, _world_cam, false, true)) {
 				auto z = comp.owner().get<physics::Transform_comp>().get_or_throw().position().z.value();
-				auto compv = std::make_pair(z, static_cast<void*>(&comp.owner()));
+				auto compv = std::make_pair(z, comp.owner_handle());
 
 				if(compv>max_compv && compv<limit_compv) {
 					max_compv = compv;
-					entity = comp.owner_ptr();
+					entity = comp.owner();
 				}
 			}
 		}
@@ -447,7 +448,7 @@ namespace editor {
 			return;
 
 		if(_curr_copy && !_curr_copy_created) {
-			_selected_entity = _selected_entity->manager().restore(copy_content());
+			_selected_entity = _ecs.read_one(copy_content());
 			_curr_copy_created = true;
 		}
 
@@ -483,15 +484,15 @@ namespace editor {
 		_update_entity_transform();
 	}
 	auto Selection::_insert_point(int prev, glm::vec2 position) -> int {
-		auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
-		auto& terrain = _selected_entity->get<graphic::Terrain_comp>().get_or_throw();
+		auto& transform = _selected_entity.get<physics::Transform_comp>().get_or_throw();
+		auto& terrain = _selected_entity.get<graphic::Terrain_comp>().get_or_throw();
 		auto& tex = terrain.smart_texture();
 
 		tex.insert_point(prev, position-remove_units(transform.position().xy()));
 		return prev;
 	}
 	void Selection::_move_point(glm::vec2 offset) {
-		auto& terrain = _selected_entity->get<graphic::Terrain_comp>().get_or_throw();
+		auto& terrain = _selected_entity.get<graphic::Terrain_comp>().get_or_throw();
 		auto& tex = terrain.smart_texture();
 
 		_curr_point_position += offset;
@@ -506,7 +507,7 @@ namespace editor {
 		}
 
 		if(new_point.is_some()) {
-			auto& smart_texture = _selected_entity->get<Terrain_comp>().get_or_throw().smart_texture();
+			auto& smart_texture = _selected_entity.get<Terrain_comp>().get_or_throw().smart_texture();
 
 			_commands.execute<Point_deleted_cmd>(_selected_entity,
 			                                     _current_shape_index,
@@ -520,7 +521,7 @@ namespace editor {
 
 	void Selection::_update_entity_transform() {
 		if(_selected_entity) {
-			auto& transform = _selected_entity->get<physics::Transform_comp>().get_or_throw();
+			auto& transform = _selected_entity.get<physics::Transform_comp>().get_or_throw();
 
 			if(_snap_to_grid) {
 				auto rp = glm::round(_curr_entity_position*2.f)/2.f;

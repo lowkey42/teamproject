@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "../utils/atomic_utils.hpp"
 #include "../utils/maybe.hpp"
 #include "../utils/pool.hpp"
 
@@ -28,6 +29,9 @@ namespace lux {
 namespace lux {
 namespace ecs {
 
+	struct Deserializer;
+	struct Serializer;
+
 	class Entity_manager;
 	class Entity_facet;
 
@@ -46,15 +50,68 @@ namespace ecs {
 
 
 	using Entity_id = int32_t;
-	struct Entity_handle {
-		Entity_id id;
-		uint8_t revision; // 0b10000000 marks handle as free
+	class Entity_handle {
+		public:
+			using packed_t = uint32_t;
+			static constexpr uint8_t free_rev = 0b10000; // marks revisions as free,
+			                                             // is cut off when assigned to Entity_handle::revision
 
-		constexpr Entity_handle() : id(-1), revision(0) {}
-		constexpr Entity_handle(Entity_id id, uint8_t revision) : id(id), revision(revision) {}
+			constexpr Entity_handle() : _id(0), _revision(0) {}
+			constexpr Entity_handle(Entity_id id, uint8_t revision) : _id(id), _revision(revision) {}
+
+			operator bool()const noexcept {
+				return _id!=0;
+			}
+
+			constexpr Entity_id id()const noexcept {
+				return _id;
+			}
+			constexpr void id(Entity_id id)noexcept {
+				_id = id;
+			}
+
+			constexpr uint8_t revision()const noexcept {
+				return _revision;
+			}
+			constexpr void revision(uint8_t revision)noexcept {
+				_revision = revision;
+			}
+
+			constexpr bool operator==(const Entity_handle& rhs)const noexcept {
+				return _id==rhs._id && _revision==rhs._revision;
+			}
+			constexpr bool operator!=(const Entity_handle& rhs)const noexcept {
+				return _id!=rhs._id || _revision!=rhs._revision;
+			}
+			bool operator<(const Entity_handle& rhs)const noexcept {
+				return std::tie(_id,_revision) < std::tie(rhs._id,rhs._revision);
+			}
+
+			packed_t pack()const noexcept {
+				return static_cast<packed_t>(_id)<<4 | static_cast<packed_t>(_revision);
+			}
+			static Entity_handle unpack(packed_t d)noexcept {
+				return Entity_handle{static_cast<int32_t>(d>>4), static_cast<uint8_t>(d & 0b1111)};
+			}
+
+		private:
+			int32_t _id:28;
+			uint8_t _revision:4;
 	};
 
+	static_assert(sizeof(Entity_handle::packed_t)<=sizeof(void*),
+	              "what the hell is wrong with your plattform?!");
+
+	Entity_handle to_entity_handle(void* u) {
+		return Entity_handle::unpack(static_cast<Entity_handle::packed_t>(
+		                                      reinterpret_cast<std::intptr_t>(u)) );
+	}
+	void* to_void_ptr(Entity_handle h) {
+		return reinterpret_cast<void*>(static_cast<std::intptr_t>(h.pack()));
+	}
+
 	constexpr auto invalid_entity = Entity_handle{};
+	constexpr auto invalid_entity_id = invalid_entity.id();
 
 
 	extern auto get_entity_id(Entity_handle h, Entity_manager&) -> Entity_id;
@@ -64,39 +121,44 @@ namespace ecs {
 		using Freelist = moodycamel::ConcurrentQueue<Entity_handle>;
 		public:
 			Entity_handle_generator(Entity_id max=128) {
-				_slots.resize(max);
+				_slots.resize(static_cast<std::size_t>(max));
 			}
 
 			// thread-safe
 			auto get_new() -> Entity_handle {
 				Entity_handle h;
 				if(_free.try_dequeue(h)) {
-					auto& rev = _slots.at(h.id);
-					rev.store(rev & (~0b10000000)); // mark as used
+					auto& rev = util::at(_slots, static_cast<std::size_t>(h.id()));
+					rev.store(rev & ~Entity_handle::free_rev); // mark as used
 					return h;
 				}
 
 				auto slot = _next_free_slot++;
 
-				return join_entity_handle(slot, 0);
+				return {slot+1, 0};
 			}
 
 			// thread-safe
 			auto valid(Entity_handle h)const noexcept -> bool {
-				return _slots.size()<=h.id || _slots[h.id] == h.revision;
+				return h && (static_cast<Entity_id>(_slots.size()) <= h.id()-1
+				             || util::at(_slots, static_cast<std::size_t>(h.id()-1)) == h.revision());
 			}
 
 			// NOT thread-safe
 			auto free(Entity_handle h) -> Entity_handle {
-				if(h.id>=_slots.size()) {
-					_slots.resize(h.id*2);
+				if(h.id()-1 >= static_cast<Entity_id>(_slots.size())) {
+					_slots.resize(static_cast<std::size_t>(h.id()-1) *2);
 				}
 
-				auto rev = _slots.at(h.id).load();
-				_slots.at(h.id).store(rev | 0b10000000); // mark as free; no CAS required only written here and in get_new() if already in _free
+				auto rev = util::at(_slots, static_cast<std::size_t>(h.id()-1)).load();
 
-				_free.enqueue(h.id, rev);
-				return {h.id, rev};
+				// mark as free; no CAS required only written here and in get_new() if already in _free
+				util::at(_slots, static_cast<std::size_t>(h.id()-1)).store(rev | Entity_handle::free_rev);
+
+				auto handle = Entity_handle{h.id()-1, rev};
+
+				_free.enqueue(handle);
+				return {handle};
 			}
 
 			// NOT thread-safe
@@ -104,13 +166,13 @@ namespace ecs {
 			void foreach_valid_handle(F&& func) {
 				auto end = _next_free_slot.load();
 
-				for(Entity_id id=0; id<end) {
-					if(id>=_slots.size())
-						func(Entity_handle{id,0});
-					else {
-						auto rev = _slots[id].load();
-						if((rev & ~0b10000000)!=0) { // is marked used
-							func(Entity_handle{id,rev});
+				for(Entity_id id=0; id<end; id++) {
+					if(id>=static_cast<Entity_id>(_slots.size())) {
+						func(Entity_handle{id+1,0});
+					} else {
+						auto rev = util::at(_slots, static_cast<std::size_t>(id)).load();
+						if((rev & ~Entity_handle::free_rev)!=0) { // is marked used
+							func(Entity_handle{id+1,rev});
 						}
 					}
 				}
@@ -125,8 +187,8 @@ namespace ecs {
 			}
 
 		private:
-			std::vector<std::atomic<uint8_t>> _slots;
-			std::atomic<Entity_id> _next_free_slot = 0;
+			util::vector_atomic<uint8_t> _slots;
+			std::atomic<Entity_id> _next_free_slot{0};
 			Freelist _free;
 	};
 
@@ -160,10 +222,20 @@ namespace ecs {
 			template<typename... T>
 			void erase_other();
 
-			auto manager() -> Entity_manager& {return *_manager;}
-			auto handle()const {return _owner;}
+			auto manager()noexcept -> Entity_manager& {return *_manager;}
+			auto handle()const noexcept {return _owner;}
 
 			auto valid()const noexcept -> bool;
+
+			operator bool()const noexcept {return valid();}
+			operator Entity_handle()const noexcept {return handle();}
+
+			void reset() {
+				_owner = invalid_entity;
+			}
+			bool operator==(const Entity_facet& rhs)const noexcept {
+				return handle()==rhs.handle();
+			}
 
 			// see ecs.hxx for implementation of template methods
 

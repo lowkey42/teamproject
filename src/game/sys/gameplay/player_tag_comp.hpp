@@ -20,7 +20,8 @@ namespace gameplay {
 		public:
 			static constexpr const char* name() {return "Player_tag";}
 
-			Player_tag_comp(ecs::Entity& owner) : Component(owner) {}
+			Player_tag_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 	};
 
 }

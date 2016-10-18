@@ -24,19 +24,29 @@ namespace util {
 	template<class POOL>
 	class pool_iterator;
 
-	template<class T, std::size_t ElementsPerChunk, class Index_type=int_fast64_t,
-	         bool use_empty_values=false>
+
+	struct pool_value_traits {
+		static constexpr bool supports_empty_values = false;
+		// static constexpr int_fast32_t max_free = 8;
+		// using Marker_type = Foo;
+		// static constexpr Marker_type free_mark = -1;
+		// static constexpr const Marker_type* marker_addr(const T* inst)
+	};
+
+	template<class T, std::size_t ElementsPerChunk, class IndexType=int_fast64_t,
+	         class ValueTraits=pool_value_traits, bool use_empty_values=ValueTraits::supports_empty_values>
 	class pool {
 		static_assert(alignof(T)<=alignof(std::max_align_t), "Alignment not supported");
-		friend class pool_iterator<pool<T, ElementsPerChunk>>;
 		public:
-			static constexpr auto element_size = static_cast<Index_type>(sizeof(T));
-			static constexpr auto chunk_len    = static_cast<Index_type>(ElementsPerChunk);
+			static constexpr auto element_size = static_cast<IndexType>(sizeof(T));
+			static constexpr auto chunk_len    = static_cast<IndexType>(ElementsPerChunk);
 			static constexpr auto chunk_size   = chunk_len * element_size;
 
 			using value_type = T;
-			using iterator = pool_iterator<pool<T, ElementsPerChunk>>;
-			using index_t = Index_type;
+			using iterator = pool_iterator<pool<T, ElementsPerChunk, IndexType, ValueTraits, use_empty_values>>;
+			using index_t = IndexType;
+
+			friend iterator;
 
 
 			pool()noexcept = default;
@@ -53,10 +63,8 @@ namespace util {
 			 */
 			void clear()noexcept {
 				for(auto& chunk : _chunks) {
-					for(Index_type i=0; i<chunk_len; i++) {
-						if(_is_valid(chunk+i)) {
-							chunk[i].~T();
-						}
+					for(IndexType i=0; i<chunk_len; i++) {
+						chunk[i].~T();
 					}
 				}
 				_chunks.clear();
@@ -79,7 +87,7 @@ namespace util {
 			 * Invalidates all iterators and references to the specified and the last element.
 			 * O(1)
 			 */
-			auto erase(Index_type i) {
+			auto erase(IndexType i) {
 				INVARIANT(i<_used_elements, "erase is out of range");
 
 				if(i<(_used_elements-1)) {
@@ -90,7 +98,7 @@ namespace util {
 			}
 
 			/**
-			 * Frees all unused memory.
+			 * Frees all unused memory. May invalidate all iterators and references.
 			 * O(1)
 			 */
 			void shrink_to_fit() {
@@ -103,7 +111,7 @@ namespace util {
 			 * O(1)
 			 */
 			template<class... Args>
-			auto emplace_back(Args&&... args) -> std::tuple<T&, Index_type> {
+			auto emplace_back(Args&&... args) -> std::tuple<T&, IndexType> {
 				const auto i = _used_elements++;
 
 				auto addr = [&] {
@@ -124,14 +132,14 @@ namespace util {
 				return {*instnace, i};
 			}
 
-			void replace(Index_type i, T&& new_element) {
+			void replace(IndexType i, T&& new_element) {
 				get(i) = std::move(new_element);
 			}
 
 			/**
 			 * @return The number of elements in the pool
 			 */
-			Index_type size()const noexcept {
+			IndexType size()const noexcept {
 				return _used_elements;
 			}
 			bool empty()const noexcept {
@@ -141,13 +149,11 @@ namespace util {
 			/**
 			 * @return The specified element
 			 */
-			T& get(Index_type i) {
-				return const_cast<T&>(static_cast<const pool*>(this)->get(i));
+			T& get(IndexType i) {
+				return static_cast<T&>(*get_raw(i));
 			}
-			const T& get(Index_type i)const {
-				INVARIANT(i<_used_elements, "Pool-Index out of bounds "+to_string(i)+">="+to_string(_used_elements));
-
-				return static_cast<const T&>(_chunks[i / chunk_len][(i % chunk_len) * element_size]);
+			const T& get(IndexType i)const {
+				return static_cast<const T&>(*get_raw(i));
 			}
 
 			/**
@@ -159,75 +165,126 @@ namespace util {
 			const T& back()const {
 				INVARIANT(_used_elements>0, "back on empty pool");
 				auto i = _used_elements-1;
-				return _chunks.back()[(i % chunk_len) * element_size];
+				return reinterpret_cast<const T&>(_chunks.back()[(i % chunk_len) * element_size]);
 			}
 
 		protected:
 			using chunk_type = std::unique_ptr<unsigned char[]>;
 			std::vector<chunk_type> _chunks;
-			Index_type _used_elements = 0;
+			IndexType _used_elements = 0;
 
-			T* _chunk(Index_type chunk_idx)noexcept {
-				if(chunk_idx<_chunks.size())
-					return _chunks[chunk_idx];
+			// get_raw is required to avoid UB if their is no valid object at the index
+			char* get_raw(IndexType i) {
+				return const_cast<char*>(static_cast<const pool*>(this)->get_raw(i));
+			}
+			const char* get_raw(IndexType i)const {
+				INVARIANT(i<_used_elements, "Pool-Index out of bounds "+to_string(i)+">="+to_string(_used_elements));
+
+				return _chunks[i / chunk_len].get() + (i % chunk_len) * element_size;
+			}
+
+			T* _chunk(IndexType chunk_idx)noexcept {
+				if(chunk_idx<static_cast<IndexType>(_chunks.size()))
+					return reinterpret_cast<T*>(_chunks[chunk_idx].get());
 				else
 					return nullptr;
 			}
-			T* _chunk_end(Index_type chunk_idx)noexcept {
+			T* _chunk_end(IndexType chunk_idx)noexcept {
 				if(chunk_idx < _used_elements/chunk_len) {
-					return _chunks(chunk_idx) + chunk_len;
+					return reinterpret_cast<T*>(_chunks[chunk_idx].get() + chunk_len);
 				} else {
-					return _chunks(chunk_idx) + (_used_elements % chunk_len);
+					return reinterpret_cast<T*>(_chunks[chunk_idx].get() + (_used_elements % chunk_len));
 				}
 			}
-			virtual bool _valid(const T*)const noexcept {
+			static bool _valid(const T*)noexcept {
 				return true;
 			}
 	};
 	
-	
-	template<class T, std::size_t ElementsPerChunk, std::size_t Offset_of_marker, class T Marker_type, Marker_type Free_mark, class Index_type=int_fast64_t>
-	class pool<T, ElementsPerChunk, Index_type, true> : public pool<T, ElementsPerChunk, Index_type, false> {
-		using base_t = pool<T, ElementsPerChunk, Index_type, false>;
-			
+	template<class T, std::size_t ElementsPerChunk, class IndexType, class ValueTraits>
+	class pool<T, ElementsPerChunk, IndexType, ValueTraits, true>
+	        : public pool<T, ElementsPerChunk, IndexType, ValueTraits, false> {
+
+		using base_t = pool<T, ElementsPerChunk, IndexType, ValueTraits, false>;
 		public:
+			using iterator = pool_iterator<pool<T, ElementsPerChunk, IndexType, ValueTraits, true>>;
+
+			friend iterator;
+
+			iterator begin()noexcept;
+			iterator end()noexcept;
+
 			void clear()noexcept {
-				base_t::clear();
+				for(auto& chunk : this->_chunks) {
+					for(IndexType i=0; i<this->chunk_len; i++) {
+						if(_valid(chunk+i)) {
+							chunk[i].~T();
+						}
+					}
+				}
+				this->_chunks.clear();
+				this->_used_elements = 0;
+
 				_freelist.clear();
 			}
 			
-			auto erase(Index_type i) {
-				INVARIANT(i<_used_elements, "erase is out of range");
+			auto erase(IndexType i) {
+				if(i>=(this->size()-1)) {
+					this->pop_back();
 
-				if(i==(size() -1)) {
-					pop_back();
 				} else {
-					get(i).~T();
-					auto& marker = *static_cast<Marker_type*>(static_cast<char*>(obj) + Offset_of_marker);
-					marker = Free_mark;
+					T& instance = get(i);
+					auto instance_addr = &instance;
+					INVARIANT(_valid(instance_addr), "double free");
+					instance.~T();
+					set_free(instance_addr);
+
 					_freelist.emplace_back(i);
 				}
 			}
 			
 			template<class... Args>
-			auto emplace_back(Args&&... args) -> std::tuple<T&, Index_type> {
-				// TODO
+			auto emplace_back(Args&&... args) -> std::tuple<T&, IndexType> {
+				if(!_freelist.empty()) {
+					auto i = _freelist.back();
+					_freelist.pop_back();
+
+					auto instance_addr = get_raw(i);
+					INVARIANT(!_valid(instance_addr), "Freed object is not marked as free");
+					auto instance = (new(instance_addr) T(std::forward<Args>(args)...));
+					return {*instance, i};
+				}
+
+				return base_t::emplace_back(std::forward<Args>(args)...);
 			}
 			
 			void shrink_to_fit() {
-				// TODO
+				if(_freelist.size() > ValueTraits::max_free) {
+					std::sort(_freelist.begin(), _freelist.end(), std::greater<IndexType>{});
+					for(auto i : _freelist) {
+						base_t::erase(i);
+					}
+					_freelist.clear();
+				}
+
+				base_t::shrink_to_fit();
 			}
 			
 			
 		protected:
-			std::vector<Index_type> _freelist;
-			
-			bool _valid(const T* obj)const noexcept override {
+			std::vector<IndexType> _freelist;
+
+			static auto& get_marker(const T* obj)noexcept {
+				return *ValueTraits::marker_addr(obj);
+			}
+			static void set_free(const T* obj)noexcept {
+				const_cast<typename ValueTraits::Marker_type>(get_marker(obj)) = ValueTraits::free_mark;
+			}
+			static bool _valid(const T* obj)noexcept {
 				if(obj==nullptr)
 					return true;
 				
-				auto marker = *static_cast<const Marker_type*>(static_cast<const char*>(obj) + Offset_of_marker);
-				return marker != Free_mark;
+				return get_marker(obj) != ValueTraits::free_mark;
 			}
 	};
 	
@@ -251,8 +308,8 @@ namespace util {
 			      _element_iter(_pool->_chunk(index) + (index%Pool::chunk_len)),
 			      _element_iter_end(pool._chunk_end(_chunk_index)) {}
 
-			value_type operator*()noexcept {return _element_iter;}
-			value_type operator->()noexcept {return _element_iter;}
+			value_type& operator*()noexcept {return *_element_iter;}
+			value_type* operator->()noexcept {return _element_iter;}
 
 			pool_iterator& operator++() {
 				do {
@@ -262,7 +319,7 @@ namespace util {
 						_element_iter = _pool->_chunk(_chunk_index);
 						_element_iter_end = _pool->_chunk_end(_chunk_index);
 					}
-				} while(!_pool->_valid(_element_iter));
+				} while(!Pool::_valid(_element_iter));
 
 				return *this;
 			}
@@ -288,13 +345,24 @@ namespace util {
 			value_type* _element_iter_end;
 	};
 
-	template<class T, std::size_t ElementsPerChunk, class Index_type, bool use_empty_values>
-	auto pool<T, ElementsPerChunk, Index_type, use_empty_values>::begin()noexcept -> iterator {
+	template<class T, std::size_t ElementsPerChunk, class Index_type, class ValueTraits, bool use_empty_values>
+	auto pool<T, ElementsPerChunk, Index_type, ValueTraits, use_empty_values>::begin()noexcept -> iterator {
 		return iterator{*this};
 	}
 
-	template<class T, std::size_t ElementsPerChunk, class Index_type, bool use_empty_values>
-	auto pool<T, ElementsPerChunk, Index_type, use_empty_values>::end()noexcept -> iterator {
+	template<class T, std::size_t ElementsPerChunk, class Index_type, class ValueTraits, bool use_empty_values>
+	auto pool<T, ElementsPerChunk, Index_type, ValueTraits, use_empty_values>::end()noexcept -> iterator {
+		return iterator{};
+	}
+
+
+	template<class T, std::size_t ElementsPerChunk, class Index_type, class ValueTraits>
+	auto pool<T, ElementsPerChunk, Index_type, ValueTraits, true>::begin()noexcept -> iterator {
+		return iterator{*this};
+	}
+
+	template<class T, std::size_t ElementsPerChunk, class Index_type, class ValueTraits>
+	auto pool<T, ElementsPerChunk, Index_type, ValueTraits, true>::end()noexcept -> iterator {
 		return iterator{};
 	}
 

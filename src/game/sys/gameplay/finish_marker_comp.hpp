@@ -11,7 +11,7 @@
 
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -21,11 +21,11 @@ namespace gameplay {
 	class Finish_marker_comp : public ecs::Component<Finish_marker_comp> {
 		public:
 			static constexpr const char* name() {return "Finish_marker";}
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, Finish_marker_comp&);
+			friend void save_component(ecs::Serializer& state, const Finish_marker_comp&);
 
-			Finish_marker_comp(ecs::Entity& owner) : Component(owner) {}
+			Finish_marker_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 
 			auto colors_left()const noexcept {
 				return not_interactive_color(_contained_colors,_required_color);

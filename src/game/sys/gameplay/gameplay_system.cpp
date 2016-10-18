@@ -218,7 +218,7 @@ namespace gameplay {
 	}
 
 	auto Gameplay_system::_is_reflective(glm::vec2 pos, Enlightened_comp& light,
-	                                     ecs::Entity* hit) -> Light_op_res {
+	                                     ecs::Entity_facet* hit) -> Light_op_res {
 		if(hit==nullptr)
 			return Light_op_res{Light_color::black, Light_color::white};;
 
@@ -249,7 +249,7 @@ namespace gameplay {
 
 		return std::max(ref_res, paint_res);
 	}
-	auto Gameplay_system::_is_solid(Enlightened_comp& light, ecs::Entity* hit) -> Light_op_res {
+	auto Gameplay_system::_is_solid(Enlightened_comp& light, ecs::Entity_facet* hit) -> Light_op_res {
 		if(hit!=nullptr) {
 			auto transparent = hit->get<Transparent_comp>();
 			if(transparent.is_some()) {
@@ -369,34 +369,37 @@ namespace gameplay {
 	}
 
 	void Gameplay_system::_on_collision(sys::physics::Collision& c) {
-		if(c.a && c.a->has<Collectable_comp>() && !c.a->get<Collectable_comp>().get_or_throw()._collected) {
-			c.a->get<Collectable_comp>().get_or_throw()._collected = true;
-			c.a->manager().erase(c.a->shared_from_this());
+		auto a = _ecs.get(c.a);
+		auto b = _ecs.get(c.b);
+
+		if(a && a.has<Collectable_comp>() && !a.get<Collectable_comp>().get_or_throw()._collected) {
+			a.get<Collectable_comp>().get_or_throw()._collected = true;
+			_ecs.erase(c.a);
 			return;
 		}
-		if(c.b && c.b->has<Collectable_comp>() && !c.b->get<Collectable_comp>().get_or_throw()._collected) {
-			c.b->get<Collectable_comp>().get_or_throw()._collected = true;
-			c.b->manager().erase(c.b->shared_from_this());
+		if(b && b.has<Collectable_comp>() && !b.get<Collectable_comp>().get_or_throw()._collected) {
+			b.get<Collectable_comp>().get_or_throw()._collected = true;
+			_ecs.erase(c.b);
 			return;
 		}
 
-		if(c.a && c.b) {
-			process(c.a->get<Enlightened_comp>(), c.b->get<Enlightened_comp>())
+		if(a && b) {
+			process(a.get<Enlightened_comp>(), b.get<Enlightened_comp>())
 			        >> [&](Enlightened_comp& ae, Enlightened_comp& be) {
 				if(!ae._smashed && !be._smashed && !ae._smash && !be._smash && !ae.enabled() && !be.enabled()) {
 					_color_player(ae, ae._color|be._color);
-					c.b->manager().erase(c.b->shared_from_this());
+					_ecs.erase(c.b);
 					be._smashed = true;
-					c.b = nullptr;
-					_controller_sys.set_controlled(ae.owner_ptr());
+					b.reset();
+					_controller_sys.set_controlled(ae.owner_handle());
 				}
 			};
 		}
 
-		auto try_smash = [&](ecs::Entity* e) {
-			return e && e->get<Enlightened_comp>().process(false, [&](auto& elc) {
-				ecs::Entity* other = (c.a.get()==&elc.owner()) ? c.b.get() : c.a.get();
-				auto deadly = other && other->has<Deadly_comp>();
+		auto try_smash = [&](ecs::Entity_facet& e) {
+			return e && e.get<Enlightened_comp>().process(false, [&](auto& elc) {
+				auto& other = (a==e) ? b : a;
+				auto deadly = other && other.has<Deadly_comp>();
 				if((elc._final_booster_left>0_s && c.impact>=elc._smash_force*0.1f) || c.impact>=elc._smash_force || deadly) {
 					return elc.smash();
 				} else {
@@ -408,10 +411,10 @@ namespace gameplay {
 			});
 		};
 
-		try_smash(c.a.get());
-		try_smash(c.b.get());
+		try_smash(a);
+		try_smash(b);
 	}
-	void Gameplay_system::_on_smashed(ecs::Entity& e) {
+	void Gameplay_system::_on_smashed(ecs::Entity_facet& e) {
 		e.get<Enlightened_comp>().process([&](auto& e) {
 			e._smashed = true;
 		});
@@ -422,7 +425,7 @@ namespace gameplay {
 
 		}).on_nothing([&] {
 			WARN("smashed a not animated entity");
-			e.manager().erase(e.shared_from_this());
+			e.manager().erase(e);
 		});
 
 		_camera_sys.screen_shake(0.2_s, 0.5f);
@@ -431,11 +434,11 @@ namespace gameplay {
 		if(!event.owner)
 			return;
 
-		auto& e = *static_cast<ecs::Entity*>(event.owner);
+		auto e = _ecs.get(ecs::to_entity_handle(event.owner));
 
 		switch(event.name) {
 			case "left"_strid:
-				e.manager().erase(e.shared_from_this());
+				_ecs.erase(e);
 				break;
 
 			case "dead"_strid: {
@@ -480,7 +483,7 @@ namespace gameplay {
 					}
 				}
 
-				e.manager().erase(e.shared_from_this());
+				_ecs.erase(e);
 				break;
 			}
 		}

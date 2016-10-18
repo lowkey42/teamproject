@@ -9,7 +9,7 @@
 
 #include <core/engine.hpp>
 #include <core/units.hpp>
-#include <core/ecs/ecs.hpp>
+#include <core/ecs/component.hpp>
 
 
 namespace lux {
@@ -20,7 +20,8 @@ namespace gameplay {
 		public:
 			static constexpr const char* name() {return "Reset";}
 
-			Reset_comp(ecs::Entity& owner) : Component(owner) {}
+			Reset_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+			    : Component(manager, owner) {}
 	};
 
 }

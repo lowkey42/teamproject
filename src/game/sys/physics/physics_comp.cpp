@@ -10,6 +10,7 @@
 #include "../graphic/sprite_comp.hpp"
 #include "../graphic/terrain_comp.hpp"
 
+#include <core/ecs/serializer.hpp>
 #include <core/utils/sf2_glm.hpp>
 
 #include <Box2D/Box2D.h>
@@ -49,7 +50,7 @@ namespace physics {
 		using ub_res = std::tuple<b2Fixture*, glm::vec2>;
 
 		auto update_body(b2World& world, body_ptr& body, const Body_definition& def,
-		                 ecs::Entity& owner, b2BodyType btype) -> ub_res {
+		                 ecs::Entity_facet& owner, b2BodyType btype) -> ub_res {
 			b2Fixture* fixture_foot = nullptr;
 
 			auto& transform_comp = owner.get<Transform_comp>().get_or_throw();
@@ -81,7 +82,7 @@ namespace physics {
 				bd.linearDamping = def.linear_damping;
 				bd.position.x = transform_comp.position().x.value();
 				bd.position.y = transform_comp.position().y.value();
-				bd.userData = &owner;
+				bd.userData = to_void_ptr(owner.handle());
 				bd.type = btype;
 				body = body_ptr{world.CreateBody(&bd), +[](b2Body*b){if(b) b->GetWorld()->DestroyBody(b);}};
 			}
@@ -210,19 +211,19 @@ namespace physics {
 		}
 	}
 
-	void Dynamic_body_comp::load(sf2::JsonDeserializer& state,
-	                             asset::Asset_manager&) {
-		state.read(_def);
-		_dirty = true;
+	void load_component(ecs::Deserializer& state, Dynamic_body_comp& comp) {
+		state.read(comp._def);
+		comp._dirty = true;
 	}
-	void Dynamic_body_comp::save(sf2::JsonSerializer& state)const {
-		if(_body) {
-			auto vel = _body->GetLinearVelocity();
-			_def.velocity = glm::vec2{vel.x, vel.y};
+	void save_component(ecs::Serializer& state, const Dynamic_body_comp& comp) {
+		if(comp._body) {
+			auto vel = comp._body->GetLinearVelocity();
+			comp._def.velocity = glm::vec2{vel.x, vel.y};
 		}
-		state.write(_def);
+		state.write(comp._def);
 	}
-	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*){}) {
+	Dynamic_body_comp::Dynamic_body_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+	    : Component(manager,owner), _body(nullptr, +[](b2Body*){}) {
 	}
 	void Dynamic_body_comp::_update_body(b2World& world) {
 		auto org_aabb = _body ? util::just(calc_aabb()) : util::nothing();
@@ -334,15 +335,15 @@ namespace physics {
 		}
 	}
 
-	void Static_body_comp::load(sf2::JsonDeserializer& state,
-	                            asset::Asset_manager& asset_mgr) {
-		state.read(_def);
-		_dirty = true;
+	void load_component(ecs::Deserializer& state, Static_body_comp& comp) {
+		state.read(comp._def);
+		comp._dirty = true;
 	}
-	void Static_body_comp::save(sf2::JsonSerializer& state)const {
-		state.write(_def);
+	void save_component(ecs::Serializer& state, const Static_body_comp& comp) {
+		state.write(comp._def);
 	}
-	Static_body_comp::Static_body_comp(ecs::Entity& owner) : Component(owner), _body(nullptr, +[](b2Body*b){}) {
+	Static_body_comp::Static_body_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
+	    : Component(manager,owner), _body(nullptr, +[](b2Body*b){}) {
 	}
 	void Static_body_comp::_update_body(b2World& world) {
 		update_body(world, _body, _def, owner(), b2_staticBody);

@@ -15,7 +15,7 @@ namespace ecs {
 			void attach(Entity_id, Component_index);
 			void detach(Entity_id);
 			void shrink_to_fit();
-			auto find(Entity_handle) -> util::maybe<Component_index>;
+			auto find(Entity_id) -> util::maybe<Component_index>;
 			void clear();
 
 		private:
@@ -26,7 +26,7 @@ namespace ecs {
 			void attach(Entity_id, Component_index);
 			void detach(Entity_id);
 			void shrink_to_fit();
-			auto find(Entity_handle) -> util::maybe<Component_index>;
+			auto find(Entity_id) -> util::maybe<Component_index>;
 			void clear();
 
 		private:
@@ -34,9 +34,21 @@ namespace ecs {
 	};
 
 
+	template<class T>
+	struct Pool_storage_policy_value_traits {
+		static constexpr bool supports_empty_values = true;
+		static constexpr int_fast32_t max_free = 8;
+		using Marker_type = Entity_handle;
+		static constexpr Marker_type free_mark = invalid_entity;
+
+		static constexpr const Marker_type* marker_addr(const T* inst) {
+			return T::component_base_t::marker_addr(inst);
+		}
+	};
+
 	template<std::size_t Chunk_size, class T>
 	class Pool_storage_policy {
-			using pool_t = util::pool<T, Chunk_size>;
+			using pool_t = util::pool<T, Chunk_size, Component_index, Pool_storage_policy_value_traits<T>>;
 		public:
 			using iterator = typename pool_t::iterator;
 
@@ -82,13 +94,13 @@ namespace ecs {
 	class Component_container : public Component_container_base {
 		friend class Entity_manager;
 		public:
-			Component_container(User_data& ud, Entity_manager& m) : _userdata(ud), _manager(m) {}
+			Component_container(Entity_manager& m) : _manager(m) {}
 
 
 		protected:
 			void* emplace_or_find_now(Entity_handle owner) override {
 				auto entity_id = get_entity_id(owner, _manager);
-				if(entity_id==invalid_entity) {
+				if(entity_id==invalid_entity_id) {
 					FAIL("emplace_or_find_now of component from invalid/deleted entity");
 				}
 
@@ -97,7 +109,7 @@ namespace ecs {
 					return _storage.get(comp_idx.get_or_throw());
 				}
 
-				auto comp = _storage.emplace(_userdata, _manager, owner);
+				auto comp = _storage.emplace(_manager, owner);
 				_index.attach(entity_id, std::get<1>(comp));
 
 				return static_cast<void*>(&std::get<0>(comp));
@@ -111,7 +123,7 @@ namespace ecs {
 
 			template<typename... Args>
 			void emplace(Entity_handle owner, Args&&... args) {
-				_queued_insertions.enqueue(owner, T(_userdata, _manager, owner, std::forward<Args>(args)...));
+				_queued_insertions.enqueue(owner, T(_manager, owner, std::forward<Args>(args)...));
 			}
 
 			void erase(Entity_handle owner)override {
@@ -158,7 +170,7 @@ namespace ecs {
 					if(deletions>0) {
 						for(auto i=0ull; i<deletions; i++) {
 							auto entity_id = get_entity_id(deletions_buffer[i], _manager);
-							if(entity_id==invalid_entity) {
+							if(entity_id==invalid_entity_id) {
 								WARN("Discard delete of component from invalid/deleted entity");
 								continue;
 							}
@@ -233,11 +245,10 @@ namespace ecs {
 			typename T::index_policy   _index;
 			typename T::storage_policy _storage;
 
-			User_data&           _userdata;
 			Entity_manager&      _manager;
 			Queue<Entity_handle> _queued_deletions;
 			Queue<Insertion>     _queued_insertions;
-			std::atomic<bool>    _queued_clear        = false;
+			std::atomic<bool>    _queued_clear        {false};
 			int                  _unoptimized_deletes = 0;
 	};
 

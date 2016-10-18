@@ -19,14 +19,13 @@ namespace ecs {
 
 	auto get_entity_id(Entity_handle h, Entity_manager& manager) -> Entity_id {
 		if(manager.validate(h)) {
-			return get_entity_id(h);
+			return h.id();
 		} else {
-			return invalid_entity;
+			return invalid_entity_id;
 		}
 	}
 	auto entity_name(Entity_handle h) -> std::string {
-		auto id = get_entity_id(h);
-		return util::to_string(id) + ":" + util::to_string(h & 0b1111);
+		return util::to_string(h.id()) + ":" + util::to_string(h.revision());
 	}
 
 	auto Entity_facet::valid()const noexcept -> bool {

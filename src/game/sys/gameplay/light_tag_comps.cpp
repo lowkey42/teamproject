@@ -4,6 +4,8 @@
 
 #include "../physics/transform_comp.hpp"
 
+#include <core/ecs/serializer.hpp>
+
 #include <core/utils/sf2_glm.hpp>
 
 
@@ -13,68 +15,68 @@ namespace gameplay {
 
 	using namespace unit_literals;
 
-	void Reflective_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
+	void load_component(ecs::Deserializer& state, Reflective_comp& comp) {
 		state.read_virtual(
-			sf2::vmember("color", _color)
+			sf2::vmember("color", comp._color)
 		);
 	}
-	void Reflective_comp::save(sf2::JsonSerializer& state)const {
+	void save_component(ecs::Deserializer& state, const Reflective_comp& comp) {
 		state.write_virtual(
-			sf2::vmember("color", _color)
+			sf2::vmember("color", comp._color)
 		);
 	}
 
-	void Paint_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
+	void load_component(ecs::Deserializer& state, Paint_comp& comp) {
 		state.read_virtual(
-			sf2::vmember("color", _color),
-			sf2::vmember("radius", _radius)
+			sf2::vmember("color", comp._color),
+			sf2::vmember("radius", comp._radius)
 		);
 	}
-	void Paint_comp::save(sf2::JsonSerializer& state)const {
+	void save_component(ecs::Deserializer& state, const Paint_comp& comp) {
 		state.write_virtual(
-			sf2::vmember("color", _color),
-			sf2::vmember("radius", _radius)
+			sf2::vmember("color", comp._color),
+			sf2::vmember("radius", comp._radius)
 		);
 	}
 
-	void Transparent_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
+	void load_component(ecs::Deserializer& state, Transparent_comp& comp) {
 		state.read_virtual(
-			sf2::vmember("color", _color)
+			sf2::vmember("color", comp._color)
 		);
 	}
-	void Transparent_comp::save(sf2::JsonSerializer& state)const {
+	void save_component(ecs::Deserializer& state, const Transparent_comp& comp) {
 		state.write_virtual(
-			sf2::vmember("color", _color)
+			sf2::vmember("color", comp._color)
 		);
 	}
 
-	void Lamp_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
-		auto angle    = _angle.in_degrees();
-		auto max_dist = _max_distance.value();
-		auto rotation = _rotation.in_degrees();
-		auto offset   = remove_units(_offset);
+	void load_component(ecs::Deserializer& state, Lamp_comp& comp) {
+		auto angle    = comp._angle.in_degrees();
+		auto max_dist = comp._max_distance.value();
+		auto rotation = comp._rotation.in_degrees();
+		auto offset   = remove_units(comp._offset);
 
 		state.read_virtual(
-			sf2::vmember("color", _color),
+			sf2::vmember("color", comp._color),
 			sf2::vmember("angle", angle),
 			sf2::vmember("radius", max_dist),
 			sf2::vmember("rotation", rotation),
 			sf2::vmember("offset", offset)
 		);
 
-		_angle = Angle::from_degrees(angle);
-		_rotation = Angle::from_degrees(rotation);
-		_max_distance = max_dist * 1_m;
-		_offset = offset * 1_m;
+		comp._angle = Angle::from_degrees(angle);
+		comp._rotation = Angle::from_degrees(rotation);
+		comp._max_distance = max_dist * 1_m;
+		comp._offset = offset * 1_m;
 	}
-	void Lamp_comp::save(sf2::JsonSerializer& state)const {
-		auto angle    = _angle.in_degrees();
-		auto max_dist = _max_distance.value();
-		auto rotation = _rotation.in_degrees();
-		auto offset   = remove_units(_offset);
+	void save_component(ecs::Deserializer& state, const Lamp_comp& comp) {
+		auto angle    = comp._angle.in_degrees();
+		auto max_dist = comp._max_distance.value();
+		auto rotation = comp._rotation.in_degrees();
+		auto offset   = remove_units(comp._offset);
 
 		state.write_virtual(
-			sf2::vmember("color", _color),
+			sf2::vmember("color", comp._color),
 			sf2::vmember("angle", angle),
 			sf2::vmember("radius", max_dist),
 			sf2::vmember("rotation", rotation),
@@ -105,10 +107,10 @@ namespace gameplay {
 	}
 
 
-	void Prism_comp::load(sf2::JsonDeserializer& state, asset::Asset_manager&) {
-		auto offset_red = remove_units(_offset_red);
-		auto offset_green = remove_units(_offset_green);
-		auto offset_blue = remove_units(_offset_blue);
+	void load_component(ecs::Deserializer& state, Prism_comp& comp) {
+		auto offset_red = remove_units(comp._offset_red);
+		auto offset_green = remove_units(comp._offset_green);
+		auto offset_blue = remove_units(comp._offset_blue);
 
 		state.read_virtual(
 			sf2::vmember("offset_red", offset_red),
@@ -116,14 +118,14 @@ namespace gameplay {
 			sf2::vmember("offset_blue", offset_blue)
 		);
 
-		_offset_red = offset_red * 1_m;
-		_offset_green = offset_green * 1_m;
-		_offset_blue = offset_blue * 1_m;
+		comp._offset_red = offset_red * 1_m;
+		comp._offset_green = offset_green * 1_m;
+		comp._offset_blue = offset_blue * 1_m;
 	}
-	void Prism_comp::save(sf2::JsonSerializer& state)const {
-		auto offset_red = remove_units(_offset_red);
-		auto offset_green = remove_units(_offset_green);
-		auto offset_blue = remove_units(_offset_blue);
+	void save_component(ecs::Deserializer& state, const Prism_comp& comp) {
+		auto offset_red = remove_units(comp._offset_red);
+		auto offset_green = remove_units(comp._offset_green);
+		auto offset_blue = remove_units(comp._offset_blue);
 
 		state.write_virtual(
 			sf2::vmember("offset_red", offset_red),

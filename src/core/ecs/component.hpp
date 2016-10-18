@@ -54,8 +54,6 @@ namespace ecs {
 	template<std::size_t Chunk_size, class T>
 	class Pool_storage_policy;
 
-	// TODO: remove number of moves required for component management (mainly relocation and insertion)
-
 
 	/**
 	 * Optional base class for components.
@@ -68,31 +66,39 @@ namespace ecs {
 	 *  - void save_component(ecs::Serializer& state, const C& v)
 	 */
 	template<class T, class Index_policy=Sparse_index_policy, class Storage_policy=Pool_storage_policy<32, T>>
-	class Base_component {
+	class Component {
 		public:
+			static constexpr const Entity_handle* marker_addr(const Component* inst) {
+				static_assert(std::is_standard_layout<Component>::value,
+				              "standard layout is required for the pool storage policy");
+				return reinterpret_cast<const Entity_handle*> (
+				        reinterpret_cast<const char*>(inst) + offsetof(Component, _owner) );
+			}
+
+			using component_base_t = Component;
 			using index_policy   = Index_policy;
 			using storage_policy = Storage_policy;
 			using Pool           = Component_container<T>;
-			// static constexpr auto name = "Component";
+			// static constexpr auto name() {return "Component";}
 
-			Base_component() : _manager(nullptr), _owner(invalid_entity) {}
-			Base_component(User_data&, Entity_manager& manager, Entity_handle owner)
+			Component() : _manager(nullptr), _owner(invalid_entity) {}
+			Component(Entity_manager& manager, Entity_handle owner)
 			    : _manager(&manager), _owner(owner) {}
 
 			auto owner_handle()const noexcept -> Entity_handle {
-				INVARIANT(_owner!=0, "invalid component");
+				INVARIANT(_owner!=invalid_entity, "invalid component");
 				return _owner;
 			}
-			auto manager() noexcept -> Entity_manager& {
+			auto manager()const noexcept -> Entity_manager& {
 				INVARIANT(_manager, "invalid component");
 				return *_manager;
 			}
-			auto owner_facet() -> Entity_facet {
+			auto owner() -> Entity_facet {
 				return {manager(), owner_handle()};
 			}
 
 		protected:
-			~Base_component()noexcept = default; //< protected destructor to avoid destruction by base-class
+			~Component()noexcept = default; //< protected destructor to avoid destruction by base-class
 
 		private:
 			Entity_manager* _manager;
@@ -110,7 +116,6 @@ namespace ecs {
 			Component_container_base() = default;
 			Component_container_base(Component_container_base&&) = delete;
 			Component_container_base(const Component_container_base&) = delete;
-			virtual ~Component_container_base() = default;
 
 			//< NOT thread-safe
 			virtual void* emplace_or_find_now(Entity_handle owner) = 0;
@@ -134,6 +139,8 @@ namespace ecs {
 			// void emplace(Entity_handle owner, Args&&... args);
 
 		public:
+			virtual ~Component_container_base() = default;
+
 			// begin()
 			// end()
 			// size()
