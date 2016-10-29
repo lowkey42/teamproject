@@ -4,6 +4,7 @@
 
 #include <core/ecs/serializer.hpp>
 #include <core/utils/sf2_glm.hpp>
+#include <core/engine.hpp>
 
 #include <sf2/sf2.hpp>
 
@@ -56,7 +57,7 @@ namespace graphic {
 
 
 	Anim_sprite_comp::Anim_sprite_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
-	    : Component(manager, owner), _anim_state(owner) {
+	    : Component(manager, owner), _anim_state(to_void_ptr(owner)) {
 	}
 
 	void load_component(ecs::Deserializer& state, Anim_sprite_comp& comp) {

@@ -172,7 +172,7 @@ namespace lux {
 	}
 
 
-	auto Game_screen::_draw_orb(glm::vec2 pos, float scale, ecs::Entity& e) -> renderer::Command {
+	auto Game_screen::_draw_orb(glm::vec2 pos, float scale, ecs::Entity_facet e) -> renderer::Command {
 		auto c = e.get<sys::gameplay::Enlightened_comp>().process(Rgb{1,1,1},
 		                                                          [&](auto& l) {
 			if(l.enabled()) {
@@ -274,7 +274,7 @@ namespace lux {
 			auto curr_player_iter = _players.begin();
 			auto curr_player_idx = 0;
 			for(; curr_player_iter!=_players.end(); curr_player_iter++, curr_player_idx++) {
-				if(&curr_player_iter->owner() == curr_player.get()) {
+				if(curr_player_iter->owner_handle() == curr_player) {
 					break;
 				}
 			}
@@ -291,7 +291,7 @@ namespace lux {
 
 
 			_render_queue.push_back(_draw_orb(hud_pos+orb_pos(_selection_movement), 1.f/(1.f+std::abs(_selection_movement)),
-			                                  *_systems.controller.get_controlled()));
+			                                  _systems.controller.get_controlled()));
 
 			_draw_orbs(curr_player_iter, true, player_count, hud_pos);
 
@@ -300,7 +300,7 @@ namespace lux {
 
 		// draw dash icons
 		if(_systems.controller.get_controlled()) {
-			auto light = _systems.controller.get_controlled()->get<sys::gameplay::Enlightened_comp>();
+			auto light = _systems.controller.get_controlled().get<sys::gameplay::Enlightened_comp>();
 			light.process([&](auto& l) {
 				if(l.air_transforms_left()<1)
 					return;

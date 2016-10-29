@@ -50,7 +50,7 @@ namespace physics {
 		using ub_res = std::tuple<b2Fixture*, glm::vec2>;
 
 		auto update_body(b2World& world, body_ptr& body, const Body_definition& def,
-		                 ecs::Entity_facet& owner, b2BodyType btype) -> ub_res {
+		                 ecs::Entity_facet owner, b2BodyType btype) -> ub_res {
 			b2Fixture* fixture_foot = nullptr;
 
 			auto& transform_comp = owner.get<Transform_comp>().get_or_throw();

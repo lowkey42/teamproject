@@ -1,8 +1,8 @@
-#include "enlightened_comp.hpp"
-
 #include <core/ecs/serializer.hpp>
 
 #include <core/utils/sf2_glm.hpp>
+
+#include "enlightened_comp.hpp"
 
 
 namespace lux {

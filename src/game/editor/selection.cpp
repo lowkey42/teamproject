@@ -27,7 +27,7 @@ namespace editor {
 
 	namespace {
 
-		bool is_inside(ecs::Entity_facet& e, glm::vec2 p, Camera& cam, bool forgiving=false,
+		bool is_inside(ecs::Entity_facet e, glm::vec2 p, Camera& cam, bool forgiving=false,
 		               bool in_screenspace=false) {
 			bool inside = false;
 

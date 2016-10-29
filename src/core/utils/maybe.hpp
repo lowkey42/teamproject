@@ -34,6 +34,7 @@ namespace util {
 	template<typename T>
 	class maybe {
 		public:
+			maybe()noexcept : _valid(false) {}
 			/*implicit*/ maybe(T&& data)noexcept : _valid(true), _data(std::move(data)) {}
 			/*implicit*/ maybe(const T& data)noexcept : _valid(true), _data(data) {}
 			maybe(const maybe& o)noexcept : _valid(o._valid), _data(o._data) {}
@@ -148,8 +149,6 @@ namespace util {
 			}
 
 		private:
-			maybe() : _valid(false) {}
-
 			bool _valid;
 			union {
 				T _data;
@@ -165,8 +164,8 @@ namespace util {
 	};
 
 	template<typename T>
-	maybe<T> just(T&& inst) {
-		return maybe<T>(std::move(inst));
+	maybe<std::remove_reference_t<T>> just(T&& inst) {
+		return maybe<std::remove_reference_t<T>>(std::forward<T>(inst));
 	}
 	template<typename T>
 	maybe<T> justCopy(const T& inst) {

@@ -36,9 +36,10 @@ namespace sound {
 	};
 	sf2_structDef(Sound_mappings, event_sounds, event_stop_loops)
 
-	Sound_sys::Sound_sys(Engine& engine)
+	Sound_sys::Sound_sys(Engine& engine, ecs::Entity_manager& ecs)
 	    : _audio_ctx(engine.audio_ctx()),
 	      _assets(engine.assets()),
+	      _ecs(ecs),
 	      _mappings(engine.assets().load<Sound_mappings>("cfg:sound_effects"_aid)),
 	      _mailbox(engine.bus()) {
 
@@ -72,7 +73,7 @@ namespace sound {
 			return;
 
 		if(_mappings->event_stop_loops.count(event.name)>0) {
-			auto& e = *static_cast<ecs::Entity*>(event.owner);
+			auto e = _ecs.get(ecs::to_entity_handle(event.owner)).get_or_other({});
 			e.get<Sound_comp>().process([&](Sound_comp& s) {
 				for(auto& c : s._channels) {
 					_audio_ctx.stop(c);
@@ -83,7 +84,7 @@ namespace sound {
 
 		auto sound = _event_sounds.find(event.name);
 		if(sound!=_event_sounds.end()) {
-			auto& e = *static_cast<ecs::Entity*>(event.owner);
+			auto e = _ecs.get(ecs::to_entity_handle(event.owner)).get_or_other({});
 
 			auto comp = e.get<Sound_comp>();
 			if(comp.is_nothing()) {

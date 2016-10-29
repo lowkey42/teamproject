@@ -187,7 +187,7 @@ namespace lux {
 	};
 
 	Meta_system::Meta_system(Engine& engine)
-	    : entity_manager(engine.assets()),
+	    : entity_manager(engine),
 	      scene_graph(entity_manager),
 	      physics(engine, entity_manager),
 	      controller(engine, entity_manager, physics),
@@ -195,7 +195,7 @@ namespace lux {
 	      lights(engine.bus(), entity_manager, engine.assets(), engine.graphics_ctx()),
 	      renderer(engine.bus(), entity_manager, engine.assets()),
 	      gameplay(engine, entity_manager, physics, camera, controller),
-	      sound(engine),
+	      sound(engine, entity_manager),
 
 	      _engine(engine),
 	      _skybox(engine.assets()),

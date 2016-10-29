@@ -48,6 +48,13 @@ namespace ecs {
 	};
 
 	extern Component_type blueprint_comp_id;
+	
+	extern void apply_blueprint(asset::Asset_manager&, Entity_facet e,
+	                            const std::string& blueprint);
+	
+	extern void load(sf2::JsonDeserializer& s, Entity_handle& e);
+	extern void save(sf2::JsonSerializer& s, const Entity_handle& e);
+	
 /*
 	extern void load(sf2::JsonDeserializer& s, Entity& e);
 	extern void save(sf2::JsonSerializer& s, const Entity& e);

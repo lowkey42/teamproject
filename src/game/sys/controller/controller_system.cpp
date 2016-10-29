@@ -32,6 +32,7 @@ namespace controller {
 	                                     physics::Physics_system& physics_world)
 	    : _mailbox(engine.bus()),
 	      _input_manager(engine.input()),
+	      _ecs(ecs),
 	      _input_controllers(ecs.list<Input_controller_comp>()),
 	      _ai_controllers(ecs.list<Ai_patrolling_comp>()),
 	      _physics_world(physics_world) {
@@ -166,14 +167,14 @@ namespace controller {
 			return;
 		}
 
-		if(!_active_controlled_entity || !_active_controlled_entity->has<Input_controller_comp>()) {
+		if(!_active_controlled_entity || !_active_controlled_entity.has<Input_controller_comp>()) {
 			if(_active_controlled_idx>=int(_input_controllers.size()))
 				_active_controlled_idx = (_active_controlled_idx-1) % _input_controllers.size();
 
 			auto idx=0;
 			for(auto it=_input_controllers.begin(); it!=_input_controllers.end(); it++,idx++) {
 				if(idx<=_active_controlled_idx) {
-					_active_controlled_entity = it->owner_ptr();
+					_active_controlled_entity = it->owner();
 					_active_controlled_idx = idx;
 					return;
 				}
@@ -183,12 +184,12 @@ namespace controller {
 		auto idx=0;
 		for(auto it=_input_controllers.begin(); it!=_input_controllers.end(); it++,idx++) {
 			if(!_active_controlled_entity) {
-				_active_controlled_entity = it->owner_ptr();
+				_active_controlled_entity = it->owner();
 				_active_controlled_idx = idx;
 				break;
 			}
 
-			if(_active_controlled_entity.get()==&it->owner()) {
+			if(_active_controlled_entity.handle()==it->owner_handle()) {
 				if(next) {
 					it++;
 					idx++;
@@ -207,7 +208,7 @@ namespace controller {
 					}
 				}
 
-				_active_controlled_entity = it->owner_ptr();
+				_active_controlled_entity = it->owner();
 				_active_controlled_idx = idx;
 				break;
 			}
@@ -217,8 +218,8 @@ namespace controller {
 	void Controller_system::update(Time dt) {
 		_mailbox.update_subscriptions();
 
-		if(!_active_controlled_entity || !_active_controlled_entity->has<Input_controller_comp>()) {
-			if(_active_controlled_entity && !_active_controlled_entity->has<Input_controller_comp>()) {
+		if(!_active_controlled_entity || !_active_controlled_entity.has<Input_controller_comp>()) {
+			if(_active_controlled_entity && !_active_controlled_entity.has<Input_controller_comp>()) {
 				_active_controlled_entity.reset();
 			}
 
@@ -246,14 +247,14 @@ namespace controller {
 		effective_move = glm::clamp(effective_move, -1.f, 1.f);
 
 		for(auto& c : _input_controllers) {
-			if(&c.owner()!=_active_controlled_entity.get()) {
+			if(c.owner_handle()!=_active_controlled_entity.handle()) {
 				auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 				_move(c, body, 0, body.grounded(), dt);
 			}
 		}
 
 		if(_active_controlled_entity) {
-			auto controller = _active_controlled_entity->get<Input_controller_comp>();
+			auto controller = _active_controlled_entity.get<Input_controller_comp>();
 			if(controller.is_some()) {
 				auto& c = controller.get_or_throw();
 
@@ -396,7 +397,9 @@ namespace controller {
 			auto ray = _physics_world.raycast(position, glm::vec2{dir,0.f}, 1.f);
 			auto turn = dist2>c._max_distance*c._max_distance;
 			if(ray.is_some() && ray.get_or_throw().entity) {
-				turn |= ray.get_or_throw().entity->has<gameplay::Player_tag_comp>();
+				_ecs.get(ray.get_or_throw().entity).process([&](ecs::Entity_facet& e) {
+					turn |= e.has<gameplay::Player_tag_comp>();
+				});
 			}
 
 			if(turn) {

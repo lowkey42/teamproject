@@ -139,7 +139,7 @@ namespace lux {
 		                 [&](bool s) {_selection.snap_to_grid(s);});
 
 		_menu.add_action("unselect"_strid, "tex:editor_icon_unselect"_aid, tooltip("unselect"),
-		                 [&]{_commands.execute<Selection_change_cmd>(_selection, ecs::Entity_ptr{});},
+		                 [&]{_commands.execute<Selection_change_cmd>(_selection, ecs::Entity_facet{});},
 		                 [&]{return !!_selection.selection();} );
 
 		_menu.add_action("start"_strid, "tex:editor_icon_start"_aid, tooltip("start"), [&] {
@@ -246,7 +246,7 @@ namespace lux {
 		_menu.update(dt);
 
 
-		auto pos = _selection.selection() ? remove_units(_selection.selection()->get<sys::physics::Transform_comp>().get_or_throw().position())
+		auto pos = _selection.selection() ? remove_units(_selection.selection().get<sys::physics::Transform_comp>().get_or_throw().position())
 		                                  : glm::vec3(_input_manager.last_pointer_world_position(), 0.0f);
 		std::stringstream s;
 		s << std::setw(15) <<std::left<< _level_metadata.id

@@ -30,7 +30,7 @@ namespace std {
 	template<>
 	struct hash<lux::Contact_key> {
 		size_t operator()(const lux::Contact_key& x) const {
-			return reinterpret_cast<size_t>(x.a) * 31 + reinterpret_cast<size_t>(x.b);
+			return static_cast<size_t>(x.a.pack()) * 31 + static_cast<size_t>(x.b.pack());
 		}
 	};
 }

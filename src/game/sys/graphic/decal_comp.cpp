@@ -4,6 +4,7 @@
 
 #include <core/utils/sf2_glm.hpp>
 #include <core/ecs/serializer.hpp>
+#include <core/engine.hpp>
 
 #include <sf2/sf2.hpp>
 

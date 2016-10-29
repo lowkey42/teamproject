@@ -1,10 +1,10 @@
 #define GLM_SWIZZLE
 
+#include <core/ecs/serializer.hpp>
+
 #include "light_tag_comps.hpp"
 
 #include "../physics/transform_comp.hpp"
-
-#include <core/ecs/serializer.hpp>
 
 #include <core/utils/sf2_glm.hpp>
 
@@ -20,7 +20,7 @@ namespace gameplay {
 			sf2::vmember("color", comp._color)
 		);
 	}
-	void save_component(ecs::Deserializer& state, const Reflective_comp& comp) {
+	void save_component(ecs::Serializer& state, const Reflective_comp& comp) {
 		state.write_virtual(
 			sf2::vmember("color", comp._color)
 		);
@@ -32,7 +32,7 @@ namespace gameplay {
 			sf2::vmember("radius", comp._radius)
 		);
 	}
-	void save_component(ecs::Deserializer& state, const Paint_comp& comp) {
+	void save_component(ecs::Serializer& state, const Paint_comp& comp) {
 		state.write_virtual(
 			sf2::vmember("color", comp._color),
 			sf2::vmember("radius", comp._radius)
@@ -44,7 +44,7 @@ namespace gameplay {
 			sf2::vmember("color", comp._color)
 		);
 	}
-	void save_component(ecs::Deserializer& state, const Transparent_comp& comp) {
+	void save_component(ecs::Serializer& state, const Transparent_comp& comp) {
 		state.write_virtual(
 			sf2::vmember("color", comp._color)
 		);
@@ -69,7 +69,7 @@ namespace gameplay {
 		comp._max_distance = max_dist * 1_m;
 		comp._offset = offset * 1_m;
 	}
-	void save_component(ecs::Deserializer& state, const Lamp_comp& comp) {
+	void save_component(ecs::Serializer& state, const Lamp_comp& comp) {
 		auto angle    = comp._angle.in_degrees();
 		auto max_dist = comp._max_distance.value();
 		auto rotation = comp._rotation.in_degrees();
@@ -122,7 +122,7 @@ namespace gameplay {
 		comp._offset_green = offset_green * 1_m;
 		comp._offset_blue = offset_blue * 1_m;
 	}
-	void save_component(ecs::Deserializer& state, const Prism_comp& comp) {
+	void save_component(ecs::Serializer& state, const Prism_comp& comp) {
 		auto offset_red = remove_units(comp._offset_red);
 		auto offset_green = remove_units(comp._offset_green);
 		auto offset_blue = remove_units(comp._offset_blue);

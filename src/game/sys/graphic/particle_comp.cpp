@@ -33,7 +33,7 @@ namespace graphic {
 				e.reset();
 			}
 			for(auto& t : types)
-				add(t);
+				comp.add(t);
 		}
 	}
 

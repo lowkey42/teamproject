@@ -4,8 +4,85 @@
 #include "ecs.hpp"
 #endif
 
+#define unlikely(X) (__builtin_expect(X, false))
+
 namespace lux {
 namespace ecs {
+	
+	
+	template<typename T>
+	void Entity_manager::register_component_type() {
+		auto type = component_type_id<T>();
+		
+		if(unlikely(_components.size()<=type)) {
+			_components.resize(type + 1);
+		}
+		
+		auto& container_ptr = _components[type];
+		
+		if(unlikely(!container_ptr)) {
+			container_ptr = std::make_unique<Component_container<T>>(*this);
+			
+			_components_by_name.emplace(t::name(),
+			                            Component_type_info{T::name(), type,
+			                                                container_ptr.get()});
+		}
+	}
+	
+	template<typename C>
+	auto Entity_manager::list() -> Component_container<C>& {
+		auto type = component_type_id<T>();
+		
+		if(unlikely(_components.size()>=type || !_components[type])) {
+			register_component_type<T>();
+		}
+		
+		return *components[type];
+	}
+	
+	
+	template<typename T>
+	util::maybe<T&> Entity_facet::get() {
+		INVARIANT(_manager && _owner, "Access to invalid Entity_facet");
+		return _manager->list<T>().find(_owner);
+	}
+
+	template<typename T>
+	bool Entity_facet::has() {
+		return _manager && _owner && _manager->list<T>().has(_owner);
+	}
+
+	template<typename T, typename... Args>
+	auto Entity_facet::emplace(Args&&... args) -> T& {
+		INVARIANT(_manager && _owner, "Access to invalid Entity_facet");
+		return _manager->list<T>().emplace(_owner, std::forward<Args>(args)...);
+	}
+
+	template<typename T>
+	void Entity_facet::erase() {
+		INVARIANT(_manager && _owner, "Access to invalid Entity_facet");
+		return _manager->list<T>().erase(_owner);
+	}
+
+	namespace {
+		bool ppack_and() {
+			return true;
+		}
+
+		template<class FirstArg, class... Args>
+		bool ppack_and(FirstArg&& first, Args&&... args) {
+			return first && ppack_and(std::forward<Args>(args)...);
+		}
+	}
+	template<typename... T>
+	void Entity_facet::erase_other() {
+		for(auto& pool : _manager->_components) {
+			if(pool && ppack_and(pool->value_type()!=component_type<T>()...)) {
+				pool->erase(_owner);
+			}
+		}
+	}
+	
 /*
 	template<typename Comp>
 	auto Entity_manager::list() -> typename Comp::Pool& {

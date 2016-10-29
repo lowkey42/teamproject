@@ -27,8 +27,7 @@
 
 namespace lux {
 namespace ecs {
-	class Entity_manager;
-	class Serializer;
+	struct Serializer;
 
 	using Component_filter = std::function<bool(Component_type)>;
 
@@ -77,6 +76,7 @@ namespace ecs {
 
 		private:
 			friend class Entity_facet;
+			friend class Entity_collection;
 
 			struct Component_type_info {
 				std::string name;
@@ -93,6 +93,58 @@ namespace ecs {
 
 			std::vector<std::unique_ptr<Component_container_base>> _components;
 			std::unordered_map<std::string, Component_type_info>   _components_by_name;
+	};
+	
+	
+	class Entity_iterator {
+		public:
+			typedef Entity_handle value_type;
+			typedef value_type& reference;
+			typedef value_type* pointer;
+			typedef std::forward_iterator_tag iterator_category;
+			typedef int difference_type;
+			
+			Entity_iterator(const Entity_handle_generator& gen,
+			                Entity_handle handle)noexcept
+			    : _gen(gen), _handle(handle) {}
+			
+			auto operator++(int) {
+				_gen.next(_handle);
+				return *this;
+			}
+			auto operator++() {
+				auto i = *this;
+				++*this;
+				return i;
+			}
+			reference operator*()noexcept {return _handle; }
+			pointer operator->()noexcept {return &_handle; }
+			bool operator==(const Entity_iterator& rhs)const noexcept {
+				return _handle == rhs._handle;
+			}
+			bool operator!=(const Entity_iterator& rhs)noexcept {
+				return !(*this==rhs);
+			}
+			
+		private:
+			const Entity_handle_generator& _gen;
+			Entity_handle _handle;
+	};
+	
+	class Entity_collection_facet {
+		public:
+			Entity_collection_facet(Entity_manager& manager);
+			
+			Entity_iterator begin()const;
+			Entity_iterator end()const;
+			
+			void emplace(Entity_handle h) {
+				INVARIANT(_manager.validate(h), "invalid entity in Entity_collection_facet.emptace()");
+			}
+			void clear();
+			
+		private:
+			Entity_manager& _manager;
 	};
 
 } /* namespace ecs */

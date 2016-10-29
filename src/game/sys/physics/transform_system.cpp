@@ -1,5 +1,7 @@
 #include "transform_system.hpp"
 
+#include <core/ecs/ecs.hpp>
+
 #include<glm/gtc/constants.hpp>
 
 namespace lux {

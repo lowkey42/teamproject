@@ -28,7 +28,7 @@ namespace sound {
 
 	class Sound_sys {
 		public:
-			Sound_sys(Engine&);
+			Sound_sys(Engine&, ecs::Entity_manager& ecs);
 			~Sound_sys();
 
 			void update(Time dt);
@@ -41,6 +41,7 @@ namespace sound {
 
 			audio::Audio_ctx& _audio_ctx;
 			asset::Asset_manager& _assets;
+			ecs::Entity_manager& _ecs;
 			asset::Ptr<Sound_mappings> _mappings;
 			util::Mailbox_collection _mailbox;
 

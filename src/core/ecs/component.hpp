@@ -42,6 +42,8 @@ namespace ecs {
 		using iterator = void;
 		auto begin() -> iterator;
 		auto end() -> iterator;
+		auto size()const -> Component_index;
+		auto empty()const -> bool;
 
 		template<class... Args>
 		auto emplace(Args&&... args) -> std::tuple<T&, Component_index>;
@@ -93,7 +95,7 @@ namespace ecs {
 				INVARIANT(_manager, "invalid component");
 				return *_manager;
 			}
-			auto owner() -> Entity_facet {
+			auto owner()const -> Entity_facet {
 				return {manager(), owner_handle()};
 			}
 
@@ -116,7 +118,7 @@ namespace ecs {
 			Component_container_base() = default;
 			Component_container_base(Component_container_base&&) = delete;
 			Component_container_base(const Component_container_base&) = delete;
-
+			
 			//< NOT thread-safe
 			virtual void* emplace_or_find_now(Entity_handle owner) = 0;
 
@@ -131,9 +133,15 @@ namespace ecs {
 
 			/// thread safe
 			virtual void erase(Entity_handle owner) = 0;
+			
+			///thread safe
+			virtual auto value_type()const noexcept -> Component_type = 0;
 
 			/// thread safe
 			// auto find(Entity_handle owner) -> util::maybe<T&>
+			
+			/// thread safe
+			// auto has(Entity_handle owner)const -> bool
 
 			/// thread safe
 			// void emplace(Entity_handle owner, Args&&... args);

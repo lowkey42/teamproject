@@ -203,7 +203,7 @@ namespace graphic {
 		auto update_decal_pos = [&](auto& sprite) {
 			if(sprite._decals_sticky && !sprite._decals_position_set) {
 				sprite._decals_position_set = true;
-				ecs::Entity& o = sprite.owner();
+				ecs::Entity_facet o = sprite.owner();
 				auto pos = remove_units(o.get<physics::Transform_comp>().get_or_throw().position());
 				sprite._decals_position.x = pos.x;
 				sprite._decals_position.y = pos.y;

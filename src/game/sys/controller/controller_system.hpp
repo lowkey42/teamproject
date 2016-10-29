@@ -39,13 +39,14 @@ namespace controller {
 			auto get_controlled() {
 				return _active_controlled_entity;
 			}
-			void set_controlled(ecs::Entity_handle e) {
+			void set_controlled(ecs::Entity_facet e) {
 				_active_controlled_entity = e;
 			}
 
 		private:
 			util::Mailbox_collection _mailbox;
 			input::Input_manager& _input_manager;
+			ecs::Entity_manager& _ecs;
 			Input_controller_comp::Pool& _input_controllers;
 			Ai_patrolling_comp::Pool& _ai_controllers;
 			physics::Physics_system& _physics_world;
@@ -59,7 +60,7 @@ namespace controller {
 			bool _transform_pending = false;
 			bool _transform = false;
 
-			ecs::Entity_handle _active_controlled_entity;
+			ecs::Entity_facet _active_controlled_entity;
 			int _active_controlled_idx = 0;
 
 			Time _input_block_remainder {};

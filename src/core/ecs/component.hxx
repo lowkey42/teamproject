@@ -83,6 +83,12 @@ namespace ecs {
 			auto end()noexcept -> iterator {
 				return _pool.end();
 			}
+			auto size()const -> Component_index {
+				return _pool.size();
+			}
+			auto empty()const -> bool {
+				return _pool.empty();
+			}
 
 		private:
 			pool_t _pool;
@@ -98,6 +104,10 @@ namespace ecs {
 
 
 		protected:
+			auto value_type()const noexcept -> Component_type override {
+				return component_type_id<T>();
+			}
+			
 			void* emplace_or_find_now(Entity_handle owner) override {
 				auto entity_id = get_entity_id(owner, _manager);
 				if(entity_id==invalid_entity_id) {
@@ -136,6 +146,11 @@ namespace ecs {
 				return _index.find(entity_id).process([&](auto comp_idx) {
 					return _storage.get(comp_idx);
 				});
+			}
+			auto has(Entity_handle owner)const -> bool {
+				auto entity_id = get_entity_id(owner, _manager);
+
+				return _index.find(entity_id).is_some();
 			}
 
 			void clear() override {
@@ -222,7 +237,7 @@ namespace ecs {
 				} while(true);
 			}
 
-		public:
+		public:	
 			auto begin()noexcept {
 				return _storage.begin();
 			}
@@ -235,6 +250,8 @@ namespace ecs {
 			auto empty()const noexcept {
 				return _storage.empty();
 			}
+			
+			using iterator = typename T::storage_policy::iterator;
 
 		private:
 			using Insertion = std::tuple<T,Entity_handle>;

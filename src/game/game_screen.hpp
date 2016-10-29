@@ -64,7 +64,7 @@ namespace lux {
 
 			Time _time_acc {0};
 
-			auto _draw_orb(glm::vec2 pos, float scale, ecs::Entity&) -> renderer::Command;
+			auto _draw_orb(glm::vec2 pos, float scale, ecs::Entity_facet) -> renderer::Command;
 			void _draw_orbs(sys::gameplay::Player_tag_comp::Pool::iterator selected,
 			                bool left_side, int count, glm::vec2 hud_pos);
 	};

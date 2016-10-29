@@ -136,10 +136,10 @@ namespace lux {
 
 		stream<<std::endl; // line-break and flush
 
-		ecs.write(stream, +[](ecs::Component_type comp) {
-			return comp==sys::physics::Transform_comp::type()
+		ecs.write(stream, [](ecs::Component_type comp) {
+			return comp==ecs::component_type_id<sys::physics::Transform_comp>()
 			        || comp==ecs::blueprint_comp_id
-			        || comp==sys::graphic::Terrain_data_comp::type();
+			        || comp==ecs::component_type_id<sys::graphic::Terrain_data_comp>();
 		});
 
 		stream.close();

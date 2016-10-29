@@ -1,6 +1,6 @@
-#include "finish_marker_comp.hpp"
-
 #include <core/ecs/serializer.hpp>
+
+#include "finish_marker_comp.hpp"
 
 
 namespace lux {

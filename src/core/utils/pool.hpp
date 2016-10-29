@@ -290,22 +290,22 @@ namespace util {
 	
 	
 	template<class Pool>
-	class pool_iterator {
+	class pool_iterator : public std::iterator<std::bidirectional_iterator_tag, typename Pool::value_type> {
 		public:
-			using iterator_category = std::forward_iterator_tag;
 			using value_type = typename Pool::value_type;
-			using difference_type = std::ptrdiff_t;
-
+			
 			pool_iterator()
 			    : _pool(nullptr),
 			      _chunk_index(0),
 			      _element_iter(nullptr),
+			      _element_iter_begin(nullptr),
 			      _element_iter_end(nullptr) {}
 
 			pool_iterator(Pool& pool, typename Pool::index_t index=0)
 			    : _pool(&pool),
 			      _chunk_index(index/Pool::chunk_len),
 			      _element_iter(_pool->_chunk(index) + (index%Pool::chunk_len)),
+			      _element_iter_begin(pool._chunk(_chunk_index)),
 			      _element_iter_end(pool._chunk_end(_chunk_index)) {}
 
 			value_type& operator*()noexcept {return *_element_iter;}
@@ -316,7 +316,7 @@ namespace util {
 					++_element_iter;
 					if(_element_iter==_element_iter_end) {
 						++_chunk_index;
-						_element_iter = _pool->_chunk(_chunk_index);
+						_element_iter_begin = _element_iter = _pool->_chunk(_chunk_index);
 						_element_iter_end = _pool->_chunk_end(_chunk_index);
 					}
 				} while(!Pool::_valid(_element_iter));
@@ -327,6 +327,27 @@ namespace util {
 			pool_iterator operator++(int) {
 				pool_iterator t = *this;
 				++*this;
+				return t;
+			}
+			
+			pool_iterator& operator--() {
+				do {
+					if(_element_iter==_element_iter_begin) {
+						INVARIANT(_chunk_index>0, "iterator underflow");
+						--_chunk_index;
+						_element_iter_begin = _element_iter = _pool->_chunk(_chunk_index);
+						_element_iter_end = _pool->_chunk_end(_chunk_index);
+					} else {
+						--_element_iter;
+					}
+				} while(!Pool::_valid(_element_iter));
+
+				return *this;
+			}
+
+			pool_iterator operator--(int) {
+				pool_iterator t = *this;
+				--*this;
 				return t;
 			}
 
@@ -342,6 +363,7 @@ namespace util {
 			Pool* _pool;
 			typename Pool::index_t _chunk_index;
 			value_type* _element_iter;
+			value_type* _element_iter_begin;
 			value_type* _element_iter_end;
 	};
 

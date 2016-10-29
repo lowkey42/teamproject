@@ -102,11 +102,11 @@ namespace ecs {
 	static_assert(sizeof(Entity_handle::packed_t)<=sizeof(void*),
 	              "what the hell is wrong with your plattform?!");
 
-	Entity_handle to_entity_handle(void* u) {
+	inline Entity_handle to_entity_handle(void* u) {
 		return Entity_handle::unpack(static_cast<Entity_handle::packed_t>(
 		                                      reinterpret_cast<std::intptr_t>(u)) );
 	}
-	void* to_void_ptr(Entity_handle h) {
+	inline void* to_void_ptr(Entity_handle h) {
 		return reinterpret_cast<void*>(static_cast<std::intptr_t>(h.pack()));
 	}
 
@@ -176,6 +176,23 @@ namespace ecs {
 						}
 					}
 				}
+			}
+			
+			auto next(Entity_id curr=-1)const -> Entity_handle {
+				auto end = _next_free_slot.load();
+
+				for(Entity_id id=curr+1; id<end; id++) {
+					if(id>=static_cast<Entity_id>(_slots.size())) {
+						return Entity_handle{id+1,0};
+					} else {
+						auto rev = util::at(_slots, static_cast<std::size_t>(id)).load();
+						if((rev & ~Entity_handle::free_rev)!=0) { // is marked used
+							return Entity_handle{id+1,rev};
+						}
+					}
+				}
+				
+				return invalid_entity;
 			}
 
 			// NOT thread-safe

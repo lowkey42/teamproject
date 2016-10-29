@@ -34,9 +34,9 @@ namespace cam {
 		_last_target = p;
 	}
 
-	void Camera_system::active_only(ecs::Entity& e) {
+	void Camera_system::active_only(ecs::Entity_handle e) {
 		for(auto& target : _targets) {
-			target.active(&target.owner()==&e);
+			target.active(target.owner_handle()==e);
 		}
 	}
 

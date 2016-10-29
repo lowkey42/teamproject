@@ -152,6 +152,21 @@ namespace ecs {
 		DEBUG("Loaded "<<dummy.size()<<" entities");
 */
 	}
+	
+	
+	Entity_collection_facet::Entity_collection_facet(Entity_manager& manager)
+	    : _manager(manager) {
+	}
+	
+	Entity_iterator Entity_collection_facet::begin()const {
+		return Entity_iterator(_manager._handles, _manager._handles.next());
+	}
+	Entity_iterator Entity_collection_facet::end()const {
+		return Entity_iterator(_manager._handles, invalid_entity);
+	}
+	void Entity_collection_facet::clear() {
+		_manager.clear();
+	}
 
 } /* namespace ecs */
 }
