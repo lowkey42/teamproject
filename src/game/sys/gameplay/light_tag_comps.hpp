@@ -88,6 +88,7 @@ namespace gameplay {
 			friend void load_component(ecs::Deserializer& state, Reflective_comp&);
 			friend void save_component(ecs::Serializer& state, const Reflective_comp&);
 
+			Reflective_comp() = default;
 			Reflective_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 
@@ -102,9 +103,8 @@ namespace gameplay {
 	class Paintable_comp : public ecs::Component<Paintable_comp> {
 		public:
 			static constexpr const char* name() {return "Paintable";}
-			friend void load_component(ecs::Deserializer& state, Paintable_comp&);
-			friend void save_component(ecs::Serializer& state, const Paintable_comp&);
 
+			Paintable_comp() = default;
 			Paintable_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 
@@ -118,6 +118,7 @@ namespace gameplay {
 			friend void load_component(ecs::Deserializer& state, Paint_comp&);
 			friend void save_component(ecs::Serializer& state, const Paint_comp&);
 
+			Paint_comp() = default;
 			Paint_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 
@@ -133,9 +134,8 @@ namespace gameplay {
 	class Light_leech_comp : public ecs::Component<Light_leech_comp> {
 		public:
 			static constexpr const char* name() {return "Light_leech";}
-			friend void load_component(ecs::Deserializer& state, Light_leech_comp&);
-			friend void save_component(ecs::Serializer& state, const Light_leech_comp&);
 
+			Light_leech_comp() = default;
 			Light_leech_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 
@@ -149,6 +149,7 @@ namespace gameplay {
 			friend void load_component(ecs::Deserializer& state, Transparent_comp&);
 			friend void save_component(ecs::Serializer& state, const Transparent_comp&);
 
+			Transparent_comp() = default;
 			Transparent_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 
@@ -167,6 +168,7 @@ namespace gameplay {
 			friend void load_component(ecs::Deserializer& state, Lamp_comp&);
 			friend void save_component(ecs::Serializer& state, const Lamp_comp&);
 
+			Lamp_comp() = default;
 			Lamp_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 
@@ -198,6 +200,7 @@ namespace gameplay {
 			friend void load_component(ecs::Deserializer& state, Prism_comp&);
 			friend void save_component(ecs::Serializer& state, const Prism_comp&);
 
+			Prism_comp() = default;
 			Prism_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 

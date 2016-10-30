@@ -7,13 +7,13 @@
 
 #pragma once
 
-#include <string>
-#include <unordered_map>
-
-#include "ecs.hpp"
+#include "types.hpp"
 #include "../asset/asset_manager.hpp"
 
 #include <sf2/sf2.hpp>
+
+#include <string>
+#include <unordered_map>
 
 
 namespace lux {
@@ -54,19 +54,20 @@ namespace ecs {
 	
 	extern void load(sf2::JsonDeserializer& s, Entity_handle& e);
 	extern void save(sf2::JsonSerializer& s, const Entity_handle& e);
-	
-/*
-	extern void load(sf2::JsonDeserializer& s, Entity& e);
-	extern void save(sf2::JsonSerializer& s, const Entity& e);
-	extern void load(sf2::JsonDeserializer& s, Entity_ptr& e); // deprecated?
 
 
-	class Blueprint;
+	// Fallbacks for components that don't require/provide a serialization
+	template<class T>
+	void load_component(ecs::Deserializer& state, T&) {
+		state.read_lambda([](auto&&){
+			return true;
+		});
+	}
 
-	extern void init_blueprints(Entity_manager&);
+	template<class T>
+	void save_component(ecs::Serializer& state, const T&) {
+		state.write_virtual();
+	}
 
-	extern void apply_blueprint(asset::Asset_manager&, Entity& e,
-	                            asset::AID blueprint);
-								*/
 }
 }

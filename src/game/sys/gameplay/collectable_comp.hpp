@@ -20,6 +20,7 @@ namespace gameplay {
 		public:
 			static constexpr auto name() {return "Collectable";}
 
+			Collectable_comp() = default;
 			Collectable_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 

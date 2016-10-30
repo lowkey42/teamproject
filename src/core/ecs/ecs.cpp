@@ -52,16 +52,20 @@ namespace ecs {
 	}
 
 	void Entity_manager::process_queued_actions() {
+		INVARIANT(_local_queue_erase.empty(), "Someone's been sleeping in my bed! (_local_queue_erase is dirty)");
+
 		std::array<Entity_handle, 32> erase_buffer;
 		do {
 			std::size_t count = _queue_erase.try_dequeue_bulk(erase_buffer.data(), erase_buffer.size());
 
 			if(count>0) {
 				for(std::size_t i=0; i<count; i++) {
-					auto next_handle = _handles.free(erase_buffer[i]);
+					const auto h = erase_buffer[i];
+					_local_queue_erase.emplace_back(h);
+
 					for(auto& component : _components) {
 						if(component)
-							component->erase(next_handle);
+							component->erase(h);
 					}
 				}
 
@@ -74,6 +78,11 @@ namespace ecs {
 			if(component)
 				component->process_queued_actions();
 		}
+
+		for(auto h : _local_queue_erase) {
+			_handles.free(h);
+		}
+		_local_queue_erase.clear();
 	}
 
 	void Entity_manager::clear() {

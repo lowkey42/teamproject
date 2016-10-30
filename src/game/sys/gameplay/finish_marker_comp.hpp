@@ -24,6 +24,7 @@ namespace gameplay {
 			friend void load_component(ecs::Deserializer& state, Finish_marker_comp&);
 			friend void save_component(ecs::Serializer& state, const Finish_marker_comp&);
 
+			Finish_marker_comp() = default;
 			Finish_marker_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 

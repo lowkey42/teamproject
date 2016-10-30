@@ -21,6 +21,7 @@ namespace light {
 			friend void load_component(ecs::Deserializer& state, Light_comp&);
 			friend void save_component(ecs::Serializer& state, const Light_comp&);
 
+			Light_comp() = default;
 			Light_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			auto color(Rgb color)noexcept {_color=color;}

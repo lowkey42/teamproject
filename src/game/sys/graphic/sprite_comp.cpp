@@ -2,6 +2,7 @@
 
 #include "sprite_comp.hpp"
 
+#include <core/ecs/ecs.hpp>
 #include <core/ecs/serializer.hpp>
 #include <core/utils/sf2_glm.hpp>
 #include <core/engine.hpp>

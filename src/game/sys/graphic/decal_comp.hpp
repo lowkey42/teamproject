@@ -22,6 +22,7 @@ namespace graphic {
 			friend void load_component(ecs::Deserializer& state, Decal_comp&);
 			friend void save_component(ecs::Serializer& state, const Decal_comp&);
 
+			Decal_comp() = default;
 			Decal_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 

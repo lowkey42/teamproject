@@ -20,6 +20,7 @@ namespace gameplay {
 		public:
 			static constexpr const char* name() {return "Reset";}
 
+			Reset_comp() = default;
 			Reset_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 	};

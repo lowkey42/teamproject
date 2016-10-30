@@ -25,6 +25,7 @@ namespace controller {
 			friend void load_component(ecs::Deserializer& state, Input_controller_comp&);
 			friend void save_component(ecs::Serializer& state, const Input_controller_comp&);
 
+			Input_controller_comp() = default;
 			Input_controller_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 		private:

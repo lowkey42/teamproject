@@ -25,7 +25,7 @@ namespace ecs {
 		}
 	}
 	auto entity_name(Entity_handle h) -> std::string {
-		return util::to_string(h.id()) + ":" + util::to_string(h.revision());
+		return util::to_string(h.id()) + ":" + util::to_string<int>(h.revision());
 	}
 
 	auto Entity_facet::valid()const noexcept -> bool {

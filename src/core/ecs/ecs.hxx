@@ -14,7 +14,7 @@ namespace ecs {
 	void Entity_manager::register_component_type() {
 		auto type = component_type_id<T>();
 		
-		if(unlikely(_components.size()<=type)) {
+		if(unlikely(static_cast<Component_type>(_components.size())<=type)) {
 			_components.resize(type + 1);
 		}
 		
@@ -23,27 +23,43 @@ namespace ecs {
 		if(unlikely(!container_ptr)) {
 			container_ptr = std::make_unique<Component_container<T>>(*this);
 			
-			_components_by_name.emplace(t::name(),
-			                            Component_type_info{T::name(), type,
-			                                                container_ptr.get()});
+			_components_by_name.emplace(T::name(), type);
 		}
+	}
+	inline auto Entity_manager::component_type_by_name(const std::string& name) -> util::maybe<Component_type> {
+		auto it = _components_by_name.find(name);
+		return it!=_components_by_name.end() ? util::just(it->second) : util::nothing();
 	}
 	
 	template<typename C>
 	auto Entity_manager::list() -> Component_container<C>& {
-		auto type = component_type_id<T>();
+		auto type = component_type_id<C>();
 		
-		if(unlikely(_components.size()>=type || !_components[type])) {
-			register_component_type<T>();
+		if(unlikely(static_cast<Component_type>(_components.size())<=type || !_components[type])) {
+			register_component_type<C>();
 		}
 		
-		return *components[type];
+		return static_cast<Component_container<C>&>(*_components[type]);
+	}
+	inline auto Entity_manager::list(Component_type type) -> Component_container_base& {
+		INVARIANT(static_cast<Component_type>(_components.size())>type && _components[type],
+		          "Invalid/unregistered component type: "<<((int) type));
+		return *_components[type];
+	}
+
+	template<typename F>
+	void Entity_manager::list_all(F&& handler) {
+		for(auto& container : _components) {
+			if(container) {
+				handler(*container);
+			}
+		}
 	}
 	
 	
 	template<typename T>
 	util::maybe<T&> Entity_facet::get() {
-		INVARIANT(_manager && _owner, "Access to invalid Entity_facet");
+		INVARIANT(_manager && _manager->validate(_owner), "Access to invalid Entity_facet");
 		return _manager->list<T>().find(_owner);
 	}
 
@@ -53,19 +69,24 @@ namespace ecs {
 	}
 
 	template<typename T, typename... Args>
-	auto Entity_facet::emplace(Args&&... args) -> T& {
-		INVARIANT(_manager && _owner, "Access to invalid Entity_facet");
-		return _manager->list<T>().emplace(_owner, std::forward<Args>(args)...);
+	void Entity_facet::emplace(Args&&... args) {
+		emplace_init<T>(+[](const T&){}, std::forward<Args>(args)...);
+	}
+
+	template<typename T, typename F, typename... Args>
+	void Entity_facet::emplace_init(F&& init, Args&&... args) {
+		INVARIANT(_manager && _manager->validate(_owner), "Access to invalid Entity_facet");
+		_manager->list<T>().emplace(std::forward<F>(init), _owner, std::forward<Args>(args)...);
 	}
 
 	template<typename T>
 	void Entity_facet::erase() {
-		INVARIANT(_manager && _owner, "Access to invalid Entity_facet");
+		INVARIANT(_manager && _manager->validate(_owner), "Access to invalid Entity_facet");
 		return _manager->list<T>().erase(_owner);
 	}
 
-	namespace {
-		bool ppack_and() {
+	namespace detail {
+		inline bool ppack_and() {
 			return true;
 		}
 
@@ -76,8 +97,10 @@ namespace ecs {
 	}
 	template<typename... T>
 	void Entity_facet::erase_other() {
+		INVARIANT(_manager && _manager->validate(_owner), "Access to invalid Entity_facet");
+
 		for(auto& pool : _manager->_components) {
-			if(pool && ppack_and(pool->value_type()!=component_type<T>()...)) {
+			if(pool && detail::ppack_and(pool->value_type()!=component_type_id<T>()...)) {
 				pool->erase(_owner);
 			}
 		}

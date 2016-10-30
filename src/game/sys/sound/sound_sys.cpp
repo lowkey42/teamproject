@@ -4,6 +4,7 @@
 #include "sound_comp.hpp"
 
 #include <core/audio/sound.hpp>
+#include <core/ecs/ecs.hpp>
 #include <core/renderer/sprite_animation.hpp>
 #include <core/utils/str_id.hpp>
 
@@ -86,24 +87,27 @@ namespace sound {
 		if(sound!=_event_sounds.end()) {
 			auto e = _ecs.get(ecs::to_entity_handle(event.owner)).get_or_other({});
 
+			auto play = [&](auto& comp) {
+				for(auto& channel : comp._channels) {
+					if(!_audio_ctx.playing(channel)) {
+						channel = _audio_ctx.play_static(*sound->second.sound, sound->second.loop);
+						return;
+					}
+				}
+
+				if(!sound->second.loop) {
+					_audio_ctx.play_static(*sound->second.sound);
+				} else {
+					DEBUG("No free entity channel");
+				}
+			};
+
 			auto comp = e.get<Sound_comp>();
 			if(comp.is_nothing()) {
-				comp = util::justPtr(&e.emplace<Sound_comp>(&_audio_ctx));
-			} else if(not comp.get_or_throw()._ctx) {
-				comp.get_or_throw()._ctx = &_audio_ctx;
-			}
-
-			for(auto& channel : comp.get_or_throw()._channels) {
-				if(!_audio_ctx.playing(channel)) {
-					channel = _audio_ctx.play_static(*sound->second.sound, sound->second.loop);
-					return;
-				}
-			}
-
-			if(!sound->second.loop) {
-				_audio_ctx.play_static(*sound->second.sound);
+				e.emplace_init<Sound_comp>(play, &_audio_ctx);
 			} else {
-				DEBUG("No free entity channel");
+				comp.get_or_throw()._ctx = &_audio_ctx;
+				play(comp.get_or_throw());
 			}
 		}
 	}

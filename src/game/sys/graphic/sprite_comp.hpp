@@ -38,6 +38,7 @@ namespace graphic {
 			friend void load_component(ecs::Deserializer& state, Sprite_comp&);
 			friend void save_component(ecs::Serializer& state, const Sprite_comp&);
 
+			Sprite_comp() = default;
 			Sprite_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner,
 			            renderer::Material_ptr material = {}) :
 				Component(manager, owner), _material(material) {}
@@ -70,6 +71,7 @@ namespace graphic {
 			friend void load_component(ecs::Deserializer& state, Anim_sprite_comp&);
 			friend void save_component(ecs::Serializer& state, const Anim_sprite_comp&);
 
+			Anim_sprite_comp() = default;
 			Anim_sprite_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			auto size()const noexcept {return _size;}

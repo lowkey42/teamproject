@@ -33,6 +33,7 @@ namespace gameplay {
 			friend void load_component(ecs::Deserializer& state, Enlightened_comp&);
 			friend void save_component(ecs::Serializer& state, const Enlightened_comp&);
 
+			Enlightened_comp() = default;
 			Enlightened_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			auto air_transforms_left()const noexcept {

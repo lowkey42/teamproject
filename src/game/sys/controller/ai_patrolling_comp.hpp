@@ -22,6 +22,7 @@ namespace controller {
 			friend void load_component(ecs::Deserializer& state, Ai_patrolling_comp&);
 			friend void save_component(ecs::Serializer& state, const Ai_patrolling_comp&);
 
+			Ai_patrolling_comp() = default;
 			Ai_patrolling_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 

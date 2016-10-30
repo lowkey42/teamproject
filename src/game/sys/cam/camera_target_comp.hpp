@@ -23,6 +23,7 @@ namespace cam {
 		public:
 			static constexpr auto name() {return "Camera_target";}
 
+			Camera_target_comp() = default;
 			Camera_target_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			void active(bool a) {_active = a;}

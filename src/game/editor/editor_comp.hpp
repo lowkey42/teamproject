@@ -24,6 +24,7 @@ namespace editor {
 			friend void load_component(ecs::Deserializer&, Editor_comp&);
 			friend void save_component(ecs::Serializer&,   const Editor_comp&);
 
+			Editor_comp() = default;
 			Editor_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)noexcept
 			  : Component(manager, owner) {}
 

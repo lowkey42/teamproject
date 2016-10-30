@@ -13,7 +13,7 @@ namespace ecs {
 	}
 	void Sparse_index_policy::shrink_to_fit() {
 	}
-	auto Sparse_index_policy::find(Entity_id owner) -> util::maybe<Component_index> {
+	auto Sparse_index_policy::find(Entity_id owner)const -> util::maybe<Component_index> {
 		if(owner==invalid_entity_id)
 			return util::nothing();
 
@@ -52,7 +52,7 @@ namespace ecs {
 		_table.erase(std::next(new_end).base(), _table.end());
 		_table.shrink_to_fit();
 	}
-	auto Compact_index_policy::find(Entity_id owner) -> util::maybe<Component_index> {
+	auto Compact_index_policy::find(Entity_id owner)const -> util::maybe<Component_index> {
 		if(owner==invalid_entity_id)
 			return util::nothing();
 

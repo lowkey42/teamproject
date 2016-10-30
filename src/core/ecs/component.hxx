@@ -15,7 +15,7 @@ namespace ecs {
 			void attach(Entity_id, Component_index);
 			void detach(Entity_id);
 			void shrink_to_fit();
-			auto find(Entity_id) -> util::maybe<Component_index>;
+			auto find(Entity_id)const -> util::maybe<Component_index>;
 			void clear();
 
 		private:
@@ -26,7 +26,7 @@ namespace ecs {
 			void attach(Entity_id, Component_index);
 			void detach(Entity_id);
 			void shrink_to_fit();
-			auto find(Entity_id) -> util::maybe<Component_index>;
+			auto find(Entity_id)const -> util::maybe<Component_index>;
 			void clear();
 
 		private:
@@ -45,6 +45,13 @@ namespace ecs {
 			return T::component_base_t::marker_addr(inst);
 		}
 	};
+	template<class T>
+	constexpr decltype(Pool_storage_policy_value_traits<T>::supports_empty_values) Pool_storage_policy_value_traits<T>::supports_empty_values;
+	template<class T>
+	constexpr decltype(Pool_storage_policy_value_traits<T>::max_free) Pool_storage_policy_value_traits<T>::max_free;
+	template<class T>
+	constexpr decltype(Pool_storage_policy_value_traits<T>::free_mark) Pool_storage_policy_value_traits<T>::free_mark;
+
 
 	template<std::size_t Chunk_size, class T>
 	class Pool_storage_policy {
@@ -58,7 +65,7 @@ namespace ecs {
 			}
 
 			void replace(Component_index idx, T&& new_element) {
-				_pool.replace(idx, new_element);
+				_pool.replace(idx, std::move(new_element));
 			}
 
 			void erase(Component_index idx) {
@@ -99,58 +106,43 @@ namespace ecs {
 	template<class T>
 	class Component_container : public Component_container_base {
 		friend class Entity_manager;
+		friend void load(sf2::JsonDeserializer& s, Entity_handle& e);
+		friend void save(sf2::JsonSerializer& s, const Entity_handle& e);
+
 		public:
-			Component_container(Entity_manager& m) : _manager(m) {}
+			Component_container(Entity_manager& m) : _manager(m) {T::_validate_type_helper();}
 
-
-		protected:
 			auto value_type()const noexcept -> Component_type override {
 				return component_type_id<T>();
 			}
-			
-			void* emplace_or_find_now(Entity_handle owner) override {
+
+		protected:
+			void restore(Entity_handle owner, Deserializer& deserializer)override {
 				auto entity_id = get_entity_id(owner, _manager);
 				if(entity_id==invalid_entity_id) {
 					FAIL("emplace_or_find_now of component from invalid/deleted entity");
 				}
 
-				auto comp_idx =_index.find(entity_id);
-				if(comp_idx.is_some()) {
-					return _storage.get(comp_idx.get_or_throw());
-				}
+				auto& comp = [&]() -> T& {
+					auto comp_idx =_index.find(entity_id);
+					if(comp_idx.is_some()) {
+						return _storage.get(comp_idx.get_or_throw());
+					}
 
-				auto comp = _storage.emplace(_manager, owner);
-				_index.attach(entity_id, std::get<1>(comp));
+					auto comp = _storage.emplace(_manager, owner);
+					_index.attach(entity_id, std::get<1>(comp));
+					return std::get<0>(comp);
+				}();
 
-				return static_cast<void*>(&std::get<0>(comp));
+				load_component(deserializer, comp);
 			}
 
-			util::maybe<void*> find_now(Entity_handle owner) override {
-				return find(owner).process([](auto& comp) {
-					return static_cast<void*>(&comp);
+			bool save(Entity_handle owner, Serializer& serializer)override {
+				return find(owner).process(false, [&](T& comp) {
+					serializer.write_value(T::name());
+					save_component(serializer, comp);
+					return true;
 				});
-			}
-
-			template<typename... Args>
-			void emplace(Entity_handle owner, Args&&... args) {
-				_queued_insertions.enqueue(owner, T(_manager, owner, std::forward<Args>(args)...));
-			}
-
-			void erase(Entity_handle owner)override {
-				_queued_deletions.enqueue(owner);
-			}
-
-			auto find(Entity_handle owner) -> util::maybe<T&> {
-				auto entity_id = get_entity_id(owner, _manager);
-
-				return _index.find(entity_id).process([&](auto comp_idx) {
-					return _storage.get(comp_idx);
-				});
-			}
-			auto has(Entity_handle owner)const -> bool {
-				auto entity_id = get_entity_id(owner, _manager);
-
-				return _index.find(entity_id).is_some();
 			}
 
 			void clear() override {
@@ -173,7 +165,7 @@ namespace ecs {
 				if(cleared || _unoptimized_deletes>32) { // TODO
 					_unoptimized_deletes = 0;
 					_index.shrink_to_fit();
-					_storage.shrink_to_fit();
+					//_storage.shrink_to_fit();
 				}
 			}
 
@@ -181,16 +173,24 @@ namespace ecs {
 				std::array<Entity_handle, 16> deletions_buffer;
 
 				do {
-					std::size_t deletions = _queued_deletions.try_dequeue_bulk(deletions_buffer, deletions_buffer.size());
+					std::size_t deletions = _queued_deletions.try_dequeue_bulk(deletions_buffer.data(),
+					                                                           deletions_buffer.size());
+					WARN("delete "<<deletions);
 					if(deletions>0) {
 						for(auto i=0ull; i<deletions; i++) {
 							auto entity_id = get_entity_id(deletions_buffer[i], _manager);
 							if(entity_id==invalid_entity_id) {
-								WARN("Discard delete of component from invalid/deleted entity");
+								WARN("Discard delete of component from invalid/deleted entity: "<<entity_name(deletions_buffer[i]));
 								continue;
 							}
 
-							auto comp_idx = _index.get(entity_id);
+							auto comp_idx_mb = _index.find(entity_id);
+							if(!comp_idx_mb) {
+								WARN("Discard delete of deleted component from entity: "<<entity_name(deletions_buffer[i]));
+								continue;
+							}
+
+							auto comp_idx = comp_idx_mb.get_or_throw();
 							_index.detach(entity_id);
 
 
@@ -198,7 +198,7 @@ namespace ecs {
 							if(_queued_insertions.try_dequeue(insertion)) {
 								auto entity_id = get_entity_id(std::get<1>(insertion), _manager);
 								if(entity_id==invalid_entity) {
-									WARN("Discard insertion of component from invalid/deleted entity");
+									WARN("Discard insertion of component from invalid/deleted entity: "<<entity_name(std::get<1>(insertion)));
 									_storage.erase(comp_idx);
 
 								} else {
@@ -219,12 +219,13 @@ namespace ecs {
 				std::array<Insertion, 8> insertions_buffer;
 
 				do {
-					std::size_t insertions = _queued_insertions.try_dequeue_bulk(insertions_buffer, insertions_buffer.size());
+					std::size_t insertions = _queued_insertions.try_dequeue_bulk(insertions_buffer.data(),
+					                                                             insertions_buffer.size());
 					if(insertions>0) {
 						for(auto i=0ull; i<insertions; i++) {
 							auto entity_id = get_entity_id(std::get<1>(insertions_buffer[i]), _manager);
 							if(entity_id==invalid_entity) {
-								WARN("Discard insertion of component from invalid/deleted entity");
+								WARN("Discard insertion of component from invalid/deleted entity: "<<entity_name(std::get<1>(insertions_buffer[i])));
 								continue;
 							}
 
@@ -237,7 +238,37 @@ namespace ecs {
 				} while(true);
 			}
 
-		public:	
+		public:
+			template<typename F, typename... Args>
+			void emplace(F&& init, Entity_handle owner, Args&&... args) {
+				INVARIANT(owner!=invalid_entity, "emplace on invalid entity");
+
+				// construct T inplace inside the pair to avoid additional move
+				auto inst = Insertion(std::piecewise_construct,
+				                      std::forward_as_tuple(_manager, owner, std::forward<Args>(args)...),
+				                      std::forward_as_tuple(owner));
+				std::forward<F>(init)(inst.first);
+				_queued_insertions.enqueue(std::move(inst));
+			}
+
+			void erase(Entity_handle owner)override {
+				INVARIANT(owner, "erase on invalid entity");
+				_queued_deletions.enqueue(owner);
+			}
+
+			auto find(Entity_handle owner) -> util::maybe<T&> {
+				auto entity_id = get_entity_id(owner, _manager);
+
+				return _index.find(entity_id).process(util::maybe<T&>(), [&](auto comp_idx) {
+					return util::justPtr(&_storage.get(comp_idx));
+				});
+			}
+			auto has(Entity_handle owner)const -> bool {
+				auto entity_id = get_entity_id(owner, _manager);
+
+				return _index.find(entity_id).is_some();
+			}
+
 			auto begin()noexcept {
 				return _storage.begin();
 			}
@@ -254,7 +285,7 @@ namespace ecs {
 			using iterator = typename T::storage_policy::iterator;
 
 		private:
-			using Insertion = std::tuple<T,Entity_handle>;
+			using Insertion = std::pair<T,Entity_handle>;
 
 			template<class E>
 			using Queue = moodycamel::ConcurrentQueue<E>;

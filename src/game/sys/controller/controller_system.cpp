@@ -248,6 +248,8 @@ namespace controller {
 
 		for(auto& c : _input_controllers) {
 			if(c.owner_handle()!=_active_controlled_entity.handle()) {
+				INVARIANT(c.owner().get<physics::Transform_comp>(), "no pos");
+				INVARIANT(c.owner().get<physics::Dynamic_body_comp>(), "no body");
 				auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
 				_move(c, body, 0, body.grounded(), dt);
 			}

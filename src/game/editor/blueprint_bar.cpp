@@ -147,15 +147,15 @@ namespace editor {
 		});
 	}
 
-	void Blueprint_bar::_spawn_new(std::size_t index, glm::vec2 pos) {
+	void Blueprint_bar::_spawn_new(int index, glm::vec2 pos) {
 		if(_current_category.is_some()) {
 			auto& blueprints = _current_category.get_or_throw().blueprints;
-			if(index < blueprints.size()) {
+			if(index < int(blueprints.size())) {
 				auto& id = blueprints.at(index).id;
 				_commands.execute<Create_cmd>(_entity_manager, _selection, id, glm::vec3{pos, 0.f});
 			}
 
-		} else if(index < _conf->blueprint_groups.size()) {
+		} else if(index < int(_conf->blueprint_groups.size())) {
 			_current_category = _conf->blueprint_groups.at(index);
 		}
 	}
@@ -214,7 +214,7 @@ namespace editor {
 			auto index = _dragging.get_or_throw();
 
 			auto& blueprints = _current_category.get_or_throw().blueprints;
-			if(index < blueprints.size()) {
+			if(index < int(blueprints.size())) {
 				_batch.insert(*blueprints.at(index).icon_texture, _last_mouse_pos, glm::vec2{icon_size,icon_size});
 			}
 		}
@@ -299,7 +299,7 @@ namespace editor {
 			if(mouse_released) {
 				if(!is_inside(_last_mouse_pos, offset, size)) {
 					_spawn_new(_dragging.get_or_throw(), _input_manager.last_pointer_world_position());
-				} else if(idx==_dragging.get_or_throw()) {
+				} else if(idx.is_some() && idx.get_or_throw()==_dragging.get_or_throw()) {
 					_spawn_new(_dragging.get_or_throw(), glm::vec2(_camera_world.eye_position()));
 				}
 				_dragging = util::nothing();
@@ -323,7 +323,7 @@ namespace editor {
 					break;
 
 				default: {
-					auto index = static_cast<std::size_t>(idx.get_or_throw());
+					auto index = idx.get_or_throw();
 
 					if(mouse_released && _current_category.is_nothing()) {
 						_spawn_new(index, {});

@@ -1,20 +1,20 @@
 #include "serializer.hpp"
 
-#include "../asset/asset_manager.hpp"
 #include "ecs.hpp"
+#include "../asset/asset_manager.hpp"
 #include "../utils/template_utils.hpp"
+
+#include <sf2/sf2.hpp>
 
 #include <unordered_map>
 #include <vector>
-#include <sf2/sf2.hpp>
 #include <iostream>
+#include <string>
 
-/*
+
 namespace lux {
 namespace ecs {
 	using namespace asset;
-	using namespace sf2;
-	using namespace sf2::io;
 
 	class Blueprint {
 		public:
@@ -24,15 +24,16 @@ namespace ecs {
 			~Blueprint()noexcept;
 			Blueprint& operator=(Blueprint&&)noexcept;
 
-			void detach(Entity_ptr target)const;
+			void detach(Entity_handle target)const;
 			void on_reload();
 
-			mutable std::vector<Entity*> users;
+			mutable std::vector<Entity_handle> users;
 			mutable std::vector<Blueprint*> children;
 			std::string id;
 			std::string content;
 			asset::Ptr<Blueprint> parent;
 			asset::Asset_manager* asset_mgr;
+			mutable Entity_manager* entity_manager;
 	};
 }
 
@@ -54,11 +55,12 @@ namespace ecs {
 		public:
 			static constexpr const char* name() {return "$Blueprint";}
 
-			void load(sf2::JsonDeserializer& state,
-			          asset::Asset_manager& asset_mgr)override;
-			void save(sf2::JsonSerializer& state)const override;
+			friend void load_component(ecs::Deserializer& state, BlueprintComponent&);
+			friend void save_component(ecs::Serializer& state, const BlueprintComponent&);
 
-			BlueprintComponent(ecs::Entity& owner, asset::Ptr<Blueprint> blueprint={})noexcept;
+			BlueprintComponent() = default;
+			BlueprintComponent(ecs::Entity_manager& manager, ecs::Entity_handle owner,
+			                   asset::Ptr<Blueprint> blueprint={})noexcept;
 			BlueprintComponent(BlueprintComponent&&)noexcept = default;
 			BlueprintComponent& operator=(BlueprintComponent&&) = default;
 			~BlueprintComponent();
@@ -68,7 +70,7 @@ namespace ecs {
 		private:
 			asset::Ptr<Blueprint> blueprint;
 	};
-	Component_type blueprint_comp_id = BlueprintComponent::type();
+	Component_type blueprint_comp_id = component_type_id<BlueprintComponent>();
 
 	namespace {
 		sf2::format::Error_handler create_error_handler(std::string source_name) {
@@ -78,11 +80,11 @@ namespace ecs {
 		}
 	}
 
-	EcsDeserializer::EcsDeserializer(
+	Deserializer::Deserializer(
 	        const std::string& source_name, std::istream& stream,
 	        Entity_manager& m, asset::Asset_manager& assets, Component_filter filter)
 		: sf2::JsonDeserializer(
-	          format::Json_reader{stream, create_error_handler(source_name)},
+	          sf2::format::Json_reader{stream, create_error_handler(source_name)},
 	          create_error_handler(source_name) ),
 	      manager(m), assets(assets), filter(filter) {
 	}
@@ -91,48 +93,50 @@ namespace ecs {
 		const std::string import_key = "$import";
 
 		void apply_blueprint(asset::Asset_manager& asset_mgr,
-		                     Entity& e, const Blueprint& b) {
+		                     Entity_facet e, const Blueprint& b) {
 			if(b.parent) {
 				apply_blueprint(asset_mgr, e, *b.parent);
 			}
 
 			std::istringstream stream{b.content};
-			auto deserializer = EcsDeserializer{b.id, stream, e.manager(), asset_mgr};
+			auto deserializer = Deserializer{b.id, stream, e.manager(), asset_mgr};
 
-			deserializer.read_value(e);
+			auto handle = e.handle();
+			deserializer.read_value(handle);
 		}
 	}
 
 
-	void BlueprintComponent::load(sf2::JsonDeserializer& state,
-			  asset::Asset_manager& asset_mgr) {
+	void load_component(ecs::Deserializer& state, BlueprintComponent& comp) {
 		std::string blueprintName;
 		state.read_virtual(sf2::vmember("name", blueprintName));
 
-		blueprint = asset_mgr.load<Blueprint>(AID{"blueprint"_strid, blueprintName});
-		this->set(blueprint);
-		blueprint->users.push_back(&owner());
-		apply_blueprint(asset_mgr, owner(), *blueprint);
+		auto blueprint = state.assets.load<Blueprint>(AID{"blueprint"_strid, blueprintName});
+		comp.set(blueprint);
+		blueprint->users.push_back(comp.owner_handle());
+		blueprint->entity_manager = &comp.manager();
+		apply_blueprint(state.assets, comp.owner(), *blueprint);
 	}
-	void BlueprintComponent::save(sf2::JsonSerializer& state)const {
-		auto name = blueprint.aid().name();
+	void save_component(ecs::Serializer& state, const BlueprintComponent& comp) {
+		auto name = comp.blueprint.aid().name();
 		state.write_virtual(sf2::vmember("name", name));
 	}
 
-	BlueprintComponent::BlueprintComponent(ecs::Entity& owner, asset::Ptr<Blueprint> blueprint)noexcept
-	  : Component(owner), blueprint(std::move(blueprint)) {
+	BlueprintComponent::BlueprintComponent(ecs::Entity_manager& manager, ecs::Entity_handle owner,
+	                                       asset::Ptr<Blueprint> blueprint)noexcept
+	  : Component(manager,owner), blueprint(std::move(blueprint)) {
 
 	}
 	BlueprintComponent::~BlueprintComponent() {
 		if(blueprint) {
-			blueprint->detach(owner_ptr());
+			blueprint->detach(owner_handle());
 			blueprint.reset();
 		}
 	}
 
 	void BlueprintComponent::set(asset::Ptr<Blueprint> blueprint) {
 		if(this->blueprint) {
-			this->blueprint->detach(owner_ptr());
+			this->blueprint->detach(owner_handle());
 		}
 
 		this->blueprint = std::move(blueprint);
@@ -188,23 +192,26 @@ namespace ecs {
 			c->on_reload();
 		}
 
-		for(auto&& u : users)
-			apply_blueprint(*asset_mgr, *u, *this);
+		for(auto&& u : users) {
+			auto entity = entity_manager->get(u);
+			INVARIANT(entity.is_some(), "dead entity in blueprint.users");
+			apply_blueprint(*asset_mgr, entity.get_or_throw(), *this);
+		}
 	}
 
-	void Blueprint::detach(Entity_ptr target)const {
-		util::erase_fast(users, target.get());
+	void Blueprint::detach(Entity_handle target)const {
+		util::erase_fast(users, target);
 	}
 
 	void init_blueprints(Entity_manager& ecs) {
 		ecs.register_component_type<BlueprintComponent>();
 	}
 
-	void apply_blueprint(asset::Asset_manager& asset_mgr, Entity& e,
-	                     asset::AID blueprint) {
-		auto mb = asset_mgr.load_maybe<ecs::Blueprint>(blueprint);
+	void apply_blueprint(asset::Asset_manager& asset_mgr, Entity_facet e,
+	                     const std::string& blueprint) {
+		auto mb = asset_mgr.load_maybe<ecs::Blueprint>(asset::AID{"blueprint"_strid, blueprint});
 		if(mb.is_nothing()) {
-			ERROR("Failed to load blueprint \""<<blueprint.name()<<"\"");
+			ERROR("Failed to load blueprint \""<<blueprint<<"\"");
 			return;
 		}
 		auto b = mb.get_or_throw();
@@ -214,15 +221,20 @@ namespace ecs {
 		else
 			e.get<BlueprintComponent>().get_or_throw().set(b);
 
-		b->users.push_back(&e);
+		b->users.push_back(e.handle());
 
 		apply_blueprint(asset_mgr, e, *b);
 	}
 
-	void load(sf2::JsonDeserializer& s, Entity& e) {
-		auto& ecs_deserializer = static_cast<EcsDeserializer&>(s);
+	void load(sf2::JsonDeserializer& s, Entity_handle& e) {
+		auto& ecs_deserializer = static_cast<Deserializer&>(s);
 
-		static_assert(sf2::details::has_load<format::Json_reader,details::Component_base>::value, "missing load");
+		if(!ecs_deserializer.manager.validate(e)) {
+			auto e_facet = ecs_deserializer.manager.emplace();
+			e = e_facet.handle();
+		}
+
+		// TODO: static_assert(sf2::details::has_load<sf2::format::Json_reader,details::Component_base>::value, "missing load");
 		s.read_lambda([&](const auto& key) {
 			if(import_key==key) {
 				auto value = std::string{};
@@ -230,62 +242,40 @@ namespace ecs {
 				return true;
 			}
 
-			auto mb_comp = e.manager().find_comp_info(key);
+			auto comp_type_mb = ecs_deserializer.manager.component_type_by_name(key);
 
-			if(mb_comp.is_nothing()) {
+			if(comp_type_mb.is_nothing()) {
 				DEBUG("Skipped unknown component "<<key);
 				s.skip_obj();
 				return true;
 
 			}
 
-			auto& comp = mb_comp.get_or_throw();
+			auto comp_type = comp_type_mb.get_or_throw();
 
-			if(ecs_deserializer.filter && !ecs_deserializer.filter(comp.type)) {
+			if(ecs_deserializer.filter && !ecs_deserializer.filter(comp_type)) {
 				DEBUG("Skipped filtered component "<<key);
 				s.skip_obj();
 				return true;
 			}
 
-			auto comp_ptr = comp.get(e);
-			if(!comp_ptr) {
-				comp.add(e);
-				comp_ptr = comp.get(e);
-			}
-
-			s.read_value(*comp_ptr);
+			ecs_deserializer.manager.list(comp_type).restore(e, ecs_deserializer);
 
 			return true;
 		});
 	}
-	void save(sf2::JsonSerializer& s, const Entity& e) {
-		auto& ecs_s = static_cast<EcsSerializer&>(s);
+	void save(sf2::JsonSerializer& s, const Entity_handle& e) {
+		auto& ecs_s = static_cast<Serializer&>(s);
 
-		std::map<std::string, details::Component_base*> comps;
-
-		EcsSerializer& ecss = static_cast<EcsSerializer&>(s);
-
-		for(auto& comp : ecss.manager.list_comp_infos()) {
-			const details::Component_type_info& compInfo = comp.second;
-
-			if(ecs_s.filter && !ecs_s.filter(compInfo.type)) {
-				continue;
-			}
-
-			auto comp_ptr = compInfo.get(const_cast<Entity&>(e));
-			if(comp_ptr) {
-				comps.emplace(comp.first, &*comp_ptr);
-			}
-		}
-
-		s.write_value(comps);
+		s.write_lambda([&] {
+			ecs_s.manager.list_all([&](auto& container) {
+				if(ecs_s.filter && !ecs_s.filter(container.value_type())) {
+					container.save(e, ecs_s);
+				}
+			});
+		});
 	}
-	void load(sf2::JsonDeserializer& s, Entity_ptr& e) {
-		EcsDeserializer& ecss = static_cast<EcsDeserializer&>(s);
 
-		e = ecss.manager.emplace();
-		load(s, *e);
-	}
 }
 }
-*/
+

@@ -50,8 +50,8 @@ namespace util {
 			operator maybe<const T>()const noexcept {
 				return is_some() ? maybe<const T>(_data) : maybe<const T>::nothing();
 			}
-			operator bool()const noexcept {
-				return is_some();
+			bool operator!()const noexcept {
+				return is_nothing();
 			}
 
 			maybe& operator=(const maybe& o)noexcept {
@@ -215,8 +215,8 @@ namespace util {
 			operator maybe<const T&>()const noexcept {
 				return is_some() ? maybe<const T&>(*_ref) : maybe<const T&>::nothing();
 			}
-			operator bool()const noexcept {
-				return is_some();
+			bool operator!()const noexcept {
+				return is_nothing();
 			}
 
 			maybe& operator=(const maybe& o)noexcept {

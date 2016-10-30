@@ -23,6 +23,7 @@ namespace sound {
 		public:
 			static constexpr const char* name() {return "Sound";}
 
+			Sound_comp() = default;
 			Sound_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner,
 			           audio::Audio_ctx* ctx=nullptr);
 			Sound_comp(Sound_comp&&)noexcept;

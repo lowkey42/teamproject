@@ -48,6 +48,8 @@ namespace ecs {
 		return type_id;
 	}
 
+	using Component_filter = std::function<bool(Component_type)>;
+
 
 	using Entity_id = int32_t;
 	class Entity_handle {
@@ -59,7 +61,7 @@ namespace ecs {
 			constexpr Entity_handle() : _id(0), _revision(0) {}
 			constexpr Entity_handle(Entity_id id, uint8_t revision) : _id(id), _revision(revision) {}
 
-			operator bool()const noexcept {
+			constexpr operator bool()const noexcept {
 				return _id!=0;
 			}
 
@@ -76,6 +78,9 @@ namespace ecs {
 			constexpr void revision(uint8_t revision)noexcept {
 				_revision = revision;
 			}
+			void increment_revision()noexcept {
+				_revision++;
+			}
 
 			constexpr bool operator==(const Entity_handle& rhs)const noexcept {
 				return _id==rhs._id && _revision==rhs._revision;
@@ -87,10 +92,10 @@ namespace ecs {
 				return std::tie(_id,_revision) < std::tie(rhs._id,rhs._revision);
 			}
 
-			packed_t pack()const noexcept {
+			constexpr packed_t pack()const noexcept {
 				return static_cast<packed_t>(_id)<<4 | static_cast<packed_t>(_revision);
 			}
-			static Entity_handle unpack(packed_t d)noexcept {
+			static constexpr Entity_handle unpack(packed_t d)noexcept {
 				return Entity_handle{static_cast<int32_t>(d>>4), static_cast<uint8_t>(d & 0b1111)};
 			}
 
@@ -128,8 +133,13 @@ namespace ecs {
 			auto get_new() -> Entity_handle {
 				Entity_handle h;
 				if(_free.try_dequeue(h)) {
-					auto& rev = util::at(_slots, static_cast<std::size_t>(h.id()));
-					rev.store(rev & ~Entity_handle::free_rev); // mark as used
+					auto& rev = util::at(_slots, static_cast<std::size_t>(h.id()-1));
+					auto expected_rev = static_cast<uint8_t>(h.revision()|Entity_handle::free_rev);
+					h.revision(static_cast<uint8_t>(rev & ~Entity_handle::free_rev)); // mark as used
+
+					bool success = rev.compare_exchange_strong(expected_rev, h.revision());
+					INVARIANT(success, "My handle got stolen :(");
+
 					return h;
 				}
 
@@ -151,11 +161,13 @@ namespace ecs {
 				}
 
 				auto rev = util::at(_slots, static_cast<std::size_t>(h.id()-1)).load();
+				auto handle = Entity_handle{h.id(), rev};
+				handle.increment_revision();
 
 				// mark as free; no CAS required only written here and in get_new() if already in _free
-				util::at(_slots, static_cast<std::size_t>(h.id()-1)).store(rev | Entity_handle::free_rev);
+				util::at(_slots, static_cast<std::size_t>(h.id()-1)).store(
+				            handle.revision() | Entity_handle::free_rev );
 
-				auto handle = Entity_handle{h.id()-1, rev};
 
 				_free.enqueue(handle);
 				return {handle};
@@ -231,7 +243,10 @@ namespace ecs {
 			bool has();
 
 			template<typename T, typename... Args>
-			auto emplace(Args&&... args) -> T&;
+			void emplace(Args&&... args);
+
+			template<typename T, typename F, typename... Args>
+			void emplace_init(F&& init, Args&&... args);
 
 			template<typename T>
 			void erase();

@@ -22,6 +22,7 @@ namespace graphic {
 			friend void load_component(ecs::Deserializer& state, Particle_comp&);
 			friend void save_component(ecs::Serializer& state, const Particle_comp&);
 
+			Particle_comp() = default;
 			Particle_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner,
 			              renderer::Particle_emitter_ptr e = {})
 			    : Component(manager, owner), _emitters{{e}} {}

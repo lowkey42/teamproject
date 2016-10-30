@@ -9,6 +9,7 @@
 #define ECS_COMPONENT_INCLUDED
 
 #include "types.hpp"
+#include "serializer.hpp"
 
 #include "../utils/maybe.hpp"
 #include "../utils/log.hpp"
@@ -31,7 +32,7 @@ namespace ecs {
 		void attach(Entity_id, Component_index);
 		void detach(Entity_id);
 		void shrink_to_fit();
-		auto find(Entity_id) -> util::maybe<Component_index>;
+		auto find(Entity_id)const -> util::maybe<Component_index>;
 		void clear();
 	};
 	class Sparse_index_policy;  //< for rarely used components
@@ -58,7 +59,7 @@ namespace ecs {
 
 
 	/**
-	 * Optional base class for components.
+	 * Base class for components.
 	 * All components have to be default-constructable, move-assignable and provide a storage_policy,
 	 *   index_policy and a name and a constructor taking only User_data&, Entity_manager&, Entity_handle.
 	 *
@@ -69,6 +70,15 @@ namespace ecs {
 	 */
 	template<class T, class Index_policy=Sparse_index_policy, class Storage_policy=Pool_storage_policy<32, T>>
 	class Component {
+		template<class>
+		friend class Component_container;
+		static constexpr void _validate_type_helper() {
+			static_assert(std::is_base_of<component_base_t, T>::value, "");
+			static_assert(std::is_default_constructible<T>::value, "");
+			static_assert(std::is_move_assignable<T>::value, "");
+			static_assert(std::is_move_constructible<T>::value, "");
+		}
+
 		public:
 			static constexpr const Entity_handle* marker_addr(const Component* inst) {
 				static_assert(std::is_standard_layout<Component>::value,
@@ -86,6 +96,8 @@ namespace ecs {
 			Component() : _manager(nullptr), _owner(invalid_entity) {}
 			Component(Entity_manager& manager, Entity_handle owner)
 			    : _manager(&manager), _owner(owner) {}
+			Component(Component&&)noexcept = default;
+			Component& operator=(Component&&) = default;
 
 			auto owner_handle()const noexcept -> Entity_handle {
 				INVARIANT(_owner!=invalid_entity, "invalid component");
@@ -100,7 +112,9 @@ namespace ecs {
 			}
 
 		protected:
-			~Component()noexcept = default; //< protected destructor to avoid destruction by base-class
+			~Component()noexcept { //< protected destructor to avoid destruction by base-class
+				_validate_type_helper();
+			}
 
 		private:
 			Entity_manager* _manager;
@@ -114,16 +128,19 @@ namespace ecs {
 	 */
 	class Component_container_base {
 		friend class Entity_manager;
+		friend void load(sf2::JsonDeserializer& s, Entity_handle& e);
+		friend void save(sf2::JsonSerializer& s, const Entity_handle& e);
+
 		protected:
 			Component_container_base() = default;
 			Component_container_base(Component_container_base&&) = delete;
 			Component_container_base(const Component_container_base&) = delete;
 			
 			//< NOT thread-safe
-			virtual void* emplace_or_find_now(Entity_handle owner) = 0;
+			virtual void restore(Entity_handle owner, Deserializer&) = 0;
 
-			//< NOT thread-safe
-			virtual util::maybe<void*> find_now(Entity_handle owner) = 0;
+			//< NOT thread-safe; returns false if component doesn't exists
+			virtual bool save(Entity_handle owner, Serializer&) = 0;
 
 			//< NOT thread-safe
 			virtual void process_queued_actions() = 0;
@@ -131,6 +148,7 @@ namespace ecs {
 			/// thread safe
 			virtual void clear() = 0;
 
+		public:
 			/// thread safe
 			virtual void erase(Entity_handle owner) = 0;
 			
@@ -146,7 +164,6 @@ namespace ecs {
 			/// thread safe
 			// void emplace(Entity_handle owner, Args&&... args);
 
-		public:
 			virtual ~Component_container_base() = default;
 
 			// begin()

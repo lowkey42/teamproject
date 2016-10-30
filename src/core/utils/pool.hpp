@@ -117,8 +117,8 @@ namespace util {
 				auto addr = [&] {
 					auto chunk = i/chunk_len;
 
-					if(chunk < _chunks.size()) {
-						return _chunks[chunk][(i % chunk_len) * element_size];
+					if(chunk < static_cast<IndexType>(_chunks.size())) {
+						return _chunks[chunk].get() + ((i % chunk_len) * element_size);
 
 					} else {
 						auto new_chunk = std::make_unique<unsigned char[]>(chunk_size);
@@ -150,16 +150,16 @@ namespace util {
 			 * @return The specified element
 			 */
 			T& get(IndexType i) {
-				return static_cast<T&>(*get_raw(i));
+				return *reinterpret_cast<T*>(get_raw(i));
 			}
 			const T& get(IndexType i)const {
-				return static_cast<const T&>(*get_raw(i));
+				return *reinterpret_cast<const T*>(get_raw(i));
 			}
 
 			/**
 			 * @return The last element
 			 */
-			const T& back() {
+			T& back() {
 				return const_cast<T&>(static_cast<const pool*>(this)->back());
 			}
 			const T& back()const {
@@ -174,10 +174,10 @@ namespace util {
 			IndexType _used_elements = 0;
 
 			// get_raw is required to avoid UB if their is no valid object at the index
-			char* get_raw(IndexType i) {
-				return const_cast<char*>(static_cast<const pool*>(this)->get_raw(i));
+			unsigned char* get_raw(IndexType i) {
+				return const_cast<unsigned char*>(static_cast<const pool*>(this)->get_raw(i));
 			}
-			const char* get_raw(IndexType i)const {
+			const unsigned char* get_raw(IndexType i)const {
 				INVARIANT(i<_used_elements, "Pool-Index out of bounds "+to_string(i)+">="+to_string(_used_elements));
 
 				return _chunks[i / chunk_len].get() + (i % chunk_len) * element_size;
@@ -189,11 +189,11 @@ namespace util {
 				else
 					return nullptr;
 			}
-			T* _chunk_end(IndexType chunk_idx)noexcept {
+			T* _chunk_end(T* begin, IndexType chunk_idx)noexcept {
 				if(chunk_idx < _used_elements/chunk_len) {
-					return reinterpret_cast<T*>(_chunks[chunk_idx].get() + chunk_len);
+					return begin + chunk_len;
 				} else {
-					return reinterpret_cast<T*>(_chunks[chunk_idx].get() + (_used_elements % chunk_len));
+					return begin + (_used_elements % chunk_len);
 				}
 			}
 			static bool _valid(const T*)noexcept {
@@ -217,8 +217,9 @@ namespace util {
 			void clear()noexcept {
 				for(auto& chunk : this->_chunks) {
 					for(IndexType i=0; i<this->chunk_len; i++) {
-						if(_valid(chunk+i)) {
-							chunk[i].~T();
+						auto inst = reinterpret_cast<T*>(chunk.get()+i);
+						if(_valid(inst)) {
+							inst->~T();
 						}
 					}
 				}
@@ -233,7 +234,7 @@ namespace util {
 					this->pop_back();
 
 				} else {
-					T& instance = get(i);
+					T& instance = this->get(i);
 					auto instance_addr = &instance;
 					INVARIANT(_valid(instance_addr), "double free");
 					instance.~T();
@@ -249,7 +250,7 @@ namespace util {
 					auto i = _freelist.back();
 					_freelist.pop_back();
 
-					auto instance_addr = get_raw(i);
+					auto instance_addr = reinterpret_cast<T*>(this->get_raw(i));
 					INVARIANT(!_valid(instance_addr), "Freed object is not marked as free");
 					auto instance = (new(instance_addr) T(std::forward<Args>(args)...));
 					return {*instance, i};
@@ -258,7 +259,9 @@ namespace util {
 				return base_t::emplace_back(std::forward<Args>(args)...);
 			}
 			
+			// FIXME: has to provide interface to pass modified indices that have to be updated!
 			void shrink_to_fit() {
+				FAIL("FIXME");
 				if(_freelist.size() > ValueTraits::max_free) {
 					std::sort(_freelist.begin(), _freelist.end(), std::greater<IndexType>{});
 					for(auto i : _freelist) {
@@ -278,7 +281,7 @@ namespace util {
 				return *ValueTraits::marker_addr(obj);
 			}
 			static void set_free(const T* obj)noexcept {
-				const_cast<typename ValueTraits::Marker_type>(get_marker(obj)) = ValueTraits::free_mark;
+				const_cast<typename ValueTraits::Marker_type&>(get_marker(obj)) = ValueTraits::free_mark;
 			}
 			static bool _valid(const T* obj)noexcept {
 				if(obj==nullptr)
@@ -306,18 +309,19 @@ namespace util {
 			      _chunk_index(index/Pool::chunk_len),
 			      _element_iter(_pool->_chunk(index) + (index%Pool::chunk_len)),
 			      _element_iter_begin(pool._chunk(_chunk_index)),
-			      _element_iter_end(pool._chunk_end(_chunk_index)) {}
+			      _element_iter_end(pool._chunk_end(_element_iter_begin, _chunk_index)) {}
 
 			value_type& operator*()noexcept {return *_element_iter;}
 			value_type* operator->()noexcept {return _element_iter;}
 
 			pool_iterator& operator++() {
+				INVARIANT(_element_iter!=nullptr, "iterator overflow");
 				do {
 					++_element_iter;
 					if(_element_iter==_element_iter_end) {
 						++_chunk_index;
 						_element_iter_begin = _element_iter = _pool->_chunk(_chunk_index);
-						_element_iter_end = _pool->_chunk_end(_chunk_index);
+						_element_iter_end = _pool->_chunk_end(_element_iter_begin, _chunk_index);
 					}
 				} while(!Pool::_valid(_element_iter));
 
@@ -336,7 +340,7 @@ namespace util {
 						INVARIANT(_chunk_index>0, "iterator underflow");
 						--_chunk_index;
 						_element_iter_begin = _element_iter = _pool->_chunk(_chunk_index);
-						_element_iter_end = _pool->_chunk_end(_chunk_index);
+						_element_iter_end = _pool->_chunk_end(_element_iter_begin, _chunk_index);
 					} else {
 						--_element_iter;
 					}

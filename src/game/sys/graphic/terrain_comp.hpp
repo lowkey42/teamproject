@@ -21,6 +21,7 @@ namespace graphic {
 			friend void load_component(ecs::Deserializer& state, Terrain_data_comp&);
 			friend void save_component(ecs::Serializer& state, const Terrain_data_comp&);
 
+			Terrain_data_comp() = default;
 			Terrain_data_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner){}
 	};
@@ -32,6 +33,7 @@ namespace graphic {
 			friend void load_component(ecs::Deserializer& state, Terrain_comp&);
 			friend void save_component(ecs::Serializer& state, const Terrain_comp&);
 
+			Terrain_comp() = default;
 			Terrain_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner,
 			             renderer::Material_ptr material = {});
 

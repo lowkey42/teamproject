@@ -71,14 +71,14 @@ namespace editor {
 
 			bool                                _mouse_pressed = false;
 			glm::vec2                           _last_mouse_pos;
-			util::maybe<std::size_t>            _dragging = util::nothing();
+			util::maybe<int>                    _dragging = util::nothing();
 
 			glm::vec2                           _tooltip_pos;
 			Time                                _tooltip_delay_left{};
 			renderer::Text_dynamic              _tooltip_text;
 			mutable renderer::Texture_batch     _batch;
 
-			void _spawn_new(std::size_t index, glm::vec2 pos);
+			void _spawn_new(int index, glm::vec2 pos);
 			auto _get_index(glm::vec2 mouse_pos)const -> util::maybe<int>;
 	};
 

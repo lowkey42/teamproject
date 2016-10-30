@@ -29,8 +29,6 @@ namespace lux {
 namespace ecs {
 	struct Serializer;
 
-	using Component_filter = std::function<bool(Component_type)>;
-
 
 	// entity transfer object
 	using ETO = std::string;
@@ -56,6 +54,9 @@ namespace ecs {
 
 			template<typename C>
 			auto list() -> Component_container<C>&;
+			auto list(Component_type type) -> Component_container_base&;
+			template<typename F>
+			void list_all(F&& handler);
 
 			auto& userdata()noexcept {return _userdata;}
 
@@ -73,16 +74,11 @@ namespace ecs {
 			void clear();
 			template<typename T>
 			void register_component_type();
+			auto component_type_by_name(const std::string& name) -> util::maybe<Component_type>;
 
 		private:
 			friend class Entity_facet;
-			friend class Entity_collection;
-
-			struct Component_type_info {
-				std::string name;
-				Component_type type;
-				Component_container_base* pool;
-			};
+			friend class Entity_collection_facet;
 
 			using Erase_queue = moodycamel::ConcurrentQueue<Entity_handle>;
 
@@ -90,9 +86,10 @@ namespace ecs {
 
 			Entity_handle_generator _handles;
 			Erase_queue _queue_erase;
+			std::vector<Entity_handle> _local_queue_erase;
 
 			std::vector<std::unique_ptr<Component_container_base>> _components;
-			std::unordered_map<std::string, Component_type_info>   _components_by_name;
+			std::unordered_map<std::string, Component_type>   _components_by_name;
 	};
 	
 	
@@ -109,12 +106,12 @@ namespace ecs {
 			    : _gen(gen), _handle(handle) {}
 			
 			auto operator++(int) {
-				_gen.next(_handle);
+				_handle = _gen.next(_handle);
 				return *this;
 			}
 			auto operator++() {
 				auto i = *this;
-				++*this;
+				_handle = _gen.next(_handle);
 				return i;
 			}
 			reference operator*()noexcept {return _handle; }

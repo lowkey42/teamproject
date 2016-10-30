@@ -238,7 +238,8 @@ namespace gameplay {
 				auto interaction = interactive_color(p._color, light._color);
 
 				if(interaction!=Light_color::black) {
-					auto& transform = p.owner().get<physics::Transform_comp>().get_or_throw();
+					ecs::Entity_facet entity = p.owner();
+					auto& transform = entity.get<physics::Transform_comp>().get_or_throw();
 					auto paint_pos = remove_units(transform.position()).xy();
 					if(glm::length2(paint_pos-pos) < p._radius*p._radius*transform.scale()) {
 						reflected = reflected | interaction;
@@ -358,7 +359,7 @@ namespace gameplay {
 		static constexpr auto cam_effect_fade_time = 0.5_s;
 		auto controlled = _controller_sys.get_controlled() ? _ecs.get(_controller_sys.get_controlled()) 
 		                                                   : util::nothing();
-		if(controlled) {
+		if(controlled.is_some()) {
 			process(controlled.get_or_throw().get<Enlightened_comp>(),
 			        controlled.get_or_throw().get<physics::Dynamic_body_comp>())
 			        >> [&](auto& light, auto& body) {
@@ -588,7 +589,8 @@ namespace gameplay {
 			if(ray.is_some() && ray.get_or_throw().distance-move_distance<=c._radius) {
 				auto entity = _ecs.get(ray.get_or_throw().entity).get_or_other({});
 				
-				if(auto prism = entity.get<Prism_comp>()) {
+				auto prism = entity.get<Prism_comp>();
+				if(prism.is_some()) {
 					auto prism_pos = entity.get<physics::Transform_comp>().get_or_throw().position();
 					prism_pos.z = pos.z*1_m;
 
@@ -776,6 +778,8 @@ namespace gameplay {
 				case Light_color::magenta: return "player_magenta";
 				case Light_color::yellow:  return "player_yellow";
 				case Light_color::white:   return "player_white";
+				default:
+					FAIL("Unsupported Light_color in Gameplay_system::_color_player: "<<((int)new_color));
 			}
 		}();
 

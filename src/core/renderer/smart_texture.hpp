@@ -38,7 +38,7 @@ namespace renderer {
 				none, on, between
 			};
 
-			Smart_texture(Material_ptr material, std::vector<glm::vec2> points={});
+			Smart_texture(Material_ptr material={}, std::vector<glm::vec2> points={});
 
 			auto material()const {return _material;}
 			void material(Material_ptr material) {

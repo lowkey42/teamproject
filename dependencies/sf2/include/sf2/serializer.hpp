@@ -181,6 +181,15 @@ namespace sf2 {
 			writer.end_current();
 		}
 
+		template<typename Func>
+		inline void write_lambda(Func func) {
+			writer.begin_obj();
+
+			func();
+
+			writer.end_current();
+		}
+
 		private:
 			Writer writer;
 
@@ -302,6 +311,9 @@ namespace sf2 {
 			}
 			void write_value(const char* inst) {
 				writer.write(inst);
+			}
+			void write_value(String_literal str) {
+				writer.write(str.data, str.len);
 			}
 	};
 

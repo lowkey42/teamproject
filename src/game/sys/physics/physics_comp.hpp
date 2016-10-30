@@ -54,6 +54,7 @@ namespace physics {
 			friend void load_component(ecs::Deserializer& state, Dynamic_body_comp&);
 			friend void save_component(ecs::Serializer& state, const Dynamic_body_comp&);
 
+			Dynamic_body_comp() = default;
 			Dynamic_body_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			void apply_force(glm::vec2 f);
@@ -78,7 +79,7 @@ namespace physics {
 			friend class Physics_system;
 
 			mutable Body_definition _def;
-			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
+			std::unique_ptr<b2Body, void(*)(b2Body*)> _body {nullptr, +[](b2Body*){}};
 			b2Fixture* _fixture_foot = nullptr;
 			bool _dirty = true;
 			glm::vec2 _size;
@@ -99,6 +100,7 @@ namespace physics {
 			friend void load_component(ecs::Deserializer& state, Static_body_comp&);
 			friend void save_component(ecs::Serializer& state, const Static_body_comp&);
 
+			Static_body_comp() = default;
 			Static_body_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner);
 
 			void active(bool e) {_def.active = e;}
@@ -107,7 +109,7 @@ namespace physics {
 			friend class Physics_system;
 
 			Body_definition _def;
-			std::unique_ptr<b2Body, void(*)(b2Body*)> _body;
+			std::unique_ptr<b2Body, void(*)(b2Body*)> _body {nullptr, +[](b2Body*){}};
 			bool _dirty = true;
 			uint_fast32_t _transform_revision = 0;
 

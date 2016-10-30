@@ -20,6 +20,7 @@ namespace gameplay {
 		public:
 			static constexpr auto name() {return "Deadly";}
 
+			Deadly_comp() = default;
 			Deadly_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)
 			    : Component(manager, owner) {}
 	};

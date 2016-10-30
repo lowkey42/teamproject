@@ -24,6 +24,7 @@ namespace physics {
 			friend void load_component(ecs::Deserializer& state, Transform_comp&);
 			friend void save_component(ecs::Serializer& state, const Transform_comp&);
 
+			Transform_comp() = default;
 			Transform_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner)noexcept
 			  : Component(manager, owner) {}
 
