@@ -100,7 +100,7 @@ namespace ecs {
 			Component& operator=(Component&&) = default;
 
 			auto owner_handle()const noexcept -> Entity_handle {
-				INVARIANT(_owner!=invalid_entity, "invalid component");
+				INVARIANT(_owner, "invalid component");
 				return _owner;
 			}
 			auto manager()const noexcept -> Entity_manager& {
@@ -145,7 +145,7 @@ namespace ecs {
 			//< NOT thread-safe
 			virtual void process_queued_actions() = 0;
 
-			/// thread safe
+			/// NOT thread safe
 			virtual void clear() = 0;
 
 		public:

@@ -64,7 +64,7 @@ namespace util {
 			void clear()noexcept {
 				for(auto& chunk : _chunks) {
 					for(IndexType i=0; i<chunk_len; i++) {
-						chunk[i].~T();
+						reinterpret_cast<T&>(chunk[i]).~T();
 					}
 				}
 				_chunks.clear();
@@ -79,14 +79,15 @@ namespace util {
 #ifdef _NDEBUG
 				std::memset(get(_usedElements-1), 0xdead, element_size);
 #endif
+				get(_used_elements-1).~T();
 				_used_elements--;
-				get(_used_elements).~T();
 			}
 			/**
 			 * Deletes a specific element.
 			 * Invalidates all iterators and references to the specified and the last element.
 			 * O(1)
 			 */
+			// FIXME: has to provide interface to pass modified indices that have to be updated!
 			auto erase(IndexType i) {
 				INVARIANT(i<_used_elements, "erase is out of range");
 
@@ -143,7 +144,7 @@ namespace util {
 				return _used_elements;
 			}
 			bool empty()const noexcept {
-				return _used_elements!=0;
+				return _used_elements==0;
 			}
 
 			/**
@@ -184,8 +185,8 @@ namespace util {
 			}
 
 			T* _chunk(IndexType chunk_idx)noexcept {
-				if(chunk_idx<static_cast<IndexType>(_chunks.size()))
-					return reinterpret_cast<T*>(_chunks[chunk_idx].get());
+				if(chunk_idx*chunk_len<_used_elements)
+					return reinterpret_cast<T*>(_chunks.at(chunk_idx).get());
 				else
 					return nullptr;
 			}
@@ -214,15 +215,18 @@ namespace util {
 			iterator begin()noexcept;
 			iterator end()noexcept;
 
+			IndexType size()const noexcept {
+				return this->_used_elements - _freelist.size();
+			}
+			bool empty()const noexcept {
+				return size()==0;
+			}
+
 			void clear()noexcept {
-				for(auto& chunk : this->_chunks) {
-					for(IndexType i=0; i<this->chunk_len; i++) {
-						auto inst = reinterpret_cast<T*>(chunk.get()+i);
-						if(_valid(inst)) {
-							inst->~T();
-						}
-					}
+				for(auto& inst : *this) {
+					inst.~T();
 				}
+
 				this->_chunks.clear();
 				this->_used_elements = 0;
 
@@ -230,13 +234,14 @@ namespace util {
 			}
 			
 			auto erase(IndexType i) {
-				if(i>=(this->size()-1)) {
+				T& instance = this->get(i);
+				auto instance_addr = &instance;
+				INVARIANT(_valid(instance_addr), "double free");
+
+				if(i>=(this->_used_elements-1)) {
 					this->pop_back();
 
 				} else {
-					T& instance = this->get(i);
-					auto instance_addr = &instance;
-					INVARIANT(_valid(instance_addr), "double free");
 					instance.~T();
 					set_free(instance_addr);
 
@@ -282,6 +287,7 @@ namespace util {
 			}
 			static void set_free(const T* obj)noexcept {
 				const_cast<typename ValueTraits::Marker_type&>(get_marker(obj)) = ValueTraits::free_mark;
+				INVARIANT(!_valid(obj), "set_free failed");
 			}
 			static bool _valid(const T* obj)noexcept {
 				if(obj==nullptr)
@@ -306,13 +312,31 @@ namespace util {
 
 			pool_iterator(Pool& pool, typename Pool::index_t index=0)
 			    : _pool(&pool),
-			      _chunk_index(index/Pool::chunk_len),
-			      _element_iter(_pool->_chunk(index) + (index%Pool::chunk_len)),
-			      _element_iter_begin(pool._chunk(_chunk_index)),
-			      _element_iter_end(pool._chunk_end(_element_iter_begin, _chunk_index)) {}
+			      _chunk_index(0),
+			      _element_iter(pool._chunk(0)),
+			      _element_iter_begin(_element_iter),
+			      _element_iter_end(pool._chunk_end(_element_iter_begin, 0)) {
 
-			value_type& operator*()noexcept {return *_element_iter;}
-			value_type* operator->()noexcept {return _element_iter;}
+				if(_element_iter) {
+					if(!Pool::_valid(_element_iter)) {
+						++*this; // jump to first valid element
+					}
+
+					// skip the first 'index' elements
+					for(auto i=static_cast<typename Pool::index_t>(0); i<index; i++) {
+						++*this;
+					}
+				}
+			}
+
+			value_type& operator*()noexcept {
+				INVARIANT(Pool::_valid(_element_iter), "access to invalid pool_iterator");
+				return *_element_iter;
+			}
+			value_type* operator->()noexcept {
+				INVARIANT(Pool::_valid(_element_iter), "access to invalid pool_iterator");
+				return _element_iter;
+			}
 
 			pool_iterator& operator++() {
 				INVARIANT(_element_iter!=nullptr, "iterator overflow");

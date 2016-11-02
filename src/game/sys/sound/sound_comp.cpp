@@ -8,6 +8,10 @@ namespace sound {
 	class Sound_sys;
 
 
+	Sound_comp::Sound_comp() : _ctx(nullptr) {
+		std::fill(std::begin(_channels), std::end(_channels), -1);
+	}
+
 	Sound_comp::Sound_comp(ecs::Entity_manager& manager, ecs::Entity_handle owner, audio::Audio_ctx* ctx)
 	    : Component(manager, owner), _ctx(ctx) {
 
@@ -40,9 +44,11 @@ namespace sound {
 		return *this;
 	}
 	Sound_comp::~Sound_comp() {
+		if(!_ctx)
+			return;
+
 		for(auto c : _channels) {
 			if(c!=-1) {
-				INVARIANT(_ctx, "Audio_ctx not set");
 				_ctx->stop(c);
 			}
 		}

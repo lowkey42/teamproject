@@ -49,7 +49,7 @@ else()
 
 		if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND SAN)
 			MESSAGE("Building with sanitizers")
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=integer ")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=integer -fsanitize=undefined -fsanitize-address-use-after-scope ")
 
 		elseif(WIN32)
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")

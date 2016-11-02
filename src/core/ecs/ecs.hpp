@@ -130,13 +130,15 @@ namespace ecs {
 	
 	class Entity_collection_facet {
 		public:
+			typedef Entity_handle value_type;
+
 			Entity_collection_facet(Entity_manager& manager);
 			
 			Entity_iterator begin()const;
 			Entity_iterator end()const;
 			
-			void emplace(Entity_handle h) {
-				INVARIANT(_manager.validate(h), "invalid entity in Entity_collection_facet.emptace()");
+			void emplace_back(Entity_handle h) {
+				INVARIANT(_manager.validate(h), "invalid entity in Entity_collection_facet.emplace_back()");
 			}
 			void clear();
 			

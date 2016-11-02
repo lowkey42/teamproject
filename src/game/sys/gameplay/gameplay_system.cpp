@@ -83,6 +83,7 @@ namespace gameplay {
 			_on_animation_event(e);
 		});
 
+		/*
 		auto dummy = ecs.emplace("player_white");
 		ecs::apply_blueprint(engine.assets(), dummy, "player_red");
 		ecs::apply_blueprint(engine.assets(), dummy, "player_blue");
@@ -91,6 +92,7 @@ namespace gameplay {
 		ecs::apply_blueprint(engine.assets(), dummy, "player_magenta");
 		ecs::apply_blueprint(engine.assets(), dummy, "player_yellow");
 		ecs.erase(dummy);
+		*/
 	}
 
 	void Gameplay_system::_on_contact(sys::physics::Contact& c) {

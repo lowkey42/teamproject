@@ -29,36 +29,45 @@ namespace ecs {
 	}
 
 
+	Compact_index_policy::Compact_index_policy() {
+		_table.resize(32, -1);
+	}
+
 	void Compact_index_policy::attach(Entity_id owner, Component_index comp) {
 		if(owner==invalid_entity_id)
 			return;
 
-		if(static_cast<Entity_id>(_table.size()) <= owner) {
-			_table.resize(owner + 64);
+		if(static_cast<Entity_id>(_table.size()) < owner) {
+			auto capacity = static_cast<std::size_t>(std::max(owner, 64));
+			_table.resize(capacity*2, -1);
 		}
 
-		_table[owner] = comp;
+		_table.at(static_cast<std::size_t>(owner)) = comp;
 	}
 	void Compact_index_policy::detach(Entity_id owner) {
 		if(owner==invalid_entity_id)
 			return;
 
-		if(owner < static_cast<Entity_id>(_table.size())) {
-			_table[owner] = -1;
+		auto idx = static_cast<std::size_t>(owner);
+
+		if(idx < _table.size()) {
+			_table[idx] = -1;
 		}
 	}
 	void Compact_index_policy::shrink_to_fit() {
-		auto new_end = std::find(_table.rbegin(), _table.rend(), -1);
-		_table.erase(std::next(new_end).base(), _table.end());
+		auto new_end = std::find_if(_table.rbegin(), _table.rend(), [](auto i){return i!=0;});
+		_table.erase(new_end.base(), _table.end());
 		_table.shrink_to_fit();
 	}
 	auto Compact_index_policy::find(Entity_id owner)const -> util::maybe<Component_index> {
 		if(owner==invalid_entity_id)
 			return util::nothing();
 
-		if(owner < static_cast<Entity_id>(_table.size())) {
-			auto comp = _table[owner];
-			if(comp!=-1) {
+		auto idx = static_cast<std::size_t>(owner);
+
+		if(idx < _table.size()) {
+			auto comp = _table[idx];
+			if(comp>=0) {
 				return comp;
 			}
 		}

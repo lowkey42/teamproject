@@ -23,6 +23,7 @@ namespace ecs {
 	};
 	class Compact_index_policy {
 		public:
+			Compact_index_policy();
 			void attach(Entity_id, Component_index);
 			void detach(Entity_id);
 			void shrink_to_fit();
@@ -46,22 +47,24 @@ namespace ecs {
 		}
 	};
 	template<class T>
-	constexpr decltype(Pool_storage_policy_value_traits<T>::supports_empty_values) Pool_storage_policy_value_traits<T>::supports_empty_values;
+	constexpr bool Pool_storage_policy_value_traits<T>::supports_empty_values;
 	template<class T>
-	constexpr decltype(Pool_storage_policy_value_traits<T>::max_free) Pool_storage_policy_value_traits<T>::max_free;
+	constexpr int_fast32_t Pool_storage_policy_value_traits<T>::max_free;
 	template<class T>
-	constexpr decltype(Pool_storage_policy_value_traits<T>::free_mark) Pool_storage_policy_value_traits<T>::free_mark;
+	constexpr typename Pool_storage_policy_value_traits<T>::Marker_type Pool_storage_policy_value_traits<T>::free_mark;
 
 
 	template<std::size_t Chunk_size, class T>
 	class Pool_storage_policy {
-			using pool_t = util::pool<T, Chunk_size, Component_index, Pool_storage_policy_value_traits<T>>;
+			using pool_t = util::pool<T, Chunk_size, Component_index>; // , Pool_storage_policy_value_traits<T>
 		public:
 			using iterator = typename pool_t::iterator;
 
 			template<class... Args>
 			auto emplace(Args&&... args) -> std::tuple<T&, Component_index> {
-				return _pool.emplace_back(std::forward<Args>(args)...);
+				auto r = _pool.emplace_back(std::forward<Args>(args)...);
+				INVARIANT(std::get<Component_index>(r)<_pool.size(), "pool broken");
+				return r;
 			}
 
 			void replace(Component_index idx, T&& new_element) {
@@ -110,7 +113,10 @@ namespace ecs {
 		friend void save(sf2::JsonSerializer& s, const Entity_handle& e);
 
 		public:
-			Component_container(Entity_manager& m) : _manager(m) {T::_validate_type_helper();}
+			Component_container(Entity_manager& m) : _manager(m) {
+				T::_validate_type_helper();
+				_index.clear();
+			}
 
 			auto value_type()const noexcept -> Component_type override {
 				return component_type_id<T>();
@@ -146,26 +152,23 @@ namespace ecs {
 			}
 
 			void clear() override {
-				_queued_clear = true;
+				_queued_deletions = Queue<Entity_handle>{}; // clear by moving a new queue into the old
+				_queued_insertions = Queue<Insertion>{}; // clear by moving a new queue into the old
+				_index.clear();
+				_storage.clear();
+				_unoptimized_deletes = 0;
+				_index.shrink_to_fit();
+				//_storage.shrink_to_fit(); // TODO
 			}
 
 			void process_queued_actions() override {
 				process_deletions();
 				process_insertions();
 
-				bool cleared = false;
-				if(_queued_clear.exchange(false)) {
-					_queued_deletions = Queue<Entity_handle>{}; // clear by moving a new queue into the old
-					_queued_insertions = Queue<Insertion>{}; // clear by moving a new queue into the old
-					_index.clear();
-					_storage.clear();
-					cleared = true;
-				}
-
-				if(cleared || _unoptimized_deletes>32) { // TODO
+				if(_unoptimized_deletes>32) {
 					_unoptimized_deletes = 0;
 					_index.shrink_to_fit();
-					//_storage.shrink_to_fit();
+					//_storage.shrink_to_fit(); // TODO
 				}
 			}
 
@@ -175,39 +178,39 @@ namespace ecs {
 				do {
 					std::size_t deletions = _queued_deletions.try_dequeue_bulk(deletions_buffer.data(),
 					                                                           deletions_buffer.size());
-					WARN("delete "<<deletions);
 					if(deletions>0) {
 						for(auto i=0ull; i<deletions; i++) {
 							auto entity_id = get_entity_id(deletions_buffer[i], _manager);
 							if(entity_id==invalid_entity_id) {
-								WARN("Discard delete of component from invalid/deleted entity: "<<entity_name(deletions_buffer[i]));
+								WARN("Discard delete of component "<<T::name()<<" from invalid/deleted entity: "<<entity_name(deletions_buffer[i]));
 								continue;
 							}
 
 							auto comp_idx_mb = _index.find(entity_id);
 							if(!comp_idx_mb) {
-								WARN("Discard delete of deleted component from entity: "<<entity_name(deletions_buffer[i]));
+								WARN("Discard delete of deleted component "<<T::name()<<" from entity: "<<entity_name(deletions_buffer[i]));
 								continue;
 							}
 
 							auto comp_idx = comp_idx_mb.get_or_throw();
 							_index.detach(entity_id);
 
-
 							Insertion insertion;
 							if(_queued_insertions.try_dequeue(insertion)) {
 								auto entity_id = get_entity_id(std::get<1>(insertion), _manager);
 								if(entity_id==invalid_entity) {
-									WARN("Discard insertion of component from invalid/deleted entity: "<<entity_name(std::get<1>(insertion)));
+									WARN("Discard insertion of component "<<T::name()<<" from invalid/deleted entity: "<<entity_name(std::get<1>(insertion)));
 									_storage.erase(comp_idx);
 
 								} else {
 									_storage.replace(comp_idx, std::move(std::get<0>(insertion)));
 									_index.attach(std::get<1>(insertion), comp_idx);
+									DEBUG("replaced "<<T::name()<<" from "<<entity_id);
 								}
 							} else {
 								_storage.erase(comp_idx);
 								_unoptimized_deletes++;
+								DEBUG("erased "<<T::name()<<" from "<<entity_id);
 							}
 						}
 					} else {
@@ -231,6 +234,7 @@ namespace ecs {
 
 							auto comp = _storage.emplace(std::move(std::get<0>(insertions_buffer[i])));
 							_index.attach(entity_id, std::get<1>(comp));
+							DEBUG("created "<<T::name()<<" for "<<entity_id<<" with id "<<std::get<1>(comp));
 						}
 					} else {
 						break;
@@ -296,7 +300,6 @@ namespace ecs {
 			Entity_manager&      _manager;
 			Queue<Entity_handle> _queued_deletions;
 			Queue<Insertion>     _queued_insertions;
-			std::atomic<bool>    _queued_clear        {false};
 			int                  _unoptimized_deletes = 0;
 	};
 

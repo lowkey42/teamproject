@@ -49,6 +49,8 @@ namespace ecs {
 
 	extern Component_type blueprint_comp_id;
 	
+	extern void init_serializer(Entity_manager&);
+
 	extern void apply_blueprint(asset::Asset_manager&, Entity_facet e,
 	                            const std::string& blueprint);
 	

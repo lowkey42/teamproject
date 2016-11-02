@@ -19,6 +19,7 @@
 	#else
 		#include <signal.h>
 		#include <execinfo.h>
+		#include <unistd.h>
 	#endif
 
 	namespace lux {
@@ -356,8 +357,12 @@
 					  default:
 						break;
 					}
-					_Exit(1);
-				  }
+
+				// generate core dump
+				//signal(SIGSEGV, SIG_DFL);
+				//kill(getpid(), SIGSEGV);
+				_Exit(1);
+			}
 
 			char alternate_stack[SIGSTKSZ*2];
 

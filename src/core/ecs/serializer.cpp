@@ -203,7 +203,7 @@ namespace ecs {
 		util::erase_fast(users, target);
 	}
 
-	void init_blueprints(Entity_manager& ecs) {
+	void init_serializer(Entity_manager& ecs) {
 		ecs.register_component_type<BlueprintComponent>();
 	}
 

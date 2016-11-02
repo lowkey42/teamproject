@@ -22,7 +22,7 @@ namespace ecs {
 	Entity_manager::Entity_manager(User_data& ud)
 		: _userdata(ud) {
 
-		// TODO: init_blueprints(*this);
+		init_serializer(*this);
 	}
 
 	Entity_facet Entity_manager::emplace()noexcept {
@@ -31,7 +31,7 @@ namespace ecs {
 	Entity_facet Entity_manager::emplace(const std::string& blueprint) {
 		auto e = emplace();
 
-		// TODO: apply_blueprint(_asset_mgr, *e, blueprint);
+		apply_blueprint(_userdata.assets(), e, blueprint);
 
 		return {*this, e.handle()};
 	}
@@ -96,70 +96,57 @@ namespace ecs {
 
 
 	auto Entity_manager::write_one(Entity_handle source) -> ETO {
-		/*
 		std::stringstream stream;
-		auto serializer = EcsSerializer{stream, *this, _userdata.assets(), {}};
-		serializer.write(*source);
+		auto serializer = Serializer{stream, *this, _userdata.assets(), {}};
+		serializer.write(source);
 		stream.flush();
 
 		return stream.str();
-		*/
-		return {};
 	}
 	auto Entity_manager::read_one(ETO data, Entity_handle target) -> Entity_facet {
-		/*
-		_entities.push_back(target);
+		if(!validate(target)) {
+			target = emplace();
+		}
 
 		std::istringstream stream{data};
-		auto deserializer = EcsDeserializer{"$EntityRestore", stream, *this, _userdata.assets(), {}};
-		deserializer.read(*target);
-	}
-	auto Entity_manager::restore(const std::string& data) -> Entity_ptr {
-		auto target = emplace();
-
-		std::istringstream stream{data};
-		auto deserializer = EcsDeserializer{"$EntityRestore", stream, *this, _userdata.assets(), {}};
-		deserializer.read(*target);
-
-		return target;
-		*/
-		return Entity_facet{};
+		auto deserializer = Deserializer{"$EntityRestore", stream, *this, _userdata.assets(), {}};
+		deserializer.read(target);
+		return {*this, target};
 	}
 
 	void Entity_manager::write(std::ostream& stream, Component_filter filter) {
-		// _handles.foreach_valid_handle([&](auto h){});
 
-		// write(stream, _entities, filter);
-	}
-
-	void Entity_manager::write(std::ostream& stream,
-	                           const std::vector<Entity_handle>& entities,
-	                           Component_filter filter) {
-/*
-		auto serializer = EcsSerializer{stream, *this, _userdata.assets(), filter};
+		auto serializer = Serializer{stream, *this, _userdata.assets(), filter};
+		auto entities = Entity_collection_facet{*this};
 		serializer.write_virtual(
 			sf2::vmember("entities", entities)
 		);
 
 		stream.flush();
-*/
+	}
+
+	void Entity_manager::write(std::ostream& stream,
+	                           const std::vector<Entity_handle>& entities,
+	                           Component_filter filter) {
+
+		auto serializer = Serializer{stream, *this, _userdata.assets(), filter};
+		serializer.write_virtual(
+			sf2::vmember("entities", entities)
+		);
+
+		stream.flush();
 	}
 
 	void Entity_manager::read(std::istream& stream, bool clear, Component_filter filter) {
-/*
 		if(clear) {
 			this->clear();
 		}
 
-		// read into dummy vector, because entity register themself when they are created
-		std::vector<Entity_ptr> dummy;
-		auto deserializer = EcsDeserializer{"$EntityDump", stream, *this, _asset_mgr, filter};
+		auto deserializer = Deserializer{"$EntityDump", stream, *this, _userdata.assets(), filter};
+		auto entities = Entity_collection_facet{*this};
 		deserializer.read_virtual(
-			sf2::vmember("entities", dummy)
+			sf2::vmember("entities", entities)
 		);
-
-		DEBUG("Loaded "<<dummy.size()<<" entities");
-*/
 	}
 	
 	

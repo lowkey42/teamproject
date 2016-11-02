@@ -39,7 +39,7 @@ namespace ecs {
 	using Component_type = int_fast16_t;
 
 	namespace detail {
-		extern Component_index id_generator();
+		extern Component_type id_generator();
 	}
 
 	template <typename t>
@@ -82,16 +82,6 @@ namespace ecs {
 				_revision++;
 			}
 
-			constexpr bool operator==(const Entity_handle& rhs)const noexcept {
-				return _id==rhs._id && _revision==rhs._revision;
-			}
-			constexpr bool operator!=(const Entity_handle& rhs)const noexcept {
-				return _id!=rhs._id || _revision!=rhs._revision;
-			}
-			bool operator<(const Entity_handle& rhs)const noexcept {
-				return std::tie(_id,_revision) < std::tie(rhs._id,rhs._revision);
-			}
-
 			constexpr packed_t pack()const noexcept {
 				return static_cast<packed_t>(_id)<<4 | static_cast<packed_t>(_revision);
 			}
@@ -103,6 +93,16 @@ namespace ecs {
 			int32_t _id:28;
 			uint8_t _revision:4;
 	};
+
+	constexpr inline bool operator==(const Entity_handle& lhs, const Entity_handle& rhs)noexcept {
+		return lhs.id()==rhs.id() && lhs.revision()==rhs.revision();
+	}
+	constexpr inline bool operator!=(const Entity_handle& lhs, const Entity_handle& rhs)noexcept {
+		return lhs.id()!=rhs.id() || lhs.revision()!=rhs.revision();
+	}
+	inline bool operator<(const Entity_handle& lhs, const Entity_handle& rhs)noexcept {
+		return std::make_tuple(lhs.id(),lhs.revision()) < std::make_tuple(rhs.id(),rhs.revision());
+	}
 
 	static_assert(sizeof(Entity_handle::packed_t)<=sizeof(void*),
 	              "what the hell is wrong with your plattform?!");
@@ -157,7 +157,7 @@ namespace ecs {
 			// NOT thread-safe
 			auto free(Entity_handle h) -> Entity_handle {
 				if(h.id()-1 >= static_cast<Entity_id>(_slots.size())) {
-					_slots.resize(static_cast<std::size_t>(h.id()-1) *2);
+					_slots.resize(static_cast<std::size_t>(h.id()-1) *2, 0);
 				}
 
 				auto rev = util::at(_slots, static_cast<std::size_t>(h.id()-1)).load();
@@ -210,7 +210,7 @@ namespace ecs {
 			// NOT thread-safe
 			void clear() {
 				_slots.clear();
-				_slots.resize(_slots.capacity());
+				_slots.resize(_slots.capacity(), 0);
 				_next_free_slot = 0;
 				_free = Freelist{}; // clear by moving a new queue into the old
 			}
@@ -233,8 +233,7 @@ namespace ecs {
 	class Entity_facet {
 		public:
 			Entity_facet() : _manager(nullptr), _owner(invalid_entity) {}
-			Entity_facet(Entity_manager& manager, Entity_handle owner)
-			    : _manager(&manager), _owner(owner) {}
+			Entity_facet(Entity_manager& manager, Entity_handle owner);
 
 			template<typename T>
 			util::maybe<T&> get();
@@ -259,14 +258,11 @@ namespace ecs {
 
 			auto valid()const noexcept -> bool;
 
-			operator bool()const noexcept {return valid();}
+			explicit operator bool()const noexcept {return valid();}
 			operator Entity_handle()const noexcept {return handle();}
 
 			void reset() {
 				_owner = invalid_entity;
-			}
-			bool operator==(const Entity_facet& rhs)const noexcept {
-				return handle()==rhs.handle();
 			}
 
 			// see ecs.hxx for implementation of template methods

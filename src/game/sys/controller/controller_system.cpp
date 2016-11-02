@@ -248,6 +248,10 @@ namespace controller {
 
 		for(auto& c : _input_controllers) {
 			if(c.owner_handle()!=_active_controlled_entity.handle()) {
+				if(!c.owner().has<physics::Dynamic_body_comp>()) {
+					DEBUG("no body");
+					continue;
+				}
 				INVARIANT(c.owner().get<physics::Transform_comp>(), "no pos");
 				INVARIANT(c.owner().get<physics::Dynamic_body_comp>(), "no body");
 				auto& body = c.owner().get<physics::Dynamic_body_comp>().get_or_throw();
