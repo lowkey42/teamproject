@@ -74,40 +74,41 @@ namespace sound {
 			return;
 
 		if(_mappings->event_stop_loops.count(event.name)>0) {
-			auto e = _ecs.get(ecs::to_entity_handle(event.owner)).get_or_other({});
-			e.get<Sound_comp>().process([&](Sound_comp& s) {
-				for(auto& c : s._channels) {
-					_audio_ctx.stop(c);
-					c=-1;
-				}
-			});
+			if(auto e = _ecs.get(ecs::to_entity_handle(event.owner)).get_or_other({})) {
+				e.get<Sound_comp>().process([&](Sound_comp& s) {
+					for(auto& c : s._channels) {
+						_audio_ctx.stop(c);
+						c=-1;
+					}
+				});
+			}
 		}
 
 		auto sound = _event_sounds.find(event.name);
 		if(sound!=_event_sounds.end()) {
-			auto e = _ecs.get(ecs::to_entity_handle(event.owner)).get_or_other({});
-
-			auto play = [&](auto& comp) {
-				for(auto& channel : comp._channels) {
-					if(!_audio_ctx.playing(channel)) {
-						channel = _audio_ctx.play_static(*sound->second.sound, sound->second.loop);
-						return;
+			if(auto e = _ecs.get(ecs::to_entity_handle(event.owner)).get_or_other({})) {
+				auto play = [&](auto& comp) {
+					for(auto& channel : comp._channels) {
+						if(!_audio_ctx.playing(channel)) {
+							channel = _audio_ctx.play_static(*sound->second.sound, sound->second.loop);
+							return;
+						}
 					}
-				}
 
-				if(!sound->second.loop) {
-					_audio_ctx.play_static(*sound->second.sound);
+					if(!sound->second.loop) {
+						_audio_ctx.play_static(*sound->second.sound);
+					} else {
+						DEBUG("No free entity channel");
+					}
+				};
+
+				auto comp = e.get<Sound_comp>();
+				if(comp.is_nothing()) {
+					e.emplace_init<Sound_comp>(play, &_audio_ctx);
 				} else {
-					DEBUG("No free entity channel");
+					comp.get_or_throw()._ctx = &_audio_ctx;
+					play(comp.get_or_throw());
 				}
-			};
-
-			auto comp = e.get<Sound_comp>();
-			if(comp.is_nothing()) {
-				e.emplace_init<Sound_comp>(play, &_audio_ctx);
-			} else {
-				comp.get_or_throw()._ctx = &_audio_ctx;
-				play(comp.get_or_throw());
 			}
 		}
 	}

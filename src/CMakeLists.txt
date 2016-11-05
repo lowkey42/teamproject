@@ -9,6 +9,12 @@ set(VERSION_NAME "0.2")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024 -std=c++14 -Wextra -Wall -pedantic -Werror -Wno-unused-parameter -Wno-unused-private-field")
 
+option(DO_LTO "Enables LTO" OFF)
+if(DO_LTO)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024 -std=c++14 -flto -Wextra -Wall -pedantic -Werror -Wno-unused-parameter")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
+endif()
+
 include_directories(${ROOT_DIR}/src)
 
 

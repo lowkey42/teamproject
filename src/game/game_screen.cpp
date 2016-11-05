@@ -230,7 +230,7 @@ namespace lux {
 
 		auto orb_count = left_side ? left_count : right_count;
 
-
+		// FIXME
 		auto iter = selected;
 		for(auto i=0; i<orb_count; i++) {
 			if(left_side) {

@@ -284,7 +284,7 @@ namespace util {
 			template<typename F>
 			void shrink_to_fit(F&& relocation) {
 				if(_freelist.size() > ValueTraits::max_free) {
-					std::sort(_freelist.begin(), _freelist.end(), std::greater<IndexType>{});
+					std::sort(_freelist.begin(), _freelist.end(), std::greater<>{});
 					for(auto i : _freelist) {
 						base_t::erase(i, relocation);
 					}
@@ -319,14 +319,14 @@ namespace util {
 		public:
 			using value_type = typename Pool::value_type;
 			
-			pool_iterator()
-			    : _pool(nullptr),
-			      _chunk_index(0),
+			pool_iterator(Pool& pool)
+			    : _pool(&pool),
+			      _chunk_index(pool._chunks.size()),
 			      _element_iter(nullptr),
 			      _element_iter_begin(nullptr),
 			      _element_iter_end(nullptr) {}
 
-			pool_iterator(Pool& pool, typename Pool::index_t index=0)
+			pool_iterator(Pool& pool, typename Pool::index_t index)
 			    : _pool(&pool),
 			      _chunk_index(0),
 			      _element_iter(pool._chunk(0)),
@@ -379,8 +379,15 @@ namespace util {
 					if(_element_iter==_element_iter_begin) {
 						INVARIANT(_chunk_index>0, "iterator underflow");
 						--_chunk_index;
-						_element_iter_begin = _element_iter = _pool->_chunk(_chunk_index);
+						_element_iter_begin = _pool->_chunk(_chunk_index);
 						_element_iter_end = _pool->_chunk_end(_element_iter_begin, _chunk_index);
+
+						if(_element_iter_end!=_element_iter_begin) {
+							_element_iter = _element_iter_end - 1;
+						} else {
+							_element_iter = _element_iter_begin;
+						}
+
 					} else {
 						--_element_iter;
 					}
@@ -413,23 +420,23 @@ namespace util {
 
 	template<class T, std::size_t ElementsPerChunk, class Index_type, class ValueTraits, bool use_empty_values>
 	auto pool<T, ElementsPerChunk, Index_type, ValueTraits, use_empty_values>::begin()noexcept -> iterator {
-		return iterator{*this};
+		return iterator{*this, 0};
 	}
 
 	template<class T, std::size_t ElementsPerChunk, class Index_type, class ValueTraits, bool use_empty_values>
 	auto pool<T, ElementsPerChunk, Index_type, ValueTraits, use_empty_values>::end()noexcept -> iterator {
-		return iterator{};
+		return iterator{*this};
 	}
 
 
 	template<class T, std::size_t ElementsPerChunk, class Index_type, class ValueTraits>
 	auto pool<T, ElementsPerChunk, Index_type, ValueTraits, true>::begin()noexcept -> iterator {
-		return iterator{*this};
+		return iterator{*this, 0};
 	}
 
 	template<class T, std::size_t ElementsPerChunk, class Index_type, class ValueTraits>
 	auto pool<T, ElementsPerChunk, Index_type, ValueTraits, true>::end()noexcept -> iterator {
-		return iterator{};
+		return iterator{*this};
 	}
 
 }

@@ -62,9 +62,7 @@ namespace ecs {
 
 			template<class... Args>
 			auto emplace(Args&&... args) -> std::tuple<T&, Component_index> {
-				auto r = _pool.emplace_back(std::forward<Args>(args)...);
-				INVARIANT(std::get<Component_index>(r)<_pool.size(), "pool broken");
-				return r;
+				return _pool.emplace_back(std::forward<Args>(args)...);
 			}
 
 			void replace(Component_index idx, T&& new_element) {
@@ -203,14 +201,14 @@ namespace ecs {
 							Insertion insertion;
 							if(_queued_insertions.try_dequeue(insertion)) {
 								auto entity_id = get_entity_id(std::get<1>(insertion), _manager);
-								if(entity_id==invalid_entity) {
+								if(entity_id==invalid_entity_id) {
 									_storage.erase(comp_idx, [&](auto, auto& comp, auto new_idx) {
 										_index.attach(comp.owner_handle().id(), new_idx);
 									});
 
 								} else {
 									_storage.replace(comp_idx, std::move(std::get<0>(insertion)));
-									_index.attach(std::get<1>(insertion), comp_idx);
+									_index.attach(std::get<1>(insertion).id(), comp_idx);
 								}
 							} else {
 								_storage.erase(comp_idx, [&](auto, auto& comp, auto new_idx) {
@@ -234,7 +232,7 @@ namespace ecs {
 					if(insertions>0) {
 						for(auto i=0ull; i<insertions; i++) {
 							auto entity_id = get_entity_id(std::get<1>(insertions_buffer[i]), _manager);
-							if(entity_id==invalid_entity) {
+							if(entity_id==invalid_entity_id) {
 								WARN("Discard insertion of component from invalid/deleted entity: "<<entity_name(std::get<1>(insertions_buffer[i])));
 								continue;
 							}

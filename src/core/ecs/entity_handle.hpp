@@ -32,7 +32,7 @@ namespace ecs {
 			constexpr Entity_handle() : _id(0), _revision(0) {}
 			constexpr Entity_handle(Entity_id id, uint8_t revision) : _id(id), _revision(revision) {}
 
-			constexpr operator bool()const noexcept {
+			constexpr explicit operator bool()const noexcept {
 				return _id!=0;
 			}
 
@@ -145,31 +145,16 @@ namespace ecs {
 			}
 
 			// NOT thread-safe
-			template<typename F>
-			void foreach_valid_handle(F&& func) {
+			auto next(Entity_handle curr=invalid_entity)const -> Entity_handle {
+				// internal_id = external_id - 1, so we don't need to increment it here
 				auto end = _next_free_slot.load();
 
-				for(Entity_id id=0; id<end; id++) {
-					if(id>=static_cast<Entity_id>(_slots.size())) {
-						func(Entity_handle{id+1,0});
-					} else {
-						auto rev = util::at(_slots, static_cast<std::size_t>(id)).load();
-						if((rev & ~Entity_handle::free_rev)!=0) { // is marked used
-							func(Entity_handle{id+1,rev});
-						}
-					}
-				}
-			}
-
-			auto next(Entity_id curr=-1)const -> Entity_handle {
-				auto end = _next_free_slot.load();
-
-				for(Entity_id id=curr+1; id<end; id++) {
+				for(Entity_id id=curr.id(); id<end; id++) {
 					if(id>=static_cast<Entity_id>(_slots.size())) {
 						return Entity_handle{id+1,0};
 					} else {
 						auto rev = util::at(_slots, static_cast<std::size_t>(id)).load();
-						if((rev & ~Entity_handle::free_rev)!=0) { // is marked used
+						if((rev & ~Entity_handle::free_rev)==rev) { // is marked used
 							return Entity_handle{id+1,rev};
 						}
 					}
