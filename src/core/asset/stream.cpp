@@ -94,7 +94,7 @@ namespace asset {
 	protected:
 		PHYSFS_File * const file;
 	public:
-		fbuf(File_handle* file, std::size_t bufferSize = 2048)
+		fbuf(File_handle* file, std::size_t bufferSize = 1024*8)
 				: bufferSize(bufferSize), file((PHYSFS_File*)file) {
 			buffer = new char[bufferSize];
 			char * end = buffer + bufferSize;
@@ -174,7 +174,9 @@ namespace asset {
 		return lines;
 	}
 	std::string istream::content() {
-		std::string content(std::istreambuf_iterator<char>{*this}, std::istreambuf_iterator<char>{});
+		std::string content;
+		content.reserve(length());
+		content.assign(std::istreambuf_iterator<char>{*this}, std::istreambuf_iterator<char>{});
 
 		util::replace_inplace(content, "\r", "");
 
