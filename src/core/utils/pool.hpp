@@ -62,13 +62,12 @@ namespace util {
 			 * O(N)
 			 */
 			void clear()noexcept {
-				for(auto& chunk : _chunks) {
-					for(IndexType i=0; i<chunk_len; i++) {
-						reinterpret_cast<T&>(chunk[i]).~T();
-					}
+				for(auto& inst : *this) {
+					inst.~T();
 				}
-				_chunks.clear();
-				_used_elements = 0;
+
+				this->_chunks.clear();
+				this->_used_elements = 0;
 			}
 			/**
 			 * Deletes the last element. Invalidates all iterators and references to the last element.
@@ -84,15 +83,21 @@ namespace util {
 			}
 			/**
 			 * Deletes a specific element.
+			 * relocation = func(original:IndexType, T& value, new:IndexType)->void
 			 * Invalidates all iterators and references to the specified and the last element.
 			 * O(1)
 			 */
-			// FIXME: has to provide interface to pass modified indices that have to be updated!
-			auto erase(IndexType i) {
-				INVARIANT(i<_used_elements, "erase is out of range");
+			void erase(IndexType i) {
+				erase(i, [](auto,auto){});
+			}
+			template<typename F>
+			void erase(IndexType i, F&& relocation) {
+				INVARIANT(i<_used_elements, "erase is out of range: "<<i<<">="<<_used_elements);
 
 				if(i<(_used_elements-1)) {
-					get(i) = std::move(back());
+					auto& pivot = back();
+					relocation(_used_elements-1, pivot, i);
+					get(i) = std::move(pivot);
 				}
 
 				pop_back();
@@ -100,9 +105,14 @@ namespace util {
 
 			/**
 			 * Frees all unused memory. May invalidate all iterators and references.
+			 * relocation = func(original:IndexType, T& value, new:IndexType)->void
 			 * O(1)
 			 */
 			void shrink_to_fit() {
+				shrink_to_fit([](auto,auto){});
+			}
+			template<typename F>
+			void shrink_to_fit(F&&) {
 				auto min_chunks = std::ceil(static_cast<float>(_used_elements)/chunk_len);
 				_chunks.resize(static_cast<std::size_t>(min_chunks));
 			}
@@ -232,8 +242,12 @@ namespace util {
 
 				_freelist.clear();
 			}
-			
+
 			auto erase(IndexType i) {
+				erase(i, [](auto,auto){});
+			}
+			template<typename F>
+			auto erase(IndexType i, F&&) {
 				T& instance = this->get(i);
 				auto instance_addr = &instance;
 				INVARIANT(_valid(instance_addr), "double free");
@@ -263,19 +277,21 @@ namespace util {
 
 				return base_t::emplace_back(std::forward<Args>(args)...);
 			}
-			
-			// FIXME: has to provide interface to pass modified indices that have to be updated!
+
 			void shrink_to_fit() {
-				FAIL("FIXME");
+				shrink_to_fit([](auto,auto){});
+			}
+			template<typename F>
+			void shrink_to_fit(F&& relocation) {
 				if(_freelist.size() > ValueTraits::max_free) {
 					std::sort(_freelist.begin(), _freelist.end(), std::greater<IndexType>{});
 					for(auto i : _freelist) {
-						base_t::erase(i);
+						base_t::erase(i, relocation);
 					}
 					_freelist.clear();
 				}
 
-				base_t::shrink_to_fit();
+				base_t::shrink_to_fit(relocation);
 			}
 			
 			

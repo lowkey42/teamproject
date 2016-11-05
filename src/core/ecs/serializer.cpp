@@ -269,7 +269,7 @@ namespace ecs {
 
 		s.write_lambda([&] {
 			ecs_s.manager.list_all([&](auto& container) {
-				if(ecs_s.filter && !ecs_s.filter(container.value_type())) {
+				if(!ecs_s.filter || ecs_s.filter(container.value_type())) {
 					container.save(e, ecs_s);
 				}
 			});

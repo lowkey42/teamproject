@@ -29,7 +29,7 @@ namespace ecs {
 
 
 	struct Index_policy {
-		void attach(Entity_id, Component_index);
+		void attach(Entity_id, Component_index); //< overrides previous assignments
 		void detach(Entity_id);
 		void shrink_to_fit();
 		auto find(Entity_id)const -> util::maybe<Component_index>;
@@ -49,8 +49,10 @@ namespace ecs {
 		template<class... Args>
 		auto emplace(Args&&... args) -> std::tuple<T&, Component_index>;
 		void replace(Component_index, T&&);
-		void erase(Component_index);
-		void shrink_to_fit();
+		template<typename F>
+		void erase(Component_index, F&& relocate);
+		template<typename F>
+		void shrink_to_fit(F&& relocate);
 		auto get(Component_index) -> T&;
 		void clear();
 	};

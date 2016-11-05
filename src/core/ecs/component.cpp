@@ -5,7 +5,7 @@ namespace ecs {
 
 	void Sparse_index_policy::attach(Entity_id owner, Component_index comp) {
 		if(owner!=invalid_entity_id)
-			_table.emplace(owner, comp);
+			_table[owner] = comp;
 	}
 	void Sparse_index_policy::detach(Entity_id owner) {
 		if(owner!=invalid_entity_id)

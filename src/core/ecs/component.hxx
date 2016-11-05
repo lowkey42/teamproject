@@ -56,7 +56,7 @@ namespace ecs {
 
 	template<std::size_t Chunk_size, class T>
 	class Pool_storage_policy {
-			using pool_t = util::pool<T, Chunk_size, Component_index>; // , Pool_storage_policy_value_traits<T>
+			using pool_t = util::pool<T, Chunk_size, Component_index, Pool_storage_policy_value_traits<T>>;
 		public:
 			using iterator = typename pool_t::iterator;
 
@@ -71,16 +71,18 @@ namespace ecs {
 				_pool.replace(idx, std::move(new_element));
 			}
 
-			void erase(Component_index idx) {
-				_pool.erase(idx);
+			template<typename F>
+			void erase(Component_index idx, F&& relocate) {
+				_pool.erase(idx, std::forward<F>(relocate));
 			}
 
 			void clear() {
 				_pool.clear();
 			}
 
-			void shrink_to_fit() {
-				_pool.shrink_to_fit();
+			template<typename F>
+			void shrink_to_fit(F&& relocate) {
+				_pool.shrink_to_fit(std::forward<F>(relocate));
 			}
 
 			auto get(Component_index idx) -> T& {
@@ -158,7 +160,9 @@ namespace ecs {
 				_storage.clear();
 				_unoptimized_deletes = 0;
 				_index.shrink_to_fit();
-				//_storage.shrink_to_fit(); // TODO
+				_storage.shrink_to_fit([&](auto, auto& comp, auto new_idx) {
+					_index.attach(comp.owner_handle().id(), new_idx);
+				});
 			}
 
 			void process_queued_actions() override {
@@ -168,7 +172,9 @@ namespace ecs {
 				if(_unoptimized_deletes>32) {
 					_unoptimized_deletes = 0;
 					_index.shrink_to_fit();
-					//_storage.shrink_to_fit(); // TODO
+					_storage.shrink_to_fit([&](auto, auto& comp, auto new_idx) {
+						_index.attach(comp.owner_handle().id(), new_idx);
+					});
 				}
 			}
 
@@ -188,7 +194,6 @@ namespace ecs {
 
 							auto comp_idx_mb = _index.find(entity_id);
 							if(!comp_idx_mb) {
-								WARN("Discard delete of deleted component "<<T::name()<<" from entity: "<<entity_name(deletions_buffer[i]));
 								continue;
 							}
 
@@ -199,18 +204,20 @@ namespace ecs {
 							if(_queued_insertions.try_dequeue(insertion)) {
 								auto entity_id = get_entity_id(std::get<1>(insertion), _manager);
 								if(entity_id==invalid_entity) {
-									WARN("Discard insertion of component "<<T::name()<<" from invalid/deleted entity: "<<entity_name(std::get<1>(insertion)));
-									_storage.erase(comp_idx);
+									_storage.erase(comp_idx, [&](auto, auto& comp, auto new_idx) {
+										_index.attach(comp.owner_handle().id(), new_idx);
+									});
 
 								} else {
 									_storage.replace(comp_idx, std::move(std::get<0>(insertion)));
 									_index.attach(std::get<1>(insertion), comp_idx);
-									DEBUG("replaced "<<T::name()<<" from "<<entity_id);
 								}
 							} else {
-								_storage.erase(comp_idx);
+								_storage.erase(comp_idx, [&](auto, auto& comp, auto new_idx) {
+									auto entity_id = get_entity_id(comp.owner_handle(), _manager);
+									_index.attach(entity_id, new_idx);
+								});
 								_unoptimized_deletes++;
-								DEBUG("erased "<<T::name()<<" from "<<entity_id);
 							}
 						}
 					} else {
@@ -234,7 +241,6 @@ namespace ecs {
 
 							auto comp = _storage.emplace(std::move(std::get<0>(insertions_buffer[i])));
 							_index.attach(entity_id, std::get<1>(comp));
-							DEBUG("created "<<T::name()<<" for "<<entity_id<<" with id "<<std::get<1>(comp));
 						}
 					} else {
 						break;
